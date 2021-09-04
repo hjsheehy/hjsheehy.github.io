@@ -1,0 +1,37 @@
+#PBS -S /bin/bash
+#PBS -m abe
+#PBS -d /home/tmpdata/hjs40/master/non-self-consistent/active
+#PBS -o /home/tmpdata/hjs40/master/non-self-consistent/active
+#PBS -j oe
+#PBS -M hjs45@kent.ac.uk
+#PBS -N non-self-consistent
+#PBS -l nodes=1:ppn=8,mem=62gb,walltime=2:00:00:00
+
+module load python3
+ 
+in_folder=../in
+out_folder=../out
+
+func(){
+  while [ `ls ../in | wc -l` -gt 0 ] ; do
+    grab_name=`ls ${in_folder}/*.conf | head -n 1`
+    grab=`basename ${grab_name}`
+    mv ${in_folder}/${grab} .
+    echo "Running non-self-consistent.py ${grab}"
+    python non-self-consistent.py ${grab}
+	wait
+    echo "Done non-self-consistent.py ${grab}"
+	sleep 10
+    mv ${grab} ${out_folder}
+    sleep 2
+ done
+ }
+  
+n_parallel=1
+
+for ((i=0 ; i<$n_parallel ; i++)); do
+  func &
+  sleep 1
+done
+wait
+echo "Stop"
