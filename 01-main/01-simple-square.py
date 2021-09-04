@@ -44,11 +44,10 @@ hoppings = [[t, 0, 0, [1,0]],
 if len(dimensions)==3:
     pbc=[True,True,True]
     #pbc=[False,False,False]
-    if dimensions[2]>1:
-        basis=[[1,0,0],[0,1,0],[0,0,1]]
-        hoppings = [[t, 0, 0, [1,0,0]],
-                    [t, 0, 0, [0,1,0]],
-                    [t, 0, 0, [0,0,1]]]
+    basis=[[1,0,0],[0,1,0],[0,0,1]]
+    hoppings = [[t, 0, 0, [1,0,0]],
+                [t, 0, 0, [0,1,0]],
+                [t, 0, 0, [0,0,1]]]
 ############# impurities ##############
 impurity_loc = [[0,0,0]]
 impurity_spin = np.eye(n_spins)
@@ -195,10 +194,12 @@ ax = fig.add_subplot(111)
 
 omega=0
 layer=(slice(None),slice(None),0)
+if len(dimensions)==2:
+    layer=(slice(None),slice(None))
 ldos = LDOS(model.density_of_states, omegas, omega, trace_over=True)
 ldos = LocalDensityOfStates(fig, ax, model, ldos, omega)
-fig=ldos.plot_3D()
-fig.show()
+# fig=ldos.plot_3D()
+# fig.show()
 fig,ax=ldos.imshow(layer)
 plt.show()
 

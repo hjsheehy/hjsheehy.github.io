@@ -27,12 +27,6 @@ def wrap(positions, dimensions):
     temp = np.array(dimensions)/2
     return np.add(np.mod(np.add(positions, temp), dimensions), -temp)
 
-# def round_down(x):
-#     return round(x, -int(floor(log10(abs(x)))))
-
-# def round_up(x):
-#     return round(x, -int(ceil(log10(abs(x)))))
-
 ###################################################################
 ############################ Indexing #############################
 ###################################################################
@@ -60,7 +54,6 @@ def coordinates_to_indices(array, dimensions):
 def Green_function(omega, eigenvalues, density_matrix):
     '''7-dimensional data set: [x, y, z, spin, spin, orbital, orbital]'''
     return np.einsum('e,ie->i', 1/(omega-eigenvalues), density_matrix,optimize=True)
-    # return np.einsum('e,xyzustmne->xyzustmn', 1/(omega-eigenvalues), density_matrix)
 
 def DOS(omegas, eigenvalues, density_matrix):
     '''8-dimensional data set: [x, y, z, spin, spin, orbital, orbital, omega]'''
@@ -87,10 +80,10 @@ def LDOS(dos, omegas, omega, trace_over=True):
         local density of states
     """
     index = FindNearestValueOfArray(omegas, omega)
-    ldos = dos[:,:,:,:,:,index]
+    ldos = dos[...,index]
     if trace_over==True:
         tmp = np.shape(ldos)
-        n_spins, n_orbs = tmp[3:5]
+        n_spins, n_orbs = tmp[-2:]
         ldos = np.sum(ldos, axis=(-1,-2))/(n_spins*n_orbs)
     return ldos
 
@@ -164,28 +157,14 @@ class Model():
             if self.pbc[i]:
                 self.edge[i]=+100000000
 
-        for i in range(len(hoppings)):
-            cell_hop=hoppings[i][3]
-            if len(cell_hop)==2:
-                cell_hop.append(0)
-                hoppings[i][3]=cell_hop
         if len(basis)>self.n_dim:
             raise ValueError('Overcomplete basis!')
         for i, orb in enumerate(self.orbitals):
             if len(orb)<self.n_dim:
                 raise ValueError(f'Orbital {orb} not {self.n_dim}D!')
-            if len(orb)==2:
-                orb = np.append(orb,0)
-                self.orbitals[i] = orb
         for i, vec in enumerate(basis):
             if len(vec)<self.n_dim:
                 raise ValueError(f'Basis vector {vec} not {self.n_dim}D!')
-            if len(vec)==2:
-                vec = np.append(vec,0)
-            self.basis[i] = vec
-        if self.n_dim==2:
-            self.dimensions=np.append(dimensions,[1])
-            self.n_dim+=1
 
         # Append a dimension for the orbitals:
         self.extended_dimensions  = np.append(self.dimensions, [self.n_spins,self.n_orbs])
@@ -201,17 +180,17 @@ class Model():
         self.coord[:,:self.n_dim] = wrap(self.coord[:,:self.n_dim], self.dimensions)
 
         self.coord_cell = self.coord[:,:self.n_dim]
-        self.index_cell = self.index[:,:,:,0,0]
-        positions = np.empty(np.append(self.extended_dimensions,[3]))
-        self.pos_orb = np.copy(positions)
-        for index in range(self.n_dof):
-            coord = tuple(self.coord[index])
+
+        #positions = np.empty(np.append(self.extended_dimensions,[3]))
+        #self.pos_orb = np.copy(positions)
+        #for index in range(self.n_dof):
+        #    coord = tuple(self.coord[index])
             # Add zero vector to 2D basis:
-            pos = np.dot(self.coord_cell[index], self.basis)
-            positions[coord] = pos
-            self.pos_orb[coord] = pos + self.orbitals[coord[4]]
+        #    pos = np.dot(self.coord_cell[index], self.basis)
+        #    positions[coord] = pos
+        #    self.pos_orb[coord] = pos + self.orbitals[coord[4]]
         # Origin is the lattice centre of mass:
-        self.com = np.mean(orbitals,axis=0)
+        #self.com = np.mean(orbitals,axis=0)
 ###################################################################
 ######################### Hamiltonian #############################
 ###################################################################
@@ -315,6 +294,7 @@ class TB(Model):
         y=y+hop
         # cut out hop outside of boundary:
         indices=np.invert(np.any(y>edge,axis=-1))
+        x = x[indices]
         y = y[indices]
         x=coordinates_to_indices(x,dim)
         y=coordinates_to_indices(y,dim)
@@ -397,7 +377,7 @@ class TB(Model):
         w,v = la.eigh(ham, overwrite_a=True)
         #from scipy.sparse.linalg import eigsh
         # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
-        v=self.fourier_transform(v)
+        #v=self.fourier_transform(v)
         # v=self.inv_fourier_transform(v)
         dm = self._density_matrix(v) 
         self.density_of_states = DOS(self.omegas,w,dm)
@@ -637,18 +617,6 @@ class BdG_SC(BdG):
         self._fock_indices = []
         self._gorkov_indices = []
         
-   # def set_Hubbard_U(self, hubbard_tensor):
-   #     return np.array(
-   #             [[[[[[[hubbard_tensor[self.index[x, y, z, t, n],
-   #                          self.index[x, y, z, s, m]]
-   #             for n in range(self.extended_dimensions[4])] 
-   #             for m in range(self.extended_dimensions[4])]
-   #             for t in range(self.extended_dimensions[3])] 
-   #             for s in range(self.extended_dimensions[3])]
-   #             for z in range(self.extended_dimensions[2])]
-   #             for y in range(self.extended_dimensions[1])] 
-   #             for x in range(self.extended_dimensions[0])])
-
     def _set_fields(self, hartree_entries, fock_entries, gorkov_entries):
         """Returns Hartree, Fock, Gorkov"""
         hartree = -np.einsum('ij,j->i',self._hubbard_U,hartree_entries,optimize=True)
@@ -795,7 +763,6 @@ class BdG_SC(BdG):
                 break
             if i+1 == self.max_iterations:
                 print('Did not converge within max_iterations!')
-                #self._hartree, self._fock, self._gorkov = float('nan')*self._hartree, float('nan')*self._fock, float('nan')*self._gorkov
                 break
 
         if dos:
@@ -991,7 +958,9 @@ class LocalDensityOfStates(Model):
         eV=np.real(omega)
         epsilon=np.imag(omega)
 
-        n_x,n_y=np.shape(ldos)[:2]
+        self.ldos=ldos
+
+        x,y=np.shape(ldos)[:2]
         
         self.text= (f'DOS map'
         '\n'
@@ -1017,10 +986,8 @@ class LocalDensityOfStates(Model):
                # )
         self.interpolation = 'none'
         self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
-        self._extent = [-n_x/2,n_x/2,-n_y/2,n_y/2]
+        self._extent = [-x/2,x/2,-y/2,y/2]
         self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
-
-        self.ldos=ldos
 
     def imshow(self,layer=(slice(None),slice(None),0)):
         x=self.ldos[layer]
