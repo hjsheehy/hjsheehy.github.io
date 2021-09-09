@@ -42,16 +42,6 @@ def ClearOutFolder(out_folder, silent=False):
                 exit()
         os.system(f'rm -r {out_folder}*')
 
-def FindNearestValueOfArray(array, value):
-    '''Returns index of nearest value in the array'''
-    return (np.abs(array - value)).argmin()
-
-def FindIndicesOfArray(array, bound1, bound2):
-    '''Returns indices of array within boundary'''
-    upperBound = max(bound1, bound2)
-    lowerBound = min(bound1, bound2)
-    return np.where(np.logical_and(array>=lowerBound, array<=upperBound))[0]
-
 suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
 def humansize(nbytes):
     '''Returns human readable memory'''

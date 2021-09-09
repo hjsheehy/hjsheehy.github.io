@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright under GNU General Public License 2021
+# by Henry Sheehy
+
 import sys
 import os
 ROOT_DIR = os.path.dirname(
@@ -16,9 +21,12 @@ Pauli_x = np.array([[0,1],[1,0]])
 Pauli_plus = (Pauli_x+1.0j*Pauli_y)*(1./2.)
 Pauli_minus = (Pauli_x-1.0j*Pauli_y)*(1./2.)
 Pauli_vec = np.dstack([Pauli_x, Pauli_y, Pauli_z])
+Pauli_vec = np.moveaxis(Pauli_vec,-1,0)
 ###################################################################
 ############################ General ##############################
 ###################################################################
+ALL=slice(None)
+
 def dagger(array):
     array = np.conj(array.T)
     return array
@@ -26,7 +34,6 @@ def dagger(array):
 def wrap(positions, dimensions):
     temp = np.array(dimensions)/2
     return np.add(np.mod(np.add(positions, temp), dimensions), -temp)
-
 ###################################################################
 ############################ Indexing #############################
 ###################################################################
@@ -37,7 +44,7 @@ def Index(dimensions: tuple) -> "array":
 
 def kron(a : 'array', b : 'array'):
     return np.kron(a,b)
-    return np.multiply.outer(a,b).reshape(np.multiply(np.shape(a),np.shape(b)))
+    # return np.multiply.outer(a,b).reshape(np.multiply(np.shape(a),np.shape(b)))
 
 def coordinates_to_indices(array, dimensions):
     dim=len(dimensions)
@@ -55,14 +62,15 @@ def Green_function(omega, eigenvalues, density_matrix):
     '''7-dimensional data set: [x, y, z, spin, spin, orbital, orbital]'''
     return np.einsum('e,ie->i', 1/(omega-eigenvalues), density_matrix,optimize=True)
 
-def DOS(omegas, eigenvalues, density_matrix):
+def DOS(energy_interval, resolution, eigenvalues, density_matrix):
     '''8-dimensional data set: [x, y, z, spin, spin, orbital, orbital, omega]'''
+    omegas = np.array(energy_interval, dtype=complex_dtype) + 1.0j*resolution
     green = np.array([Green_function(omega, eigenvalues, density_matrix) for omega in omegas])
     dos = -(1/np.pi)*np.imag(green)
     dos = np.moveaxis(dos,0,-1)
     return dos
 
-def LDOS(dos, omegas, omega, trace_over=True):
+def local_density_of_states(density_of_states, index, trace_over=True):
     """[Spin-orbital resolved] local density of states
     
     parameters
@@ -79,8 +87,7 @@ def LDOS(dos, omegas, omega, trace_over=True):
     ldos : array
         local density of states
     """
-    index = FindNearestValueOfArray(omegas, omega)
-    ldos = dos[...,index]
+    ldos = density_of_states[...,index]
     if trace_over==True:
         tmp = np.shape(ldos)
         n_spins, n_orbs = tmp[-2:]
@@ -116,10 +123,21 @@ def Analytical_LDOS(r, V, mu, t, omega):
     rho = Free_Greens_Function(zero, mu, t, omega)
     pert = V*(Free_Greens_Function(r, mu, t, omega))**2
     return -(1/np.pi)*np.imag(rho + pert)
+
+
+def FindNearestValueOfArray(array, value):
+    '''Returns index of nearest value in the array'''
+    return (np.abs(array - value)).argmin()
+
+def FindIndicesOfArray(array, bound1, bound2):
+    '''Returns indices of array within boundary'''
+    upperBound = max(bound1, bound2)
+    lowerBound = min(bound1, bound2)
+    return np.where(np.logical_and(array>=lowerBound, array<=upperBound))[0]
 ###################################################################
 ############################# Lattice #############################
 ###################################################################
-class Model():
+#class tight_binding():
     """A class for the lattice containing the following objects:
     n_orbs
     n_dim
@@ -136,15 +154,57 @@ class Model():
     color_orb: list of colors 
     label_orb: list of strings
     label_basis: list of strings"""
-    def __init__(self, dimensions, n_spins, basis, orbitals, hoppings, impurities,pbc=None):
+#    def __init__(self, dimensions, n_spins, basis, orbitals, hoppings, impurities,pbc=None):
+
+        #positions = np.empty(np.append(self.extended_dimensions,[3]))
+        #self.pos_orb = np.copy(positions)
+        #for index in range(self.n_dof):
+        #    coord = tuple(self.coord[index])
+            # Add zero vector to 2D basis:
+        #    pos = np.dot(self.coord_cell[index], self.basis)
+        #    positions[coord] = pos
+        #    self.pos_orb[coord] = pos + self.orbitals[coord[4]]
+        # Origin is the lattice centre of mass:
+        #self.com = np.mean(orbitals,axis=0)
+###################################################################
+######################### Hamiltonian #############################
+###################################################################
+class tight_binding():
+    """Tight-binding model on a lattice defined by the tight_binding parent class
+    
+    Attributes
+    ----------
+
+    Parameters
+    ----------
+    conf : .conf file
+        configuration file
+
+    Attributes
+    ----------
+    dm : array
+        normal density matrix
+    adm : array
+        anomalous density matrix
+    t_dm : array
+        normal thermal density matrix
+    t_adm : array
+        anomalous thermal density matrix
+    """
+
+    def __init__(self, dimensions, n_spins, basis=None, orbitals=None, pbc=None): #, k_dim=None):
+    
         self.dimensions=dimensions
         self.n_spins=n_spins
-        self.basis=np.zeros([3,3])
+        self.basis=np.array(basis,dtype=float)
         self.orbitals=orbitals
-        self.hoppings=hoppings
-        self.impurities=impurities
         self.n_orbs = len(orbitals)
         self.n_dim = len(dimensions)
+        self.temperature = 0 
+
+        self.reciprocal_basis = la.inv(self.basis)
+
+        #self.k_dim = k_dim
 
         if type(pbc)==type(None):
             self.pbc=np.ones([self.n_dim],dtype=bool)
@@ -171,8 +231,6 @@ class Model():
         self.n_cells = np.prod(self.dimensions)
         self.n_atoms = self.n_cells * self.n_orbs
         self.n_dof = self.n_atoms * n_spins
-        # Index is initiated to avoid redundant calls:
-        self.index = Index(self.extended_dimensions)
 
         self.centre = np.array(np.array(self.dimensions)/2, dtype=int)  # centred-coordinates
         self.coord=np.reshape(np.indices(self.extended_dimensions),[len(self.extended_dimensions),self.n_dof],'F').T
@@ -180,113 +238,78 @@ class Model():
         self.coord[:,:self.n_dim] = wrap(self.coord[:,:self.n_dim], self.dimensions)
 
         self.coord_cell = self.coord[:,:self.n_dim]
-
-        #positions = np.empty(np.append(self.extended_dimensions,[3]))
-        #self.pos_orb = np.copy(positions)
-        #for index in range(self.n_dof):
-        #    coord = tuple(self.coord[index])
-            # Add zero vector to 2D basis:
-        #    pos = np.dot(self.coord_cell[index], self.basis)
-        #    positions[coord] = pos
-        #    self.pos_orb[coord] = pos + self.orbitals[coord[4]]
-        # Origin is the lattice centre of mass:
-        #self.com = np.mean(orbitals,axis=0)
-###################################################################
-######################### Hamiltonian #############################
-###################################################################
-class TB(Model):
-    """Tight-binding model on a lattice defined by the Model parent class
-    
-    Attributes
-    ----------
-
-    Parameters
-    ----------
-    conf : .conf file
-        configuration file
-
-    Attributes
-    ----------
-    dm : array
-        normal density matrix
-    adm : array
-        anomalous density matrix
-    t_dm : array
-        normal thermal density matrix
-    t_adm : array
-        anomalous thermal density matrix
-    """
-
-    def __init__(self, dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, pbc=None):
-
-        model = Model(dimensions, n_spins, basis, orbitals, hoppings, impurities,pbc)
-        super().__init__(dimensions, n_spins, basis, orbitals, hoppings, impurities,pbc)
-
-        self.SO_tensor=SO_tensor
-        self.epsilon=epsilon
-        self.omegas=omegas
-        self.hoppings=hoppings
-        self.impurities=impurities
         
-        self.coeff = self.fourier_coeffs()
+        self.position_cell = np.dot(self.coord_cell[:self.n_cells],basis)
 
-    def set_tb_hamiltonian(self):
-        ham = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
+        self.position = np.array([[self.position_cell[i] + self.orbitals[m] for m in range(self.n_orbs)] for i in range(self.n_cells)])
+
+        self.coordinates_to_cell_position = np.reshape(self.position_cell, [*self.dimensions,self.n_dim],'F')
+        self.coordinates_to_orbital_position = np.reshape(self.position, [*self.dimensions,self.n_orbs,self.n_dim],'F')
         
-        ham += self.SO_onsite(self.SO_tensor)
+        ####################################################
 
-        for link in self.hoppings:
-            ham += self.set_hopping(*link)
+        self.hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
 
-        ham += self.set_impurities(self.impurities)
-        
-        return ham
-    
-    def fourier_coeffs(self):
-        x=self.coord_cell
-        k=np.copy(x)
-        k=k*2*np.pi/(self.dimensions)-np.pi
-        c=np.dot(x,k.T)
-        c=np.exp(1.0j*c)
-        return c
+        self.coeff = self._fourier_coeffs()
 
-    def fourier_transform(self,v):
-        coeff=self.coeff
-        return np.dot(coeff.T, v)
+    def set_temperature(self,temperature):
+        self.temperature=temperature
 
-    def inv_fourier_transform(self,v):
-        coeff=self.coeff
-        return np.dot(np.conj(coeff), v)
     #################################### 
     ########### Hamiltonian ############
     ####################################
-    def SO_onsite(self, SO_tensor: "array"):
-        return kron(SO_tensor,np.eye(self.n_cells))
+
+    def set_onsite_chemical_potential(self, chemical_potential, orbital=None, axes=None):
+        # axes is a slice
+        spin_matrix = chemical_potential*np.eye(self.n_spins)
+        self.set_onsite_spin(spin_matrix, orbital, axes)
+
+    def set_onsite_spin(self, spin_matrix, orbital=None, axes=None):
+        # axes is a slice
+        if type(orbital)==type(None):
+            orbital=ALL
+        orb = np.zeros([self.n_orbs])
+        orb[orbital] = 1
+        orb = np.diag(orb)
+        SO_onsite=np.kron(spin_matrix,orb)
+        self.set_onsite_spin_orbital(SO_onsite,axes)
+
+    def set_onsite_spin_orbital(self, spin_orbital_onsite, axes=None):
+        # axes is a slice
+        if type(axes)==type(None):
+            axes=[ALL for i in range(self.n_dim)]
+        axes=tuple(axes)
+        index = Index(self.dimensions)
+        index = (index[axes])
+        sites = np.zeros([self.n_cells])
+        sites[index] = 1
+        sites=np.diag(sites)
+        self.hamiltonian += np.kron(spin_orbital_onsite,sites)
     
-    def set_hopping(self, t: complex, orb_i: int, orb_f: int, cell_hop: tuple):
-        spin_tensor=np.eye(self.n_spins)
+    def set_hopping(self, t: complex, orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
+        spin_tensor=t*np.eye(self.n_spins)
+        self.set_spin_hopping(spin_tensor,orb_i,orb_f,cell_hop,skip_single_site)
+        
+    def set_spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
         orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
         orbit_tensor[orb_i,orb_f]=1
-        SO_tensor=t*kron(spin_tensor,orbit_tensor)
-        temp=self._SO_hopping(SO_tensor, cell_hop)
-        return temp
+        SO_tensor=kron(spin_tensor,orbit_tensor)
+        self.set_spin_orbit_hopping(SO_tensor,cell_hop,skip_single_site)
 
-    def set_spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple):
-        orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
-        orbit_tensor[orb_i,orb_f]=1
-        SO_tensor=t*kron(spin_tensor,orbit_tensor)
-        temp=self._SO_hopping(SO_tensor, cell_hop)
-        return temp
+    def set_spin_orbit_hopping(self, spin_orbit_tensor: '2D-array', cell_hop: tuple, skip_single_site=True):
+        self.hamiltonian += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
 
-    def set_SO_hopping(self, SO_tensor: '2D-array', cell_hop: tuple):
-        temp=self._SO_hopping(SO_tensor, cell_hop)
-        return temp
-
-    def _SO_hopping(self, SO_tensor, hop: tuple):
+    def _spin_orbit_hopping(self, spin_orbit_tensor, hop: tuple, skip_single_site=True):
         dim=self.dimensions
         edge=np.array(self.edge,dtype=int)
         pbc=self.pbc
         
+        dimension_along_hop = np.dot(dim,np.abs(hop)) #abs for negative direction hopping
+        single_site = (dimension_along_hop==1)
+        if single_site and skip_single_site:
+            temp=np.zeros([self.n_dof,self.n_dof])
+            return temp
+        temp=np.zeros([self.n_cells,self.n_cells])
         x=np.indices(dim)
         x=np.moveaxis(x,0,-1)
         x=np.add(np.mod(np.add(x, self.centre), dim), -self.centre)
@@ -300,62 +323,75 @@ class TB(Model):
         y=coordinates_to_indices(y,dim)
         x=x.flatten()
         y=y.flatten()
-        temp=np.zeros([self.n_cells,self.n_cells])
         temp[x,y]+=1
-        temp = kron(SO_tensor,temp)
-        temp += dagger(temp)
+        temp=kron(spin_orbit_tensor,temp)
+        temp+=dagger(temp)
         return temp
 
-    def set_impurities(self, impurities: "tuple of impurities: [locations, spins, orbits]"):
-        dim=self.dimensions
+    def set_impurities(self, V, locations, spin_matrix=None, orbital=None):
+        for location in locations:
+            self.set_onsite_chemical_potential(V, orbital, location)
 
-        [V, loc, impurity_spin, impurity_orb] = impurities 
-        x=np.indices(dim)
-        x=np.moveaxis(x,0,-1)
-        indices=np.all(x==loc,axis=-1)
-        x = x[indices]
-        x=coordinates_to_indices(x,dim)
-        x=x.flatten()
-        temp=np.zeros([self.n_cells])
-        temp[x]+=1
-        temp=np.diag(temp)
-        SO_tensor=np.kron(impurity_spin,impurity_orb)
-        temp = kron(SO_tensor,temp)
-        return V*temp
+    def set_magnetic_impurities(self, M, locations, spin_matrix=None, orbital=None):
+        spin_matrix=np.einsum('i,ijk->jk',M,Pauli_vec)
+        self.set_onsite_spin(spin_matrix, orbital, locations)
+
+    def unravel_hamiltonian(self):
+        self.hamiltonian = np.reshape(self.hamiltonian, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
+
+    def ravel_hamiltonian(self):
+        self.hamiltonian = np.reshape(self.hamiltonian, [self.n_dof,self.n_dof], 'F')
+
+    def _fourier_coeffs(self):
+        x=self.coord_cell
+        k=np.copy(x)
+        k=k*2*np.pi/(self.dimensions)-np.pi
+        c=np.dot(x,k.T)
+        c=np.exp(-1.0j*c)
+        return c
+
+    def fourier_transform_psi(self,v):
+        coeff=self.coeff
+        return np.dot(np.conj(coeff), v)
+
+    def inv_fourier_transform_psi(self,v):
+        coeff=self.coeff
+        return np.dot(coeff, v)
+
+    def fourier_transform_hamiltonian(self, transform=[], inverse_transform=[]):
+
+        ravelled=False
+        if np.shape(self.hamiltonian)==(self.n_dof,self.n_dof):
+            ravelled=True
+            self.unravel_hamiltonian()
+        
+        self.hamiltonian = np.fft.ifftn(self.hamiltonian,axes=transform)
+        transform = tuple(np.array(transform)+len(self.extended_dimensions))
+        self.hamiltonian = np.fft.fftn(self.hamiltonian,axes=transform)
+    
+        self.hamiltonian = np.fft.fftn(self.hamiltonian,axes=inverse_transform)
+        inverse_transform = tuple(np.array(inverse_transform)+len(self.extended_dimensions))
+        self.hamiltonian = np.fft.ifftn(self.hamiltonian,axes=inverse_transform)
+
+        if ravelled:
+            self.ravel_hamiltonian()
+    
         ########################################
         ######### Statistical Mechanics ########
         ########################################
 
-    def _density_matrix(self, v):
-        """Wavefunction norm density matrix
+    def _density_matrix(self, eigenvectors):
+        return np.einsum('in,in->in',eigenvectors[:self.n_dof],np.conj(eigenvectors[:self.n_dof]),optimize=True)
+    
+    def solve_eigensystem(self):
+        w,v = la.eigh(self.hamiltonian, overwrite_a=True)
+        #from scipy.sparse.linalg import eigsh
+        # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
+        # v=self.fourier_transform_psi(v)
+        # v=self.inv_fourier_transform_psi(v)
+        return w,v
 
-        Parameters
-        ----------
-        v : array
-            eigenvectors
-
-        Returns 
-        ----------
-        dm : array
-            wavefunction norm density matrix
-        """
-        # electron-electron part
-        return np.einsum('in,in->in',v[:self.n_dof],np.conj(v[:self.n_dof]),optimize=True)
-
-    def _density_of_states(self, w, v):
-        index=self.index
-        omegas=self.omegas
-        dimensions=np.append(self.extended_dimensions,len(omegas))
-
-        density_matrix=self._density_matrix(v)
-
-        density_of_states=DOS(omegas,w,density_matrix)
-
-        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[len(omegas)]), 'F')
-
-        return self.density_of_states
-
-    def solve(self):
+    def density_of_states(self, energy_interval: '1D array', resolution: complex, eigenvalues=None, eigenvectors=None):
         """Calls LAPACK Hermitian matrix solver from scipy.linalg.eigh
         with overwrite to conserve memory
 
@@ -370,22 +406,40 @@ class TB(Model):
         dos : array
             density of states
         """
-        self.dt = 0
-        # Solve Hamiltonian:
+        self.energy_interval=energy_interval
         t = time.time()
-        ham = self.set_tb_hamiltonian()
-        w,v = la.eigh(ham, overwrite_a=True)
-        #from scipy.sparse.linalg import eigsh
-        # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
-        #v=self.fourier_transform(v)
-        # v=self.inv_fourier_transform(v)
-        dm = self._density_matrix(v) 
-        self.density_of_states = DOS(self.omegas,w,dm)
+        if type(eigenvalues)==type(None) and type(eigenvectors)==type(None):
+            # eigenvalues and eigenvectors don't exist... solving
+            eigenvalues,eigenvectors=self.solve_eigensystem()
+        density_matrix = self._density_matrix(eigenvectors) 
+        density_of_states = DOS(energy_interval,resolution,eigenvalues,density_matrix)
         self.exec_time = time.time() - t
-        self.density_of_states = self._density_of_states(w,v)
+        n_energy=len(energy_interval)
+        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[n_energy]), 'F')
         return self.density_of_states
 
-class BdG(TB):
+    def local_density_of_states(self, density_of_states, energy, trace_over=True):
+        index = FindNearestValueOfArray(self.energy_interval,energy)
+        return local_density_of_states(density_of_states, index, trace_over)
+    
+    def plt_energy(self,fig,ax,axis,density_of_states):
+        axes = np.arange(self.n_dim)
+        axes = tuple(np.delete(axes,axis))
+        y=np.sum(density_of_states,axes)
+        y=np.fft.fftshift(y,axes=axis)
+        interpolation = 'none'
+        vmin, vmax = np.amin(y), np.amax(y)
+        yy=np.real(self.energy_interval)
+        ymin,ymax=min(yy),max(yy)
+        x=np.shape(y)[0]
+        extent = [-x/2,x/2,ymin,ymax]
+        cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
+        im = ax.imshow(y.T, interpolation=interpolation, aspect='auto', extent=extent, origin='lower',
+        vmin=vmin, vmax=vmax,
+        cmap=cmap)
+        return fig,ax
+
+class bogoliubov_de_gennes(tight_binding):
     """Bogoliubov-de Gennes model from TB parent class  
     
     Attributes
@@ -408,46 +462,99 @@ class BdG(TB):
         anomalous thermal density matrix
     """
 
-    def __init__(self, dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, hartree=None, fock=None, gorkov=None):
-        self.tb_model = TB(dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas)
+    def __init__(self, dimensions, n_spins, basis=None, orbitals=None, pbc=None): #, k_dim=None):
 
-        super().__init__(dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas)
+        self.tb_model = tight_binding(dimensions, n_spins, basis, orbitals, pbc)
 
-    def set_bdg_hamiltonian(self,hartree,fock,gorkov):
+        super().__init__(dimensions, n_spins, basis, orbitals, pbc)
+        
+        self.friction = 0
+        self.max_iterations = 100
+        self.absolute_convergence_factor = 0.001
+        
+        self._hubbard_u = None
+        self._hubbard_indices = None
+
+        #self._hartree = np.zeros([self.n_dof], dtype=complex_dtype)
+        #self._fock = np.diag(np.zeros([self.n_dof], dtype=complex_dtype))
+        #self._gorkov = np.diag(np.zeros([self.n_dof], dtype=complex_dtype))
+
+        #self.external_hartree = 0*np.copy(initial_hartree)
+        #self.external_fock = 0*np.copy(initial_fock)
+        #self.external_gorkov = 0*np.copy(initial_gorkov)
+
+        #self.external_hartree = external_hartree
+        #self.external_fock = external_fock
+        #self.external_gorkov = external_gorkov
+
+
+        self._hartree_indices = []
+        self._fock_indices = []
+        self._gorkov_indices = []
+        
+    def set_hamiltonian(self,hartree,fock,gorkov):
         
         n_dof = self.n_dof
 
-        ham = np.zeros([2*n_dof,2*n_dof],dtype=complex_dtype)
+        hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex_dtype)
         
-        ham[:n_dof,:n_dof]=self._tb_ham+np.diag(hartree)
-        ham[n_dof:,n_dof:]=-np.conj(self._tb_ham)-np.conj(np.diag(hartree))
-        ham[self.hubbard_indices[0],self.anomalous_indices[1]]=fock
-        ham[self.anomalous_indices[0],self.hubbard_indices[1]]=-np.conj(fock)
-        ham[self.hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(gorkov)
-        ham[self.anomalous_indices[0],self.hubbard_indices[1]]=gorkov
+        hamiltonian[:n_dof,:n_dof]=self._tb_ham+np.diag(hartree)
+        hamiltonian[n_dof:,n_dof:]=-np.conj(self._tb_ham)-np.conj(np.diag(hartree))
+        hamiltonian[self.hubbard_indices[0],self.anomalous_indices[1]]=fock
+        hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=-np.conj(fock)
+        hamiltonian[self.hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(gorkov)
+        hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=gorkov
 
-        return ham
+        return hamiltonian
+
+    def set_fields(self,hartree=None,fock=None,gorkov=None):
+        self._set_hubbard_indices()
+        self.hartree = hartree.astype(complex_dtype)
+        self.fock = fock[self.hubbard_indices].astype(complex_dtype)
+        self.gorkov = gorkov[self.hubbard_indices].astype(complex_dtype)
+
+    def set_external_fields(self,external_hartree=None,external_fock=None,external_gorkov=None):
+        self.external_hartree = external_hartree
+        self.external_fock = external_fock
+        self.external_gorkov = external_gorkov
+
+    def set_hubbard_U(self, spin_matrix: 'array', orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
+        orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
+        orbit_tensor[orb_i,orb_f]=1
+        SO_tensor=kron(spin_tensor,orbit_tensor)
+        self.set_hubbard_u_spin_orbit(SO_tensor,cell_hop,skip_single_site)
+        
+    def set_hubbard_U_spin_orbit(self, spin_orbit_tensor: '2D-array', cell_hop: tuple, skip_single_site=True):
+        if type(self._hubbard_u)==type(None):
+            self._hubbard_u=np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype)
+        self._hubbard_u += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
+
+    def _set_hubbard_indices(self):
+
+        self.hubbard_indices = np.nonzero(self._hubbard_u)
+        self.U_entries = self._hubbard_u[self.hubbard_indices]
+
+        self.anomalous_indices=np.array(self.hubbard_indices)
+        self.anomalous_indices+=self.n_dof
+        self.anomalous_indices=tuple(self.anomalous_indices)
+
+    def set_friction(self,friction):
+        self.friction = friction
+
+    def set_max_iterations(self,max_iterations):
+        self.max_iterations = max_iterations
+
+    def set_absolute_convergence_factor(self,absolute_convergence_factor):
+        self.absolute_convergence_factor = absolute_convergence_factor
 
     ########################################
     ######### Statistical Mechanics ########
     ########################################
         
     def _anomalous_density_matrix(self, v):
-        """Anomalous wavefunction norm density matrix
-
-        Parameters
-        ----------
-        v : array
-            eigenvectors
-
-        Returns 
-        ----------
-        adm : array
-            anomalous wavefunction norm density matrix
-        """
         return np.einsum('in,in->in',v[:self.n_dof],v[self.n_dof:])
 
-    def _thermal_density_matrix(self, w, v, T: float):
+    def _thermal_density_matrix(self, eigenvalues, eigenvectors: float):
         """Normal and anomalous thermal density matrices. Nonzero values
         are output as hartree, fock, gorkov fields.
 
@@ -469,6 +576,8 @@ class BdG(TB):
         # positive and negative eigenvalues are split
         # negative are selected
         # they're summed over
+        w,v=eigenvalues,eigenvectors
+        T=self.temperature
         tmp0=v[self.hubbard_indices[0]]
         tmp1=np.conj(v)[self.hubbard_indices[1]]
         tmp1a=v[self.anomalous_indices[1]]
@@ -490,25 +599,26 @@ class BdG(TB):
             gorkov_entries = (1/2)*np.einsum('in,in,n->i',tmp0,tmp1a,2*f-1,optimize=True)
         return hartree_entries, fock_entries, gorkov_entries
 
-    def _anomalous_density_of_states(self, w, v):
-        index=self.index
-        dimensions=self.extended_dimensions
-        omegas=self.omegas
+    def anomalous_density_of_states(self, energy_interval: '1D array', resolution: complex, eigenvalues=None, eigenvectors=None):
 
-        adm=self._anomalous_density_matrix(v)
-
-        ados=DOS(omegas,w,adm)
-        
-        self.ados = np.reshape(ados, np.append(self.extended_dimensions,[len(omegas)]), 'F')
-
-        return self.ados
+        self.energy_interval=energy_interval
+        t = time.time()
+        if type(eigenvalues)==type(None) and type(eigenvectors)==type(None):
+            # eigenvalues and eigenvectors don't exist... solving
+            eigenvalues,eigenvectors=self.solve_eigensystem()
+        anomalous_density_matrix = self._anomalous_density_matrix(eigenvectors) 
+        density_of_states = DOS(energy_interval,resolution,eigenvalues,anomalous_density_matrix)
+        self.exec_time = time.time() - t
+        n_energy=len(energy_interval)
+        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[n_energy]), 'F')
+        return self.anomalous_density_of_states
 
     def anomalous_fourier_transform(self,v):
         coeff=self.coeff
         coeff=np.block([[coeff,np.conj(coeff)],[np.conj(coeff),coeff]])
         return np.dot(coeff.T,v)
 
-    def solve(self, ham):
+    def solve(self, hamiltonian):
         """Calls LAPACK Hermitian matrix solver from scipy.linalg.eigh
         with overwrite to conserve memory
 
@@ -526,100 +636,17 @@ class BdG(TB):
 
         t = time.time()
 
-        w,v = la.eigh(ham, overwrite_a=True)
+        w,v = la.eigh(hamiltonian, overwrite_a=True)
 
-        self.dos, self.ados = self._density_of_states(w,v), self._anomalous_density_of_states(w,v)
+        self.dos, self.ados = self.density_of_states(w,v), self.anomalous_density_of_states(w,v)
         self.exec_time = time.time() - t
 
         return self.dos, self.ados
 
-class BdG_SC(BdG):
-    """Bogoliubov-de Gennes model from TB parent class  
-    
-    Attributes
-    ----------
 
-    Parameters
-    ----------
-    conf : .conf file
-        configuration file
-
-    Attributes
-    ----------
-    dm : array
-        normal density matrix
-    adm : array
-        anomalous density matrix
-    t_dm : array
-        normal thermal density matrix
-    t_adm : array
-        anomalous thermal density matrix
-    """
-
-    def __init__(self, dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, initial_hartree, initial_fock, initial_gorkov, hubbard_U, external_hartree=None, external_fock=None, external_gorkov=None,  T=0, friction=0, max_iterations=100, eps=0.001):
-        super().__init__(dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, initial_hartree, initial_fock, initial_gorkov)
-
-        self.max_iterations = max_iterations
-        self.eps = eps
-        self.friction = friction
-        self.T=T
-
-        for i in range(len(hubbard_U)):
-            cell_hop=hubbard_U[i][1]
-            if len(cell_hop)==2:
-                cell_hop.append(0)
-                hubbard_U[i][1]=cell_hop
-
-        self._hubbard_U=np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype)
-        for link in hubbard_U:
-            if link[1]==[0,0,0]:
-                self._hubbard_U+=self.SO_onsite(link[0])
-            else:
-                self._hubbard_U+=self._SO_hopping(*link)
-        
-        self.hubbard_indices = np.nonzero(self._hubbard_U)
-        self.U_entries = self._hubbard_U[self.hubbard_indices]
-
-        self.anomalous_indices=np.array(self.hubbard_indices)
-        self.anomalous_indices+=self.n_dof
-        self.anomalous_indices=tuple(self.anomalous_indices)
-        
-        if initial_hartree is None:
-            initial_hartree = np.zeros([self.n_dof], dtype=complex_dtype)
-        self._hartree=initial_hartree.astype(complex_dtype)
-        if initial_fock is None:
-            initial_fock = np.diag(np.zeros([self.n_dof], dtype=complex_dtype))
-        self._fock = initial_fock[self.hubbard_indices].astype(complex_dtype)
-        if initial_gorkov is None:
-            initial_gorkov = np.diag(np.zeros[self.n_dof], dtype=complex_dtype)
-        self._gorkov = initial_gorkov[self.hubbard_indices].astype(complex_dtype)
-
-        if external_hartree is None:
-            self.external_hartree = 0*np.copy(initial_hartree)
-        else:
-            self.external_hartree = external_hartree
-        if external_fock is None:
-            self.external_fock = 0*np.copy(initial_fock)
-        else:
-            self.external_fock = external_fock
-        if external_gorkov is None:
-            self.external_gorkov = 0*np.copy(initial_gorkov)
-        else:
-            self.external_gorkov = external_gorkov
-
-        del(initial_hartree, initial_fock, initial_gorkov)
-        del(external_hartree, external_fock, external_gorkov)
-
-        self.external_fock = self.external_fock[self.hubbard_indices]
-        self.external_gorkov = self.external_gorkov[self.hubbard_indices]
-
-        self._hartree_indices = []
-        self._fock_indices = []
-        self._gorkov_indices = []
-        
     def _set_fields(self, hartree_entries, fock_entries, gorkov_entries):
         """Returns Hartree, Fock, Gorkov"""
-        hartree = -np.einsum('ij,j->i',self._hubbard_U,hartree_entries,optimize=True)
+        hartree = -np.einsum('ij,j->i',self._hubbard_u,hartree_entries,optimize=True)
         fock =   +np.multiply(self.U_entries,fock_entries)
         gorkov = -np.multiply(self.U_entries,gorkov_entries)
         print(hartree[0])
@@ -628,7 +655,7 @@ class BdG_SC(BdG):
 
         #free_energy=0
         #free_energy = np.einsum('i,i->',self.U_entries,gorkov_)
-        #free_energy+= np.einsum('ij,i,j->',self._hubbard_U,hartree,hartree)
+        #free_energy+= np.einsum('ij,i,j->',self._hubbard_u,hartree,hartree)
         # free_energy=free_energy+np.sum(self.w[:self.n_dof])
         #print(free_energy)
 
@@ -667,7 +694,8 @@ class BdG_SC(BdG):
 
     def __next__(self):
         
-        hartree, fock, gorkov = self._hartree+self.external_hartree, self._fock+self.external_fock, self._gorkov+self.external_gorkov
+        hartree, fock, gorkov = self.hartree, self.fock, self.gorkov
+        #hartree, fock, gorkov = self._hartree+self.external_hartree, self._fock+self.external_fock, self._gorkov+self.external_gorkov
         
         ########### tracking ###########
         temp=[]
@@ -685,14 +713,12 @@ class BdG_SC(BdG):
             temp.append(gorkov[index].tolist())
         self._gorkov_list.append(temp)
         ##################################
-
-        ham = self.set_bdg_hamiltonian(hartree,fock,gorkov)
-
+        ham = self.set_hamiltonian(hartree,fock,gorkov)
         w,v = la.eigh(ham, overwrite_a=True)
         #i=int(self.n_dof/2)
 
         Eg=np.sum(la.eigh(self._tb_ham,eigvals_only=True))/self.n_dof
-        h=np.einsum('ij,i,j->',self._hubbard_U,hartree,hartree,optimize=True)
+        h=np.einsum('ij,i,j->',self._hubbard_u,hartree,hartree,optimize=True)
         f=np.einsum('i,i,i->',self.U_entries,fock,fock,optimize=True)
         g=np.einsum('i,i,i->',self.U_entries,gorkov,gorkov,optimize=True)
         o=np.dot(np.diag(self._tb_ham),hartree)
@@ -712,34 +738,33 @@ class BdG_SC(BdG):
 
         #if self.iterations>1:
         #    print(self.en<self.en_old)
-        if self.T==0:
+        if self.temperature==0:
             f_mf=0
         else:
-            f_mf =-self.T*np.sum(np.log(1+np.exp(-w[self.n_dof:]/self.T)))/self.n_dof
+            f_mf =-self.temperature*np.sum(np.log(1+np.exp(-w[self.n_dof:]/self.temperature)))/self.n_dof
         #print(f_mf)
 
         self.free_energy=self.energy+f_mf
         #print(free_energy)
         #print('------')
 
-
         #print(np.sum(self.w[:self.n_dof]))
 
-        hartree_entries, fock_entries, gorkov_entries = self._thermal_density_matrix(w,v,self.T)
+        hartree_entries, fock_entries, gorkov_entries = self._thermal_density_matrix(w,v)
 
         hartree, fock, gorkov = self._set_fields(hartree_entries, fock_entries, gorkov_entries)
 
-        hartree = (1-self.friction)*hartree + self.friction*self._hartree
-        fock = (1-self.friction)*fock + self.friction*self._fock
-        gorkov = (1-self.friction)*gorkov + self.friction*self._gorkov
+        hartree = (1-self.friction)*hartree + self.friction*self.hartree
+        fock = (1-self.friction)*fock + self.friction*self.fock
+        gorkov = (1-self.friction)*gorkov + self.friction*self.gorkov
         
         # update fields:
-        self._hartree, self._fock, self._gorkov = hartree, fock, gorkov 
+        self.hartree, self.fock, self.gorkov = hartree, fock, gorkov 
         
         print(np.sum(w[:self.n_dof]))
         return w,v
 
-    def solve(self, dos=True):
+    def self_consistent_calculation(self, energy_interval=None, resolution=None):
         """If dos=True, the density of states are calculated once the self consistent
         loop has converged."""
 
@@ -747,29 +772,28 @@ class BdG_SC(BdG):
 
         iteration = iter(self)
         
-        self._tb_ham = self.tb_model.set_tb_hamiltonian()
+        self._tb_ham = self.hamiltonian
 
         for i in tqdm(range(self.max_iterations)):
             
             self.iterations+=1
 
-            hartree_old = self._hartree
-            fock_old = self._fock
-            gorkov_old = self._gorkov
+            hartree_old = self.hartree
+            fock_old = self.fock
+            gorkov_old = self.gorkov
 
             w,v = next(iteration)
             
-            if (np.allclose(hartree_old,self._hartree,atol=self.eps) & np.allclose(fock_old,self._fock,atol=self.eps) & np.allclose(gorkov_old,self._gorkov,atol=self.eps)):
+            eps = self.absolute_convergence_factor
+            if (np.allclose(hartree_old,self.hartree,atol=eps) & np.allclose(fock_old,self.fock,atol=eps) & np.allclose(gorkov_old,self.gorkov,atol=eps)):
                 break
             if i+1 == self.max_iterations:
                 print('Did not converge within max_iterations!')
                 break
 
-        if dos:
-
-            v=self.anomalous_fourier_transform(v)
-            self.dos, self.ados = self._density_of_states(w,v), self._anomalous_density_of_states(w,v)
-
+        if type(energy_interval)!=type(None) and type(resolution)!=type(None):
+            # v=self.anomalous_fourier_transform(v)
+            self.dos, self.ados = self.density_of_states(energy_interval,resolution,w,v), self.anomalous_density_of_states(energy_interval,resolution,w,v)
         self.exec_time = time.time() - t
 
         self._hartree_list = np.transpose(self._hartree_list)
@@ -778,9 +802,9 @@ class BdG_SC(BdG):
         
         # Trash non
         del(self._tb_ham)
-        del(self._hubbard_U)
+        del(self._hubbard_u)
 
-        return self._hartree, self._fock, self._gorkov, self.iterations
+        return self.hartree, self.fock, self.gorkov, self.iterations
 
     def hartree(self):
         temp=np.reshape(self._hartree,self.extended_dimensions,'F')
@@ -819,7 +843,7 @@ class BdG_SC(BdG):
     #     dos=dos,
     #     ados=ados)
 
-class Lattice(Model):
+class Lattice(tight_binding):
     def __init__(self, fig, ax, model, ldos, layer, spins, orbs, annotate_orbs=True, show_cell_borders=True, show_basis_vectors=True, show_hopping=True, show_impurities=True, show_only_centre=True):
 
         super().__init__(model.dimensions, model.n_spins, model.basis, model.orbitals, model.hoppings, model.impurities)
@@ -939,11 +963,8 @@ class Lattice(Model):
                         orb_1=orb_1[:2]
                         self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
 
-
-
-class LocalDensityOfStates(Model):
+class LocalDensityOfStates(tight_binding):
     def __init__(self, fig, ax, model, ldos, omega):
-
 
         super().__init__(model.dimensions, model.n_spins, model.basis, model.orbitals, model.hoppings, model.impurities)
         
@@ -971,7 +992,7 @@ class LocalDensityOfStates(Model):
         # k_F = Fermi_vector(mu, t)
         # lambda_F = Friedel_wavelength(k_F)
         # text_fermi = (f'$\lambda_F={lambda_F:.2f}$')
-        # text = ('Model parameters: '
+        # text = ('tight_binding parameters: '
                # f'$\mu={mu:.2f}$, '
                # f'$s={s:.3f}$, '
                # f'$\delta={delta:.3f}$, '
@@ -989,7 +1010,7 @@ class LocalDensityOfStates(Model):
         self._extent = [-x/2,x/2,-y/2,y/2]
         self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
 
-    def imshow(self,layer=(slice(None),slice(None),0)):
+    def imshow(self,layer=(ALL,ALL,0)):
         x=self.ldos[layer]
         x=np.fft.fftshift(x)
         self.im = self.ax.imshow(
@@ -1041,3 +1062,32 @@ class LocalDensityOfStates(Model):
             ))
 
         return fig
+
+class Energy(tight_binding):
+    def __init__(self, fig, ax, model, dos):
+
+        super().__init__(model.dimensions, model.n_spins, model.basis, model.orbitals, model.pbc)
+        
+        self.fig = fig
+        self.ax = ax
+
+        self.dos=dos
+        
+        self.text= (f'Energy')    
+
+        self.vmin, self.vmax = np.amin(dos), np.amax(dos)
+
+    def plot(self):
+        x=np.arange(len(self.dos))
+        y=self.dos
+        y=np.fft.fftshift(y)
+        self.scatter = self.ax.scatter(
+                x,y) 
+                #vmin=self.vmin, vmax=self.vmax,
+                #cmap=self.cmap)
+
+        self.ax.set(xlabel='$x/a_x$', ylabel='Energy')
+        
+        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
+        return self.fig, self.ax
+

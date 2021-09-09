@@ -28,31 +28,28 @@ if n_orbs==2:
     orbitals=[[0,0,0],[0.35,0,0]]
 
 if n_orbs==1:
-    hoppings=[[t, 0, 0, [1,0,0]], [t, 0, 0, [0,1,0]]]
+    hoppings=[[-t, 0, 0, [1,0,0]], [-t, 0, 0, [0,1,0]]]
 if n_orbs==2:
-    hoppings=[[t, 0, 1, [0,0,0]],[t, 1, 0, [1,0,0]],[t, 1, 1, [0,1,0]],[t, 0, 0, [0,1,0]]]
+    hoppings=[[-t, 0, 1, [0,0,0]],[-t, 1, 0, [1,0,0]],[-t, 1, 1, [0,1,0]],[-t, 0, 0, [0,1,0]]]
 
 basis=[[1,0,0],[0,1,0]]
 pbc=[True,True]
 #pbc=[False,False]
 SO_spin=np.eye(n_spins)
 SO_orbital=np.eye(n_orbs)
-SO_tensor=-mu*kron(SO_spin,SO_orbital)
+SO_onsite=-mu*kron(SO_spin,SO_orbital)
 ############ hopping ##############
-hoppings = [[t, 0, 0, [1,0]],
-            [t, 0, 0, [0,1]]]
+hoppings = [[-t, 0, 0, [1,0]],
+            [-t, 0, 0, [0,1]]]
+impurity_location = [[0,0]]
 if len(dimensions)==3:
-    pbc=[True,True,True]
+    pbc=[True,False,False]
     #pbc=[False,False,False]
-    basis=[[1,0,0],[0,1,0],[0,0,1]]
-    hoppings = [[t, 0, 0, [1,0,0]],
-                [t, 0, 0, [0,1,0]],
-                [t, 0, 0, [0,0,1]]]
-############# impurities ##############
-impurity_loc = [[0,0,0]]
-impurity_spin = np.eye(n_spins)
-impurity_orb = np.eye(n_orbs)
-impurities = [V, impurity_loc, impurity_spin, impurity_orb]
+    basis=[[2,0,0],[0,3,0],[0,0,1]]
+    hoppings = [[-t, 0, 0, [1,0,0]],
+                [-t, 0, 0, [0,1,0]],
+                [-t, 0, 0, [0,0,1]]]
+    impurity_location = [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[6,0,0]]
 ############# interaction #############
 if model=='sc':
     if hubbard=='onsite':
@@ -82,48 +79,72 @@ if model=='sc':
     Delta1, Delta2 = np.array([varsigma, -varsigma]) + Delta
 
     hartree_SO = kron(np.diag([phiUp,phiDown]),np.eye(n_orbs))
-    initial_hartree = kron(hartree_SO, np.eye(np.prod(dimensions)))
-    initial_hartree = np.diag(initial_hartree)
+    hartree = kron(hartree_SO, np.eye(np.prod(dimensions)))
+    hartree = np.diag(hartree)
 
-    initial_fock = np.kron(np.kron(Pauli_x,np.eye(n_orbs)),np.ones([np.prod(dimensions),np.prod(dimensions)]))
+    fock = np.kron(np.kron(Pauli_x,np.eye(n_orbs)),np.ones([np.prod(dimensions),np.prod(dimensions)]))
 
     gorkov_SO = kron(np.array([[0,+Delta1],[-Delta2,0]]), np.eye(n_orbs))
-    initial_gorkov = kron(gorkov_SO, np.eye(np.prod(dimensions)))
+    gorkov = kron(gorkov_SO, np.eye(np.prod(dimensions)))
 ############## Energy ###############
-epsilon=0.1
-increment=0.5
-max_val=0 #10*t 
-omegas = np.arange(start=-max_val, stop=max_val+increment, step=increment, dtype=complex)+1.0j*epsilon
+resolution=0.1
+increment=0.01
+max_val=5*t 
+energy_interval = np.arange(start=-max_val, stop=max_val+increment, step=increment)
 ##########################################################
 ######################### Main ###########################
 ##########################################################
 if model=='tb':
-    model = TB(dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, pbc)
-    model.solve()
+    model = tight_binding(dimensions, n_spins, basis, orbitals, pbc)
+    # model.set_SO_onsite(SO_onsite)
+    model.set_onsite_chemical_potential(-mu)
+    for link in hoppings:
+        model.set_hopping(*link)
+    model.set_impurities(V, impurity_location)
+    # M=[0,0,1]
+    # model.set_magnetic_impurities(M,impurity_location)
+    axes=[0,1]
+    #model.fourier_transform_hamiltonian(transform=axes)
+    model.fourier_transform_hamiltonian(inverse_transform=axes)
+    model.solve_density_of_states(energy_interval,resolution)
+
 
 elif model=='mf':
-    model = BdG(dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, hartree, fock, gorkov)
+    model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals)
+    model.set_onsite_chemical_potential(-mu)
+    for link in hoppings:
+        model.set_hopping(*link)
+    model.set_impurities(V, impurity_location)
+    model.set_hubbard_U_spin_orbit(hubbard_SO, [0,0,0])
     model.solve()
 
 elif model=='sc':
-    model = BdG_SC(dimensions, n_spins, basis, SO_tensor, orbitals, hoppings, impurities, epsilon, omegas, initial_hartree, initial_fock, initial_gorkov, hubbard_U, external_hartree=None, external_fock=None, external_gorkov=None,  T=T, friction=friction, max_iterations=max_iterations, eps=eps)
+    model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals)
+    model.set_onsite_chemical_potential(-mu)
+    for link in hoppings:
+        model.set_hopping(*link)
+    model.set_impurities(V, impurity_location)
+    model.set_hubbard_U_spin_orbit(hubbard_SO, [0,0,0])
+    model.set_fields(hartree,fock,gorkov)
+    model.self_consistent_calculation(energy_interval,resolution)
 
-    index1=model.index[0,0,0,0,0]
-    index2=model.index[0,0,0,1,0]
-    index3=model.index[1,0,0,0,0]
 
-    if hubbard=='nn':
-        hartree_indices = [index1, index2]
-        fock_indices = [[index1, index3], [index3, index1]]
-        gorkov_indices = [[index1,index2], [index2,index1], [index1,index3], [index3,index1]]
-    if hubbard=='onsite':
-        hartree_indices = [index1, index2]
-        fock_indices = [[index1,index2],[index2,index1]]
-        gorkov_indices = [[index1,index2], [index2,index1]]
+#     index1=model.index[0,0,0,0,0]
+#     index2=model.index[0,0,0,1,0]
+#     index3=model.index[1,0,0,0,0]
+# 
+#     if hubbard=='nn':
+#         hartree_indices = [index1, index2]
+#         fock_indices = [[index1, index3], [index3, index1]]
+#         gorkov_indices = [[index1,index2], [index2,index1], [index1,index3], [index3,index1]]
+#     if hubbard=='onsite':
+#         hartree_indices = [index1, index2]
+#         fock_indices = [[index1,index2],[index2,index1]]
+#         gorkov_indices = [[index1,index2], [index2,index1]]
+# 
+#     model.set_field_tracking(hartree_indices=hartree_indices, fock_indices=fock_indices, gorkov_indices=gorkov_indices)
 
-    model.set_field_tracking(hartree_indices=hartree_indices, fock_indices=fock_indices, gorkov_indices=gorkov_indices)
-
-    hartree, fock, gorkov, iterations = model.solve(dos=True)
+    #hartree, fock, gorkov, iterations = model.solve()
     
 #    y1=model.hartree_list[0]
 #    y2=model.fock_list[0]
@@ -131,46 +152,46 @@ elif model=='sc':
 #    y4=model.gorkov_list[2]
 #    y5=model.gorkov_list[4]
     
-    x0,y0,z0=0,0,0
-    x1,y1,z1=1,0,0
-    s,t=0,1
-    m,n=0,0
-    
-    hartree=model.hartree()
-    print('Hartree onsite:')
-    print(hartree[:,y0,z0,s,m])
-
-    fock=model.fock()
-    renormalised_t=[fock[(x0+i)%n_x,y0,z0,s,m,(x1+i)%n_x,y0,z0,s,m] for i in range(n_x)]
-    print('Renormalised t:')
-    print(renormalised_t)
-
-    gorkov=model.gorkov()
-    g_onsite=[gorkov[(x0+i)%n_x,y0,z0,s,m,(x0+i)%n_x,y0,z0,t,n] for i in range(n_x)]
-    g_nn=[gorkov[(x0+i)%n_x,y0,z0,s,m,(x1+i)%n_x,y0,z0,s,m] for i in range(n_x)]
-    print('Gorkov onsite:')
-    print(g_onsite)
-    print('Gorkov nn:')
-    print(g_nn)
-
-
-    index  = [index1,index2]
-    ind = np.argwhere(((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
-
-    index = [index1,index2]
-    ind = np.argwhere(np.logical_and((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
-
-    if hubbard=='nn':
-
-        index  = [index1,index3]
-        ind = np.argwhere(np.logical_and((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
-
-        index = [index1,index3]
-        ind = np.argwhere(np.logical_and((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
-
-    print('Free energy')
-    print(model.free_energy)
-
+#     x0,y0,z0=0,0,0
+#     x1,y1,z1=1,0,0
+#     s,t=0,1
+#     m,n=0,0
+#     
+#     hartree=model.hartree()
+#     print('Hartree onsite:')
+#     print(hartree[:,y0,z0,s,m])
+# 
+#     fock=model.fock()
+#     renormalised_t=[fock[(x0+i)%n_x,y0,z0,s,m,(x1+i)%n_x,y0,z0,s,m] for i in range(n_x)]
+#     print('Renormalised t:')
+#     print(renormalised_t)
+# 
+#     gorkov=model.gorkov()
+#     g_onsite=[gorkov[(x0+i)%n_x,y0,z0,s,m,(x0+i)%n_x,y0,z0,t,n] for i in range(n_x)]
+#     g_nn=[gorkov[(x0+i)%n_x,y0,z0,s,m,(x1+i)%n_x,y0,z0,s,m] for i in range(n_x)]
+#     print('Gorkov onsite:')
+#     print(g_onsite)
+#     print('Gorkov nn:')
+#     print(g_nn)
+# 
+# 
+#     index  = [index1,index2]
+#     ind = np.argwhere(((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
+# 
+#     index = [index1,index2]
+#     ind = np.argwhere(np.logical_and((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
+# 
+#     if hubbard=='nn':
+# 
+#         index  = [index1,index3]
+#         ind = np.argwhere(np.logical_and((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
+# 
+#         index = [index1,index3]
+#         ind = np.argwhere(np.logical_and((model.hubbard_indices)[0]==index[0], (model.hubbard_indices)[1]==index[1]))
+# 
+#     print('Free energy')
+#     print(model.free_energy)
+# 
 
 #     import matplotlib.pyplot as plt
 #     from matplotlib.ticker import MaxNLocator
@@ -196,21 +217,34 @@ omega=0
 layer=(slice(None),slice(None),0)
 if len(dimensions)==2:
     layer=(slice(None),slice(None))
-ldos = LDOS(model.density_of_states, omegas, omega, trace_over=True)
-ldos = LocalDensityOfStates(fig, ax, model, ldos, omega)
+#ldos = LocalDensityOfStates(fig, ax, model, ldos, omega)
 # fig=ldos.plot_3D()
 # fig.show()
-fig,ax=ldos.imshow(layer)
+#fig,ax=ldos.imshow(layer)
+#plt.show()
+#energy=Energy(fig,ax,model,ldos)
+#fig,ax=energy.plot()
+# dos=np.sum(model.density_of_states,(-3,-2))
+# y=dos.reshape(dos.shape[0],dos.shape[1]*dos.shape[2])
+# x=np.arange(dos.shape[0])
+# for i in range(np.shape(y)[1]):
+#     ax.scatter(x,y[:,i],c='k')
+# plt.show()
+
+dos = model.density_of_states
+dos = np.sum(dos,(-2,-3))
+axis=0
+fig,ax = model.plt_energy(fig,ax,axis,dos)
 plt.show()
 
 #######
 exit()
 #######
-ham = model.set_tb_hamiltonian()
+ham = model.set_hamiltonian()
 w,v = la.eigh(ham, overwrite_a=True)
 dm = model._density_matrix(v) 
 model.density_of_states = DOS(model.omegas,w,dm)
-unshaped=model.density_of_states
+unshaped = model.density_of_states
 model.density_of_states = model._density_of_states(w,v)
 print('\nHamiltonian:')
 print('Unshaped:')
