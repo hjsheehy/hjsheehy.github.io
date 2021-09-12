@@ -211,11 +211,25 @@ class tight_binding():
         else:
             self.pbc=pbc
 
+        print(self.pbc)
+
+        # avoid hopping to itself when one-dimensional
+        # avoid double counting when two-dimensional
+        for i,dimension in enumerate(dimensions):
+            if dimension<=2:
+                self.pbc[i]=False
+
         dim=self.dimensions
         self.edge = np.floor(0.5*np.array(dim),dtype=float)
         for i in range(len(dim)):
             if self.pbc[i]:
                 self.edge[i]=+100000000
+
+        dim=self.dimensions
+        #self.edge = np.floor(0.5*np.array(dim),dtype=float)
+        #for i in range(len(dim)):
+        #    if self.pbc[i]:
+        #        self.edge[i]=+100000000
 
         if len(basis)>self.n_dim:
             raise ValueError('Overcomplete basis!')
@@ -248,7 +262,7 @@ class tight_binding():
         
         ####################################################
 
-        self.hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
+        self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
 
         self.coeff = self._fourier_coeffs()
 
@@ -284,49 +298,51 @@ class tight_binding():
         sites = np.zeros([self.n_cells])
         sites[index] = 1
         sites=np.diag(sites)
-        self.hamiltonian += np.kron(spin_orbital_onsite,sites)
+        self._hamiltonian += np.kron(spin_orbital_onsite,sites)
     
-    def set_hopping(self, t: complex, orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
+    def set_hopping(self, t: complex, orb_i: int, orb_f: int, cell_hop: tuple):
         spin_tensor=t*np.eye(self.n_spins)
-        self.set_spin_hopping(spin_tensor,orb_i,orb_f,cell_hop,skip_single_site)
+        self.set_spin_hopping(spin_tensor,orb_i,orb_f,cell_hop)
         
-    def set_spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
-        orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
-        orbit_tensor[orb_i,orb_f]=1
-        SO_tensor=kron(spin_tensor,orbit_tensor)
-        self.set_spin_orbit_hopping(SO_tensor,cell_hop,skip_single_site)
+    def set_spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple):
+        self._hamiltonian += self._spin_hopping(spin_tensor, orb_i, orb_f, cell_hop)
 
-    def set_spin_orbit_hopping(self, spin_orbit_tensor: '2D-array', cell_hop: tuple, skip_single_site=True):
-        self.hamiltonian += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
-
-    def _spin_orbit_hopping(self, spin_orbit_tensor, hop: tuple, skip_single_site=True):
-        dim=self.dimensions
-        edge=np.array(self.edge,dtype=int)
-        pbc=self.pbc
-        
-        dimension_along_hop = np.dot(dim,np.abs(hop)) #abs for negative direction hopping
-        single_site = (dimension_along_hop==1)
-        if single_site and skip_single_site:
-            temp=np.zeros([self.n_dof,self.n_dof])
-            return temp
+    def set_spin_orbit_hopping(self, spin_orbit_tensor: '2D-array', cell_hop: tuple):
+        self._hamiltonian += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop)
+    
+    def _hopping(self, hop: tuple):
+        if np.array_equal(hop,np.zeros([self.n_dim])):
+            return np.eye(self.n_cells)
         temp=np.zeros([self.n_cells,self.n_cells])
-        x=np.indices(dim)
+        x=np.indices(self.dimensions)
         x=np.moveaxis(x,0,-1)
-        x=np.add(np.mod(np.add(x, self.centre), dim), -self.centre)
+        x=np.add(np.mod(np.add(x, self.centre), self.dimensions), -self.centre)
         y=np.copy(x)
         y=y+hop
         # cut out hop outside of boundary:
-        indices=np.invert(np.any(y>edge,axis=-1))
+        indices=np.invert(np.any(y>self.edge,axis=-1))
         x = x[indices]
         y = y[indices]
-        x=coordinates_to_indices(x,dim)
-        y=coordinates_to_indices(y,dim)
+        x=coordinates_to_indices(x,self.dimensions)
+        y=coordinates_to_indices(y,self.dimensions)
         x=x.flatten()
         y=y.flatten()
         temp[x,y]+=1
-        temp=kron(spin_orbit_tensor,temp)
-        temp+=dagger(temp)
         return temp
+
+    def _spin_orbit_hopping(self, spin_orbit_tensor, hop: tuple, add_time_reversal=True):
+        temp=self._hopping(hop)
+        temp=kron(spin_orbit_tensor,temp)
+        # if (np.array(hop)!=np.zeros([self.n_dim])).any():
+        if add_time_reversal:
+            temp+=dagger(temp)
+        return temp
+
+    def _spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple):
+        orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
+        orbit_tensor[orb_i,orb_f]=1
+        spin_orbit_tensor=kron(spin_tensor,orbit_tensor)
+        return self._spin_orbit_hopping(spin_orbit_tensor, cell_hop)
 
     def set_impurities(self, V, locations, spin_matrix=None, orbital=None):
         for location in locations:
@@ -337,10 +353,10 @@ class tight_binding():
         self.set_onsite_spin(spin_matrix, orbital, locations)
 
     def unravel_hamiltonian(self):
-        self.hamiltonian = np.reshape(self.hamiltonian, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
+        self._hamiltonian = np.reshape(self._hamiltonian, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
 
     def ravel_hamiltonian(self):
-        self.hamiltonian = np.reshape(self.hamiltonian, [self.n_dof,self.n_dof], 'F')
+        self._hamiltonian = np.reshape(self._hamiltonian, [self.n_dof,self.n_dof], 'F')
 
     def _fourier_coeffs(self):
         x=self.coord_cell
@@ -361,17 +377,17 @@ class tight_binding():
     def fourier_transform_hamiltonian(self, transform=[], inverse_transform=[]):
 
         ravelled=False
-        if np.shape(self.hamiltonian)==(self.n_dof,self.n_dof):
+        if np.shape(self._hamiltonian)==(self.n_dof,self.n_dof):
             ravelled=True
             self.unravel_hamiltonian()
         
-        self.hamiltonian = np.fft.ifftn(self.hamiltonian,axes=transform)
+        self._hamiltonian = np.fft.ifftn(self._hamiltonian,axes=transform)
         transform = tuple(np.array(transform)+len(self.extended_dimensions))
-        self.hamiltonian = np.fft.fftn(self.hamiltonian,axes=transform)
+        self._hamiltonian = np.fft.fftn(self._hamiltonian,axes=transform)
     
-        self.hamiltonian = np.fft.fftn(self.hamiltonian,axes=inverse_transform)
+        self._hamiltonian = np.fft.fftn(self._hamiltonian,axes=inverse_transform)
         inverse_transform = tuple(np.array(inverse_transform)+len(self.extended_dimensions))
-        self.hamiltonian = np.fft.ifftn(self.hamiltonian,axes=inverse_transform)
+        self._hamiltonian = np.fft.ifftn(self._hamiltonian,axes=inverse_transform)
 
         if ravelled:
             self.ravel_hamiltonian()
@@ -383,45 +399,16 @@ class tight_binding():
     def _density_matrix(self, eigenvectors):
         return np.einsum('in,in->in',eigenvectors[:self.n_dof],np.conj(eigenvectors[:self.n_dof]),optimize=True)
     
-    def solve_eigensystem(self):
-        w,v = la.eigh(self.hamiltonian, overwrite_a=True)
+    def solve(self):
+        t = time.time()
+        w,v = la.eigh(self._hamiltonian, overwrite_a=True)
         #from scipy.sparse.linalg import eigsh
         # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
         # v=self.fourier_transform_psi(v)
         # v=self.inv_fourier_transform_psi(v)
+        self.exec_time = time.time() - t
         return w,v
 
-    def density_of_states(self, energy_interval: '1D array', resolution: complex, eigenvalues=None, eigenvectors=None):
-        """Calls LAPACK Hermitian matrix solver from scipy.linalg.eigh
-        with overwrite to conserve memory
-
-        Attributes
-        ----------
-
-        dt : float
-            simulation time
-
-        Returns 
-        ----------
-        dos : array
-            density of states
-        """
-        self.energy_interval=energy_interval
-        t = time.time()
-        if type(eigenvalues)==type(None) and type(eigenvectors)==type(None):
-            # eigenvalues and eigenvectors don't exist... solving
-            eigenvalues,eigenvectors=self.solve_eigensystem()
-        density_matrix = self._density_matrix(eigenvectors) 
-        density_of_states = DOS(energy_interval,resolution,eigenvalues,density_matrix)
-        self.exec_time = time.time() - t
-        n_energy=len(energy_interval)
-        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[n_energy]), 'F')
-        return self.density_of_states
-
-    def local_density_of_states(self, density_of_states, energy, trace_over=True):
-        index = FindNearestValueOfArray(self.energy_interval,energy)
-        return local_density_of_states(density_of_states, index, trace_over)
-    
     def plt_energy(self,fig,ax,axis,density_of_states):
         axes = np.arange(self.n_dim)
         axes = tuple(np.delete(axes,axis))
@@ -472,66 +459,116 @@ class bogoliubov_de_gennes(tight_binding):
         self.max_iterations = 100
         self.absolute_convergence_factor = 0.001
         
-        self._hubbard_u = None
-        self._hubbard_indices = None
-
-        #self._hartree = np.zeros([self.n_dof], dtype=complex_dtype)
-        #self._fock = np.diag(np.zeros([self.n_dof], dtype=complex_dtype))
-        #self._gorkov = np.diag(np.zeros([self.n_dof], dtype=complex_dtype))
-
-        #self.external_hartree = 0*np.copy(initial_hartree)
-        #self.external_fock = 0*np.copy(initial_fock)
-        #self.external_gorkov = 0*np.copy(initial_gorkov)
-
-        #self.external_hartree = external_hartree
-        #self.external_fock = external_fock
-        #self.external_gorkov = external_gorkov
-
+        self.hartree=np.zeros([self.n_dof], dtype=complex_dtype)
+        self.fock=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
+        self.gorkov=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
 
         self._hartree_indices = []
         self._fock_indices = []
         self._gorkov_indices = []
         
-    def set_hamiltonian(self,hartree,fock,gorkov):
-        
+    def set_mean_field_hamiltonian(self):
+
+        # initialise tight binding hamiltonian if doesn't exist:
+        try: 
+            self._tb_ham
+        except:
+            self._tb_ham = self._hamiltonian
+
         n_dof = self.n_dof
 
+        try:
+            self.hubbard_indices
+        except:
+            self._hubbard_u = np.diag(self.hartree)+self.fock+self.gorkov
+            self._set_hubbard_indices()
+            self.fock=self.fock[self.hubbard_indices]
+            self.gorkov=self.gorkov[self.hubbard_indices]
+
+        hartree=self.hartree
+        fock=self.fock
+        gorkov=self.gorkov
+
         hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex_dtype)
-        
         hamiltonian[:n_dof,:n_dof]=self._tb_ham+np.diag(hartree)
         hamiltonian[n_dof:,n_dof:]=-np.conj(self._tb_ham)-np.conj(np.diag(hartree))
         hamiltonian[self.hubbard_indices[0],self.anomalous_indices[1]]=fock
         hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=-np.conj(fock)
         hamiltonian[self.hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(gorkov)
         hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=gorkov
+        self._hamiltonian = hamiltonian
 
-        return hamiltonian
+    def set_hartree(self,hartree):
+        self.hartree += hartree
 
-    def set_fields(self,hartree=None,fock=None,gorkov=None):
-        self._set_hubbard_indices()
-        self.hartree = hartree.astype(complex_dtype)
-        self.fock = fock[self.hubbard_indices].astype(complex_dtype)
-        self.gorkov = gorkov[self.hubbard_indices].astype(complex_dtype)
+    def set_fock(self,fock):
+        self.fock += fock
+
+    def set_gorkov(self,gorkov=None):
+        self.gorkov += gorkov
+
+    def set_spin_orbit_hartree(self,hartree_spin_orbit):
+        hartree = np.diag(kron(hartree_spin_orbit, np.eye(self.n_cells)))
+        self.set_hartree(hartree)
+
+    def set_spin_orbit_fock(self, spin_orbit_tensor: tuple, cell_hop: tuple, add_time_reversal=True):
+        temp = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, add_time_reversal)
+        temp = temp.astype(complex_dtype)
+        self.fock += temp
+
+    def set_spin_orbit_gorkov(self, spin_orbit_tensor: tuple, cell_hop: tuple, add_time_reversal=True):
+        temp = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, add_time_reversal)
+        temp = temp.astype(complex_dtype)
+        self.gorkov += temp
+
+    def set_spin_hartree(self,spins: tuple):
+        orbit_tensor = np.eye(self.n_orbs, dtype=complex_dtype)
+        self.set_spin_orbit_hartree(np.kron(np.diag(spins),orbit_tensor))
+
+    def set_spin_fock(self, spins: tuple, orb_i: int, orb_f: int, cell_hop: tuple, add_time_reversal=True):
+        spin_tensor=np.diag(spins)
+        orbit=np.eye(self.n_orbs,dtype=complex_dtype)
+        spin_orbit = np.kron(spin_tensor, orbit)
+        self.set_spin_orbit_fock(spin_orbit, orb_i, orb_f, cell_hop, add_time_reversal)
+
+    def set_spin_gorkov(self, spin_tensor: tuple, orb_i: int, orb_f: int, cell_hop=None, add_time_reversal=True):
+        if type(cell_hop)==type(None):
+            cell_hop=np.zeros([self.n_dim],dtype=complex_dtype)
+        orbit=np.zeros([self.n_orbs,self.n_orbs],dtype=complex_dtype)
+        orbit[orb_i,orb_f]=1
+        spin_orbit = np.kron(spin_tensor, orbit)
+        self.set_spin_orbit_gorkov(spin_orbit, cell_hop, add_time_reversal)
 
     def set_external_fields(self,external_hartree=None,external_fock=None,external_gorkov=None):
         self.external_hartree = external_hartree
         self.external_fock = external_fock
         self.external_gorkov = external_gorkov
 
-    def set_hubbard_U(self, spin_matrix: 'array', orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
-        orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
-        orbit_tensor[orb_i,orb_f]=1
-        SO_tensor=kron(spin_tensor,orbit_tensor)
-        self.set_hubbard_u_spin_orbit(SO_tensor,cell_hop,skip_single_site)
+    def set_hubbard_u(self, hubbard_u: 'array'):
+
+        try: 
+            self._hubbard_u += hubbard_u
+        except:       
+            self._hubbard_u = hubbard_u
         
-    def set_hubbard_U_spin_orbit(self, spin_orbit_tensor: '2D-array', cell_hop: tuple, skip_single_site=True):
-        if type(self._hubbard_u)==type(None):
-            self._hubbard_u=np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype)
-        self._hubbard_u += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
+
+    def set_hubbard_u_spin(self, spin_matrix: 'array', orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
+        try: 
+            self._hubbard_u += self._spin__hopping(spin_tensor, cell_hop, skip_single_site)
+        except:       
+            self._hubbard_u = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
+        
+    def set_hubbard_u_spin_orbit(self, spin_orbit_tensor: '2D-array', cell_hop: tuple, skip_single_site=True):
+        try: 
+            self._hubbard_u += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
+        except:       
+            self._hubbard_u = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
+
 
     def _set_hubbard_indices(self):
 
         self.hubbard_indices = np.nonzero(self._hubbard_u)
+
         self.U_entries = self._hubbard_u[self.hubbard_indices]
 
         self.anomalous_indices=np.array(self.hubbard_indices)
@@ -599,56 +636,17 @@ class bogoliubov_de_gennes(tight_binding):
             gorkov_entries = (1/2)*np.einsum('in,in,n->i',tmp0,tmp1a,2*f-1,optimize=True)
         return hartree_entries, fock_entries, gorkov_entries
 
-    def anomalous_density_of_states(self, energy_interval: '1D array', resolution: complex, eigenvalues=None, eigenvectors=None):
-
-        self.energy_interval=energy_interval
-        t = time.time()
-        if type(eigenvalues)==type(None) and type(eigenvectors)==type(None):
-            # eigenvalues and eigenvectors don't exist... solving
-            eigenvalues,eigenvectors=self.solve_eigensystem()
-        anomalous_density_matrix = self._anomalous_density_matrix(eigenvectors) 
-        density_of_states = DOS(energy_interval,resolution,eigenvalues,anomalous_density_matrix)
-        self.exec_time = time.time() - t
-        n_energy=len(energy_interval)
-        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[n_energy]), 'F')
-        return self.anomalous_density_of_states
-
     def anomalous_fourier_transform(self,v):
         coeff=self.coeff
         coeff=np.block([[coeff,np.conj(coeff)],[np.conj(coeff),coeff]])
         return np.dot(coeff.T,v)
-
-    def solve(self, hamiltonian):
-        """Calls LAPACK Hermitian matrix solver from scipy.linalg.eigh
-        with overwrite to conserve memory
-
-        Attributes
-        ----------
-
-        dt : float
-            simulation time
-
-        Returns 
-        ----------
-        dos : array
-            density of states
-        """
-
-        t = time.time()
-
-        w,v = la.eigh(hamiltonian, overwrite_a=True)
-
-        self.dos, self.ados = self.density_of_states(w,v), self.anomalous_density_of_states(w,v)
-        self.exec_time = time.time() - t
-
-        return self.dos, self.ados
-
 
     def _set_fields(self, hartree_entries, fock_entries, gorkov_entries):
         """Returns Hartree, Fock, Gorkov"""
         hartree = -np.einsum('ij,j->i',self._hubbard_u,hartree_entries,optimize=True)
         fock =   +np.multiply(self.U_entries,fock_entries)
         gorkov = -np.multiply(self.U_entries,gorkov_entries)
+
         print(hartree[0])
         print(fock[0])
         print(gorkov[0])
@@ -713,21 +711,20 @@ class bogoliubov_de_gennes(tight_binding):
             temp.append(gorkov[index].tolist())
         self._gorkov_list.append(temp)
         ##################################
-        ham = self.set_hamiltonian(hartree,fock,gorkov)
-        w,v = la.eigh(ham, overwrite_a=True)
+        self.set_mean_field_hamiltonian()
+        w,v = self.solve()
         #i=int(self.n_dof/2)
-
         Eg=np.sum(la.eigh(self._tb_ham,eigvals_only=True))/self.n_dof
         h=np.einsum('ij,i,j->',self._hubbard_u,hartree,hartree,optimize=True)
         f=np.einsum('i,i,i->',self.U_entries,fock,fock,optimize=True)
         g=np.einsum('i,i,i->',self.U_entries,gorkov,gorkov,optimize=True)
         o=np.dot(np.diag(self._tb_ham),hartree)
         n=np.dot(self._tb_ham[self.hubbard_indices],fock)
-        anom=ham[tuple([self.hubbard_indices[0]+self.n_dof,self.hubbard_indices[1]])]
-        gg=np.dot(anom,gorkov)
+        #anom=ham[tuple([self.hubbard_indices[0]+self.n_dof,self.hubbard_indices[1]])]
+        #gg=np.dot(anom,gorkov)
         if self.iterations>1:
             self.energy_old=np.copy(self.energy)
-        self.energy=h-f+g+o-n+gg
+        self.energy=h-f+g+o-n#+gg
         self.energy=self.energy/self.n_dof
         #print(self.energy)
 
@@ -764,16 +761,19 @@ class bogoliubov_de_gennes(tight_binding):
         print(np.sum(w[:self.n_dof]))
         return w,v
 
-    def self_consistent_calculation(self, energy_interval=None, resolution=None):
+    def self_consistent_calculation(self):
         """If dos=True, the density of states are calculated once the self consistent
         loop has converged."""
 
         t = time.time()
 
+        self._set_hubbard_indices()
+
+        self.fock = self.fock[self.hubbard_indices]
+        self.gorkov = self.gorkov[self.hubbard_indices]
+
         iteration = iter(self)
         
-        self._tb_ham = self.hamiltonian
-
         for i in tqdm(range(self.max_iterations)):
             
             self.iterations+=1
@@ -791,9 +791,6 @@ class bogoliubov_de_gennes(tight_binding):
                 print('Did not converge within max_iterations!')
                 break
 
-        if type(energy_interval)!=type(None) and type(resolution)!=type(None):
-            # v=self.anomalous_fourier_transform(v)
-            self.dos, self.ados = self.density_of_states(energy_interval,resolution,w,v), self.anomalous_density_of_states(energy_interval,resolution,w,v)
         self.exec_time = time.time() - t
 
         self._hartree_list = np.transpose(self._hartree_list)
@@ -804,7 +801,7 @@ class bogoliubov_de_gennes(tight_binding):
         del(self._tb_ham)
         del(self._hubbard_u)
 
-        return self.hartree, self.fock, self.gorkov, self.iterations
+        return w,v
 
     def hartree(self):
         temp=np.reshape(self._hartree,self.extended_dimensions,'F')
@@ -824,24 +821,55 @@ class bogoliubov_de_gennes(tight_binding):
         temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
 
-     
-    # if Include_DOS==False:
-    #     with open(out_folder+confname+'.npz', 'wb') as f:
-    #         np.savez(f,Hartree=Hartree,Fock=Fock,Gorkov=Gorkov,iterations=iterations,executionTime=executionTime)
-    #         print(iterations)
-    # else:
-    # print('Running DOS')
-    # density_matrix = lattice._density_matrix(v)
-    # dos = DOS(omegas, w, density_matrix)
-    # density_matrix = lattice._anomalous_density_matrix(v)
-    # ados = DOS(omegas, w, density_matrix)
-    # with open(confname+'.npz', 'wb') as f:
-    #     np.savez(f,
-    #     Hartree=Hartree,Fock=Fock,Gorkov=Gorkov,
-    #     iterations=iterations,
-    #     executionTime=executionTime,
-    #     dos=dos,
-    #     ados=ados)
+class greens_function(bogoliubov_de_gennes):
+
+    def __init__(self, model: "tight binding or bogoliubov_de_gennes", energy_interval: '1D array', resolution: complex, eigenvalues, eigenvectors, anomalous=False):
+        """Calls LAPACK Hermitian matrix solver from scipy.linalg.eigh
+        with overwrite to conserve memory
+
+        Attributes
+        ----------
+
+        dt : float
+            simulation time
+
+        Returns 
+        ----------
+        dos : array
+            density of states
+        """
+        
+        self.extended_dimensions = model.extended_dimensions
+        self.n_dof = model.n_dof
+
+        self.energy_interval=energy_interval
+        self.resolution=resolution
+        
+        if anomalous:
+            density_matrix = self._anomalous_density_matrix(eigenvectors) 
+        else:
+            density_matrix = self._density_matrix(eigenvectors) 
+        density_of_states = DOS(energy_interval,resolution,eigenvalues,density_matrix)
+        n_energy=len(energy_interval)
+        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[n_energy]), 'F')
+
+    def local_density_of_states(self, energy, orbital, trace_over_spin=True):
+        temp = self.density_of_states
+        if trace_over_spin:
+            temp = np.sum(temp,-3)
+        index = FindNearestValueOfArray(self.energy_interval,energy)
+        temp = temp[...,index]
+        temp = temp[..., orbital]
+        return temp
+        # return local_density_of_states(self.density_of_states, index, trace_over)
+
+    def spectrum(self, locations, orbital, trace_over_spin=True):
+        temp = self.density_of_states
+        if trace_over_spin:
+            temp = np.sum(temp,-3)
+        temp = temp[..., orbital]
+        temp = [temp[location] for location in locations]
+        return temp
 
 class Lattice(tight_binding):
     def __init__(self, fig, ax, model, ldos, layer, spins, orbs, annotate_orbs=True, show_cell_borders=True, show_basis_vectors=True, show_hopping=True, show_impurities=True, show_only_centre=True):
@@ -964,14 +992,10 @@ class Lattice(tight_binding):
                         self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
 
 class LocalDensityOfStates(tight_binding):
-    def __init__(self, fig, ax, model, ldos, omega):
+    def __init__(self, fig, ax, omegas, ldos, omega):
 
-        super().__init__(model.dimensions, model.n_spins, model.basis, model.orbitals, model.hoppings, model.impurities)
-        
         self.fig = fig
         self.ax = ax
-
-        omegas = model.omegas
 
         index = FindNearestValueOfArray(omegas, omega)
         omega = omegas[index]
@@ -1014,7 +1038,7 @@ class LocalDensityOfStates(tight_binding):
         x=self.ldos[layer]
         x=np.fft.fftshift(x)
         self.im = self.ax.imshow(
-                x, extent=self._extent,
+                x.T, extent=self._extent,
                 interpolation=self.interpolation,
                 vmin=self.vmin, vmax=self.vmax,
                 cmap=self.cmap)

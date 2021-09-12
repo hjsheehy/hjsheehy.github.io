@@ -26,12 +26,10 @@ if n_orbs==1:
     orbitals=[[0,0,0]]
 if n_orbs==2:
     orbitals=[[0,0,0],[0.35,0,0]]
-
 if n_orbs==1:
     hoppings=[[-t, 0, 0, [1,0,0]], [-t, 0, 0, [0,1,0]]]
 if n_orbs==2:
     hoppings=[[-t, 0, 1, [0,0,0]],[-t, 1, 0, [1,0,0]],[-t, 1, 1, [0,1,0]],[-t, 0, 0, [0,1,0]]]
-
 basis=[[1,0,0],[0,1,0]]
 pbc=[True,True]
 #pbc=[False,False]
@@ -43,13 +41,13 @@ hoppings = [[-t, 0, 0, [1,0]],
             [-t, 0, 0, [0,1]]]
 impurity_location = [[0,0]]
 if len(dimensions)==3:
-    pbc=[True,False,False]
+    pbc=[True,True,False]
     #pbc=[False,False,False]
     basis=[[2,0,0],[0,3,0],[0,0,1]]
     hoppings = [[-t, 0, 0, [1,0,0]],
                 [-t, 0, 0, [0,1,0]],
                 [-t, 0, 0, [0,0,1]]]
-    impurity_location = [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[6,0,0]]
+    impurity_location = [[0,0,0]] #,[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[6,0,0]]
 ############# interaction #############
 if model=='sc':
     if hubbard=='onsite':
@@ -73,8 +71,9 @@ if model=='sc':
                             [hubbard_SO_nn, [1,0,0]],
                             [hubbard_SO_nn, [0,1,0]],
                             [hubbard_SO_nn, [0,0,1]]]
+if model!='tb':
     ############ Mean-field #############
-    phiUp, phiDown, Delta= phi_initial, phi_initial, Delta_initial
+    phiUp, phiDown, Delta= phi, phi, Delta
     varsigma = 0#.035
     Delta1, Delta2 = np.array([varsigma, -varsigma]) + Delta
 
@@ -105,18 +104,23 @@ if model=='tb':
     # model.set_magnetic_impurities(M,impurity_location)
     axes=[0,1]
     #model.fourier_transform_hamiltonian(transform=axes)
-    model.fourier_transform_hamiltonian(inverse_transform=axes)
-    model.solve_density_of_states(energy_interval,resolution)
-
+    #model.fourier_transform_hamiltonian(inverse_transform=axes)
+    eigenvalues,eigenvectors=model.solve()
+    dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
 
 elif model=='mf':
-    model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals)
+    model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals, pbc)
     model.set_onsite_chemical_potential(-mu)
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    model.set_hubbard_U_spin_orbit(hubbard_SO, [0,0,0])
-    model.solve()
+    model.set_spin_hartree([phi,phi])
+    spin_tensor=np.array([[0,Delta],[-Delta,0]])
+    model.set_spin_gorkov(spin_tensor,0,0)
+    model.set_mean_field_hamiltonian()
+    eigenvalues,eigenvectors=model.solve()
+    dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
+    ados=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors, anomalous=True)
 
 elif model=='sc':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals)
@@ -124,10 +128,15 @@ elif model=='sc':
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    model.set_hubbard_U_spin_orbit(hubbard_SO, [0,0,0])
-    model.set_fields(hartree,fock,gorkov)
-    model.self_consistent_calculation(energy_interval,resolution)
-
+    model.set_hubbard_u_spin_orbit(hubbard_SO, [0,0,0])
+    model.set_hartree(hartree)
+    model.set_fock(fock)
+    model.set_gorkov(gorkov)
+    model.set_max_iterations(max_iterations)
+    model.set_temperature(T)
+    eigenvalues,eigenvectors=model.self_consistent_calculation()    
+    dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
+    ados=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors, anomalous=True)
 
 #     index1=model.index[0,0,0,0,0]
 #     index2=model.index[0,0,0,1,0]
@@ -217,11 +226,15 @@ omega=0
 layer=(slice(None),slice(None),0)
 if len(dimensions)==2:
     layer=(slice(None),slice(None))
-#ldos = LocalDensityOfStates(fig, ax, model, ldos, omega)
+#dos = model.density_of_states
+orbital=0
+ldos = dos.local_density_of_states(omega, orbital)
+ldos = LocalDensityOfStates(fig, ax, energy_interval, ldos, omega)
 # fig=ldos.plot_3D()
 # fig.show()
-#fig,ax=ldos.imshow(layer)
-#plt.show()
+fig,ax=ldos.imshow(layer)
+plt.show()
+plt.close()
 #energy=Energy(fig,ax,model,ldos)
 #fig,ax=energy.plot()
 # dos=np.sum(model.density_of_states,(-3,-2))
@@ -230,12 +243,6 @@ if len(dimensions)==2:
 # for i in range(np.shape(y)[1]):
 #     ax.scatter(x,y[:,i],c='k')
 # plt.show()
-
-dos = model.density_of_states
-dos = np.sum(dos,(-2,-3))
-axis=0
-fig,ax = model.plt_energy(fig,ax,axis,dos)
-plt.show()
 
 #######
 exit()
