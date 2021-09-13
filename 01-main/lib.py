@@ -8,8 +8,6 @@ __version__='1.0.0'
 # -function of momentum for U, mean-fields and tight binding
 # -function of space for placing impurities
 # -plotting classes
-# -record fields
-# -set_superconducting_field
 
 # Simulation of non-unitary, spin-triplet unconventional 
 # superconductivity and magnetism for local density of states,
@@ -399,8 +397,9 @@ class tight_binding():
             spin_orbit_tensor = hopping_amplitude
 
         temp=kron(spin_orbit_tensor,temp)
-
-        if add_time_reversal:
+        
+        onsite = bool(orb_i==orb_f and np.array_equal(hop_vector, np.zeros([self.n_dim])))
+        if add_time_reversal and not onsite:
             temp+=dagger(temp)
 
         return temp
@@ -594,6 +593,35 @@ class bogoliubov_de_gennes(tight_binding):
         self.anomalous_indices+=self.n_dof
         self.anomalous_indices=tuple(self.anomalous_indices)
 
+    def record_hartree(self, location, spin, orbit):
+        tmp=np.append(np.append(location,spin),orbit)
+        index=np.ravel(coordinates_to_indices(tmp))
+        self._hartree_indices.append(index)
+
+    def record_fock(self, location_a, location_b, spin_a, spin_b, orbital_a=None, orbital_b=None):
+        if type(orbital_a)==type(None) and type(orbital_b)==type(None):
+            orbital_a=orbital_b=0
+        tmp_a=np.append(np.append(location_a,spin_a),orbital_a)
+        tmp_b=np.append(np.append(location_b,spin_b),orbital_b)
+        index_a=coordinates_to_indices(tmp_a, self.extended_dimensions)
+        index_b=coordinates_to_indices(tmp_b, self.extended_dimensions)
+        temp=np.zeros([self.n_dof,self.n_dof])
+        temp[index_a,index_b]=1
+        temp = np.ravel(np.nonzero(temp))
+        self._fock_indices.append(temp)
+
+    def record_gorkov(self, location_a, location_b, spin_a, spin_b, orbital_a=None, orbital_b=None):
+        if type(orbital_a)==type(None) and type(orbital_b)==type(None):
+            orbital_a=orbital_b=0
+        tmp_a=np.append(np.append(location_a,spin_a),orbital_a)
+        tmp_b=np.append(np.append(location_b,spin_b),orbital_b)
+        index_a=coordinates_to_indices(tmp_a, self.extended_dimensions)
+        index_b=coordinates_to_indices(tmp_b, self.extended_dimensions)
+        temp=np.zeros([self.n_dof,self.n_dof])
+        temp[index_a,index_b]=1
+        temp = np.ravel(np.nonzero(temp))
+        self._gorkov_indices.append(temp)
+
     def set_friction(self,friction):
         self.friction = friction
 
@@ -666,10 +694,6 @@ class bogoliubov_de_gennes(tight_binding):
         fock =   +np.multiply(self.U_entries,fock_entries)
         gorkov = -np.multiply(self.U_entries,gorkov_entries)
 
-        print(hartree[0])
-        print(fock[0])
-        print(gorkov[0])
-
         #free_energy=0
         #free_energy = np.einsum('i,i->',self.U_entries,gorkov_)
         #free_energy+= np.einsum('ij,i,j->',self._hubbard_u,hartree,hartree)
@@ -678,26 +702,6 @@ class bogoliubov_de_gennes(tight_binding):
 
         return hartree, fock, gorkov
         # return np.real_if_close(hartree), np.real_if_close(fock), np.real_if_close(gorkov)
-
-    def set_field_tracking(self, hartree_indices=[], fock_indices=[], gorkov_indices=[]):
-        temp=[]
-        for index in hartree_indices:
-            temp.append(index)    
-        self._hartree_indices=temp
-        temp=[]
-        for index in fock_indices:
-            tmp=[]
-            tmp.append(np.argwhere(np.logical_and((self.hubbard_indices)[0]==index[0], (self.hubbard_indices)[1]==index[1])))
-            tmp=np.concatenate(tmp).ravel().tolist()[0]
-            temp.append(tmp)
-        self._fock_indices=temp
-        temp=[]
-        for index in gorkov_indices:    
-            tmp=[]
-            tmp.append(np.argwhere(np.logical_and((self.hubbard_indices)[0]==index[0], (self.hubbard_indices)[1]==index[1])))
-            tmp=np.concatenate(tmp).ravel().tolist()[0]
-            temp.append(tmp)
-        self._gorkov_indices=temp
 
     def __iter__(self):
 
@@ -714,22 +718,34 @@ class bogoliubov_de_gennes(tight_binding):
         hartree, fock, gorkov = self.hartree, self.fock, self.gorkov
         #hartree, fock, gorkov = self._hartree+self.external_hartree, self._fock+self.external_fock, self._gorkov+self.external_gorkov
         
-        ########### tracking ###########
-        temp=[]
-        for index in self._hartree_indices:
-            temp.append(hartree[index])
-        self._hartree_list.append(temp)
+        ########### record fields: ###########
+        n_h = len(self._hartree_indices)
+        n_f = len(self._fock_indices)
+        n_g = len(self._gorkov_indices)
+        n_u = np.shape(self.hubbard_indices)[0]
+        hubbard_indices=np.transpose(self.hubbard_indices)
+        # for i in range(n_u):
+        for i,hubbard_index in enumerate(hubbard_indices):
+            temp=[]
+            #hubbard_index = self.hubbard_indices[:,i]
+            for index in self._hartree_indices:
+                if index==hubbard_index[0] and index==hubbard_index[1]:
+                    temp.append(_hartree[i])
+                    self._hartree_list.append(temp)
 
-        temp=[]
-        for index in self._fock_indices:
-            temp.append(fock[index].tolist())
-        self._fock_list.append(temp)
+            temp=[]
+            for index in self._fock_indices:
+                if np.array_equal(index,hubbard_index):
+                    temp.append(fock[i])
+                    self._fock_list.append(temp)
 
-        temp=[]
-        for index in self._gorkov_indices:
-            temp.append(gorkov[index].tolist())
-        self._gorkov_list.append(temp)
+            temp=[]
+            for index in self._gorkov_indices:
+                if np.array_equal(index,hubbard_index):
+                    temp.append(gorkov[i])
+                    self._gorkov_list.append(temp)
         ##################################
+
         self.set_mean_field_hamiltonian()
         w,v = self.solve()
         #i=int(self.n_dof/2)

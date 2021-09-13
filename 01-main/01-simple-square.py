@@ -115,7 +115,7 @@ elif model=='mf':
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
     model.set_hartree(phi)
-    spin_tensor=Delta*Pauli_z
+    spin_tensor=Delta*(1.0j*Pauli_y)
     model.set_gorkov(spin_tensor)
     model.set_mean_field_hamiltonian()
     eigenvalues,eigenvectors=model.solve()
@@ -129,16 +129,17 @@ elif model=='sc':
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
     model.set_hubbard_u(hubbard_SO)
-    model.set_hartree(hartree)
-    model.set_fock(fock)
-    model.set_gorkov(gorkov)
+    model.set_hartree(phi)
+    model.set_gorkov(Delta*(1.0j*Pauli_y))
+    model.record_gorkov([0,0,0], [0,0,0], 0, 1, 0, 0)
+    model.record_gorkov([0,0,0], [0,0,0], 1, 0, 0, 0)
     model.set_max_iterations(max_iterations)
     model.set_temperature(T)
     eigenvalues,eigenvectors=model.self_consistent_calculation()    
     dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
     ados=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors, anomalous=True)
 
-#     index1=model.index[0,0,0,0,0]
+#     index1=
 #     index2=model.index[0,0,0,1,0]
 #     index3=model.index[1,0,0,0,0]
 # 
