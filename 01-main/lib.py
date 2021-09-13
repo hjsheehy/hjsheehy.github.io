@@ -1,7 +1,37 @@
 #!/usr/bin/env python
 
-# Copyright under GNU General Public License 2021
-# by Henry Sheehy
+# PythU python self-consistent Hubbard U module
+# September 12th, 2021
+__version__='1.0.0'
+# 
+# To add in next version: 
+# -function of momentum for U, mean-fields and tight binding
+# -function of space for placing impurities
+# -plotting classes
+# -record fields
+# -set_superconducting_field
+
+# Simulation of non-unitary, spin-triplet unconventional 
+# superconductivity and magnetism for local density of states,
+# quasiparticle interference and topological features.
+#
+# Copyright (C) 2021, Henry Joseph Sheehy
+# 
+# PythU is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# PythU is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# A copy of the GNU General Public License should be available
+# alongside this source in a file named TBC.  If not,
+# see <http://www.gnu.org/licenses/>.
+#
+# PythU is availabe at http://www. TBC
 
 import sys
 import os
@@ -10,8 +40,6 @@ ROOT_DIR = os.path.dirname(
 os.chdir(ROOT_DIR)
 sys.path.append('src/')
 from imports import *
-'''A library for multiorbital non-unitary spin-triplet superconductivity on a lattice
-simulation.'''
 ###################################################################
 ########################## Preconfig ##############################
 ###################################################################
@@ -262,7 +290,7 @@ class tight_binding():
         
         ####################################################
 
-        self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
+        self._hamiltonian = None
 
         self.coeff = self._fourier_coeffs()
 
@@ -273,80 +301,113 @@ class tight_binding():
     ########### Hamiltonian ############
     ####################################
 
-    def set_onsite_chemical_potential(self, chemical_potential, orbital=None, axes=None):
-        # axes is a slice
-        spin_matrix = chemical_potential*np.eye(self.n_spins)
-        self.set_onsite_spin(spin_matrix, orbital, axes)
+    def _onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
 
-    def set_onsite_spin(self, spin_matrix, orbital=None, axes=None):
-        # axes is a slice
-        if type(orbital)==type(None):
-            orbital=ALL
-        orb = np.zeros([self.n_orbs])
-        orb[orbital] = 1
-        orb = np.diag(orb)
-        SO_onsite=np.kron(spin_matrix,orb)
-        self.set_onsite_spin_orbital(SO_onsite,axes)
+        if np.isscalar(onsite_amplitude):
+            if type(orbital)==type(None):
+                orbit_tensor = np.eye(self.n_orbs)
+            else:
+                orbit_tensor = np.zeros([self.n_orbs,self.n_orbs])
+                orbit_tensor[orbital]=1
+            if type(spin)==type(None):
+                spin_tensor = np.eye(self.n_spins)
+            else:
+                spin_tensor = np.zeros([self.n_spins,self.n_spins])
+                spin_tensor[spin]=1
+            temp = onsite_amplitude*np.kron(spin_tensor,orbit_tensor)
 
-    def set_onsite_spin_orbital(self, spin_orbital_onsite, axes=None):
-        # axes is a slice
-        if type(axes)==type(None):
-            axes=[ALL for i in range(self.n_dim)]
-        axes=tuple(axes)
-        index = Index(self.dimensions)
-        index = (index[axes])
+        elif np.shape(onsite_amplitude)[0]==self.n_spins:
+            spin_tensor = hopping_amplitude
+            if self.n_orbs>1:
+                if type(orbital)==type(None):
+                    ValueError('orbtal or spin_orbit_tensor not given!')
+                else:
+                    orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
+                    orbit_tensor[orbital]=1
+                    temp = kron(spin_tensor,orbit_tensor)
+            else:
+                temp = spin_tensor
+        elif np.shape(hopping_amplitude)[0]==self.n_spins*self.n_orbs:
+            temp = hopping_amplitude
+
         sites = np.zeros([self.n_cells])
-        sites[index] = 1
+        if type(location)==type(None):
+            if type(axes)==type(None):
+                axes=[ALL for i in range(self.n_dim)]
+            axes=tuple(axes)
+            index = Index(self.dimensions)
+            index = (index[axes])
+            sites[index] = 1
+
+        else:
+            sites[location]=1
+
         sites=np.diag(sites)
-        self._hamiltonian += np.kron(spin_orbital_onsite,sites)
-    
-    def set_hopping(self, t: complex, orb_i: int, orb_f: int, cell_hop: tuple):
-        spin_tensor=t*np.eye(self.n_spins)
-        self.set_spin_hopping(spin_tensor,orb_i,orb_f,cell_hop)
+
+        return np.kron(temp, sites)
+
+    def set_onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
+        if type(self._hamiltonian)==type(None):
+            self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
+        self._hamiltonian += self._onsite(onsite_amplitude, spin, orbital, axes, location)
         
-    def set_spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple):
-        self._hamiltonian += self._spin_hopping(spin_tensor, orb_i, orb_f, cell_hop)
-
-    def set_spin_orbit_hopping(self, spin_orbit_tensor: '2D-array', cell_hop: tuple):
-        self._hamiltonian += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop)
     
-    def _hopping(self, hop: tuple):
-        if np.array_equal(hop,np.zeros([self.n_dim])):
-            return np.eye(self.n_cells)
-        temp=np.zeros([self.n_cells,self.n_cells])
-        x=np.indices(self.dimensions)
-        x=np.moveaxis(x,0,-1)
-        x=np.add(np.mod(np.add(x, self.centre), self.dimensions), -self.centre)
-        y=np.copy(x)
-        y=y+hop
-        # cut out hop outside of boundary:
-        indices=np.invert(np.any(y>self.edge,axis=-1))
-        x = x[indices]
-        y = y[indices]
-        x=coordinates_to_indices(x,self.dimensions)
-        y=coordinates_to_indices(y,self.dimensions)
-        x=x.flatten()
-        y=y.flatten()
-        temp[x,y]+=1
-        return temp
+    def set_hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        if type(self._hamiltonian)==type(None):
+            self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
+        self._hamiltonian += self._hopping(hopping_amplitude=hopping_amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
+        
+    def _hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+            
+        if type(hop_vector)==type(None):
+            hop_vector=np.zeros([self.n_dim])
 
-    def _spin_orbit_hopping(self, spin_orbit_tensor, hop: tuple, add_time_reversal=True):
-        temp=self._hopping(hop)
+        if np.array_equal(hop_vector,np.zeros([self.n_dim])):
+            temp = np.eye(self.n_cells)
+        else:
+            temp=np.zeros([self.n_cells,self.n_cells])
+            x=np.indices(self.dimensions)
+            x=np.moveaxis(x,0,-1)
+            x=np.add(np.mod(np.add(x, self.centre), self.dimensions), -self.centre)
+            y=np.copy(x)
+            y=y+hop_vector
+            # cut out hop outside of boundary:
+            indices=np.invert(np.any(y>self.edge,axis=-1))
+            x = x[indices]
+            y = y[indices]
+            x=coordinates_to_indices(x,self.dimensions)
+            y=coordinates_to_indices(y,self.dimensions)
+            x=x.flatten()
+            y=y.flatten()
+            temp[x,y]+=1
+        
+        if np.isscalar(hopping_amplitude):
+            hopping_amplitude = hopping_amplitude*np.eye(self.n_spins)
+
+        if np.shape(hopping_amplitude)[0]==self.n_spins:
+            spin_tensor = hopping_amplitude
+            if self.n_orbs>1:
+                if type(orb_i)==type(None) or type(orb_f)==type(None):
+                    ValueError('orb_i, orb_f or spin_orbit_tensor not given!')
+                else:
+                    orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
+                    orbit_tensor[orb_i,orb_f]=1
+                    spin_orbit_tensor=kron(spin_tensor,orbit_tensor)
+            else:
+                spin_orbit_tensor = spin_tensor
+        elif np.shape(hopping_amplitude)[0]==self.n_spins*self.n_orbs:
+            spin_orbit_tensor = hopping_amplitude
+
         temp=kron(spin_orbit_tensor,temp)
-        # if (np.array(hop)!=np.zeros([self.n_dim])).any():
+
         if add_time_reversal:
             temp+=dagger(temp)
+
         return temp
 
-    def _spin_hopping(self, spin_tensor: '2D-array', orb_i: int, orb_f: int, cell_hop: tuple):
-        orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
-        orbit_tensor[orb_i,orb_f]=1
-        spin_orbit_tensor=kron(spin_tensor,orbit_tensor)
-        return self._spin_orbit_hopping(spin_orbit_tensor, cell_hop)
-
-    def set_impurities(self, V, locations, spin_matrix=None, orbital=None):
+    def set_impurities(self, impurity_amplitude, locations, spin=None, orbital=None):
         for location in locations:
-            self.set_onsite_chemical_potential(V, orbital, location)
+            self.set_onsite(onsite_amplitude=impurity_amplitude, spin=spin, orbital=orbital, location=location)
 
     def set_magnetic_impurities(self, M, locations, spin_matrix=None, orbital=None):
         spin_matrix=np.einsum('i,ijk->jk',M,Pauli_vec)
@@ -466,6 +527,8 @@ class bogoliubov_de_gennes(tight_binding):
         self._hartree_indices = []
         self._fock_indices = []
         self._gorkov_indices = []
+
+        self._hubbard_u = None
         
     def set_mean_field_hamiltonian(self):
 
@@ -498,72 +561,28 @@ class bogoliubov_de_gennes(tight_binding):
         hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=gorkov
         self._hamiltonian = hamiltonian
 
-    def set_hartree(self,hartree):
-        self.hartree += hartree
+    def set_hartree(self,onsite_amplitude,spin=None,orbital=None,axes=None,location=None):
+        self.hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spin=spin, orbital=orbital, axes=axes, location=location))
 
-    def set_fock(self,fock):
-        self.fock += fock
+    def set_fock(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        self.fock += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
-    def set_gorkov(self,gorkov=None):
-        self.gorkov += gorkov
+    def set_gorkov(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        self.gorkov += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
-    def set_spin_orbit_hartree(self,hartree_spin_orbit):
-        hartree = np.diag(kron(hartree_spin_orbit, np.eye(self.n_cells)))
-        self.set_hartree(hartree)
+    def set_external_hartree(self,onsite_amplitude,spin=None,orbital=None,axes=None,location=None):
+        self.external_hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spin=spin, orbital=orbital, axes=axes, location=location))
 
-    def set_spin_orbit_fock(self, spin_orbit_tensor: tuple, cell_hop: tuple, add_time_reversal=True):
-        temp = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, add_time_reversal)
-        temp = temp.astype(complex_dtype)
-        self.fock += temp
+    def set_external_fock(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        self.external_fock += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
-    def set_spin_orbit_gorkov(self, spin_orbit_tensor: tuple, cell_hop: tuple, add_time_reversal=True):
-        temp = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, add_time_reversal)
-        temp = temp.astype(complex_dtype)
-        self.gorkov += temp
+    def set_external_gorkov(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        self.external_gorkov += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
-    def set_spin_hartree(self,spins: tuple):
-        orbit_tensor = np.eye(self.n_orbs, dtype=complex_dtype)
-        self.set_spin_orbit_hartree(np.kron(np.diag(spins),orbit_tensor))
-
-    def set_spin_fock(self, spins: tuple, orb_i: int, orb_f: int, cell_hop: tuple, add_time_reversal=True):
-        spin_tensor=np.diag(spins)
-        orbit=np.eye(self.n_orbs,dtype=complex_dtype)
-        spin_orbit = np.kron(spin_tensor, orbit)
-        self.set_spin_orbit_fock(spin_orbit, orb_i, orb_f, cell_hop, add_time_reversal)
-
-    def set_spin_gorkov(self, spin_tensor: tuple, orb_i: int, orb_f: int, cell_hop=None, add_time_reversal=True):
-        if type(cell_hop)==type(None):
-            cell_hop=np.zeros([self.n_dim],dtype=complex_dtype)
-        orbit=np.zeros([self.n_orbs,self.n_orbs],dtype=complex_dtype)
-        orbit[orb_i,orb_f]=1
-        spin_orbit = np.kron(spin_tensor, orbit)
-        self.set_spin_orbit_gorkov(spin_orbit, cell_hop, add_time_reversal)
-
-    def set_external_fields(self,external_hartree=None,external_fock=None,external_gorkov=None):
-        self.external_hartree = external_hartree
-        self.external_fock = external_fock
-        self.external_gorkov = external_gorkov
-
-    def set_hubbard_u(self, hubbard_u: 'array'):
-
-        try: 
-            self._hubbard_u += hubbard_u
-        except:       
-            self._hubbard_u = hubbard_u
-        
-
-    def set_hubbard_u_spin(self, spin_matrix: 'array', orb_i: int, orb_f: int, cell_hop: tuple, skip_single_site=True):
-        try: 
-            self._hubbard_u += self._spin__hopping(spin_tensor, cell_hop, skip_single_site)
-        except:       
-            self._hubbard_u = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
-        
-    def set_hubbard_u_spin_orbit(self, spin_orbit_tensor: '2D-array', cell_hop: tuple, skip_single_site=True):
-        try: 
-            self._hubbard_u += self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
-        except:       
-            self._hubbard_u = self._spin_orbit_hopping(spin_orbit_tensor, cell_hop, skip_single_site)
-
+    def set_hubbard_u(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        if type(self._hubbard_u)==type(None):
+            self._hubbard_u = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
+        self._hubbard_u += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
     def _set_hubbard_indices(self):
 

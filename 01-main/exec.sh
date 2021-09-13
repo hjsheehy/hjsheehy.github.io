@@ -1,4 +1,29 @@
 #!/usr/bin/bash
+
+# PythU Unix shell scripting module
+# September 12th, 2021
+__version__='1.0.0'
+
+# A module for scripting large PythU simulations
+#
+# Copyright (C) 2021, Henry Joseph Sheehy
+# 
+# PythU is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# PythU is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# A copy of the GNU General Public License should be available
+# alongside this source in a file named TBC.  If not,
+# see <http://www.gnu.org/licenses/>.
+#
+# PythU is availabe at http://www. TBC
+
 confFolder=../02-conf/
 dataFolder=../03-data/
 plotFolder=../04-plot/

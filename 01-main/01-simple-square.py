@@ -96,7 +96,7 @@ energy_interval = np.arange(start=-max_val, stop=max_val+increment, step=increme
 if model=='tb':
     model = tight_binding(dimensions, n_spins, basis, orbitals, pbc)
     # model.set_SO_onsite(SO_onsite)
-    model.set_onsite_chemical_potential(-mu)
+    model.set_onsite(-mu)
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
@@ -110,13 +110,13 @@ if model=='tb':
 
 elif model=='mf':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals, pbc)
-    model.set_onsite_chemical_potential(-mu)
+    model.set_onsite(-mu)
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    model.set_spin_hartree([phi,phi])
-    spin_tensor=np.array([[0,Delta],[-Delta,0]])
-    model.set_spin_gorkov(spin_tensor,0,0)
+    model.set_hartree(phi)
+    spin_tensor=Delta*Pauli_z
+    model.set_gorkov(spin_tensor)
     model.set_mean_field_hamiltonian()
     eigenvalues,eigenvectors=model.solve()
     dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
@@ -124,11 +124,11 @@ elif model=='mf':
 
 elif model=='sc':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals)
-    model.set_onsite_chemical_potential(-mu)
+    model.set_onsite(-mu)
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    model.set_hubbard_u_spin_orbit(hubbard_SO, [0,0,0])
+    model.set_hubbard_u(hubbard_SO)
     model.set_hartree(hartree)
     model.set_fock(fock)
     model.set_gorkov(gorkov)
