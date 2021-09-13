@@ -529,6 +529,10 @@ class bogoliubov_de_gennes(tight_binding):
 
         self._hubbard_u = None
         
+        self._hartree_print_indices = []
+        self._fock_print_indices = []
+        self._gorkov_print_indices = []
+
     def set_mean_field_hamiltonian(self):
 
         # initialise tight binding hamiltonian if doesn't exist:
@@ -593,12 +597,15 @@ class bogoliubov_de_gennes(tight_binding):
         self.anomalous_indices+=self.n_dof
         self.anomalous_indices=tuple(self.anomalous_indices)
 
-    def record_hartree(self, location, spin, orbit):
+    def record_hartree(self, location, spin, orbit, _print=False):
+        self.hartree_print = _print
         tmp=np.append(np.append(location,spin),orbit)
-        index=np.ravel(coordinates_to_indices(tmp))
+        index=np.ravel(coordinates_to_indices(tmp, self.extended_dimensions))
         self._hartree_indices.append(index)
+        self._hartree_print_indices.append(_print)
 
-    def record_fock(self, location_a, location_b, spin_a, spin_b, orbital_a=None, orbital_b=None):
+    def record_fock(self, location_a, location_b, spin_a, spin_b, orbital_a=None, orbital_b=None, _print=False):
+        self.fock_print = _print
         if type(orbital_a)==type(None) and type(orbital_b)==type(None):
             orbital_a=orbital_b=0
         tmp_a=np.append(np.append(location_a,spin_a),orbital_a)
@@ -609,8 +616,10 @@ class bogoliubov_de_gennes(tight_binding):
         temp[index_a,index_b]=1
         temp = np.ravel(np.nonzero(temp))
         self._fock_indices.append(temp)
+        self._fock_print_indices.append(_print)
 
-    def record_gorkov(self, location_a, location_b, spin_a, spin_b, orbital_a=None, orbital_b=None):
+    def record_gorkov(self, location_a, location_b, spin_a, spin_b, orbital_a=None, orbital_b=None, _print=False):
+        self.gorkov_print = _print
         if type(orbital_a)==type(None) and type(orbital_b)==type(None):
             orbital_a=orbital_b=0
         tmp_a=np.append(np.append(location_a,spin_a),orbital_a)
@@ -621,6 +630,7 @@ class bogoliubov_de_gennes(tight_binding):
         temp[index_a,index_b]=1
         temp = np.ravel(np.nonzero(temp))
         self._gorkov_indices.append(temp)
+        self._gorkov_print_indices.append(_print)
 
     def set_friction(self,friction):
         self.friction = friction
@@ -707,9 +717,9 @@ class bogoliubov_de_gennes(tight_binding):
 
         self.iterations=0
 
-        self._hartree_list=[]
-        self._fock_list=[]
-        self._gorkov_list=[]
+        self._hartree_record=[]
+        self._fock_record=[]
+        self._gorkov_record=[]
         
         return self
 
@@ -725,25 +735,42 @@ class bogoliubov_de_gennes(tight_binding):
         n_u = np.shape(self.hubbard_indices)[0]
         hubbard_indices=np.transpose(self.hubbard_indices)
         # for i in range(n_u):
-        for i,hubbard_index in enumerate(hubbard_indices):
-            temp=[]
-            #hubbard_index = self.hubbard_indices[:,i]
-            for index in self._hartree_indices:
-                if index==hubbard_index[0] and index==hubbard_index[1]:
-                    temp.append(_hartree[i])
-                    self._hartree_list.append(temp)
 
-            temp=[]
+        temp=[]
+        for index in self._hartree_indices:
+            temp.append(complex(self.hartree[index]))
+        self._hartree_record.append(temp)
+        
+        temp_fock=[]
+        temp_gorkov=[]
+
+        for i,hubbard_index in enumerate(hubbard_indices):
+
             for index in self._fock_indices:
                 if np.array_equal(index,hubbard_index):
-                    temp.append(fock[i])
-                    self._fock_list.append(temp)
+                    temp_fock.append(fock[i])
 
-            temp=[]
             for index in self._gorkov_indices:
                 if np.array_equal(index,hubbard_index):
-                    temp.append(gorkov[i])
-                    self._gorkov_list.append(temp)
+                    temp_gorkov.append(gorkov[i])
+
+        self._fock_record.append(temp_fock)
+        self._gorkov_record.append(temp_gorkov)
+
+        if np.sum(self._hartree_print_indices)>0:
+            print('\nHartree field:')
+            temp=np.array(self._hartree_record[-1])
+            print(temp[self._hartree_print_indices])
+        if np.sum(self._fock_print_indices)>0:
+            print('\nFock field:')
+            temp=np.array(self._fock_record[-1])
+            print(temp[self._fock_print_indices])
+        if np.sum(self._gorkov_print_indices)>0:
+            print('\nGorkov field:')
+            temp=np.array(self._gorkov_record[-1])
+            print(temp[self._gorkov_print_indices])
+
+
         ##################################
 
         self.set_mean_field_hamiltonian()
@@ -828,9 +855,9 @@ class bogoliubov_de_gennes(tight_binding):
 
         self.exec_time = time.time() - t
 
-        self._hartree_list = np.transpose(self._hartree_list)
-        self._fock_list = np.transpose(self._fock_list)
-        self._gorkov_list = np.transpose(self._gorkov_list)
+        self._hartree_record = np.transpose(self._hartree_record)
+        self._fock_record = np.transpose(self._fock_record)
+        self._gorkov_record = np.transpose(self._gorkov_record)
         
         # Trash non
         del(self._tb_ham)
