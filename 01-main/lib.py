@@ -1,17 +1,23 @@
 #!/usr/bin/env python
 
-# PythU python self-consistent Hubbard U module
+# PythU Python self-consistent Hubbard U module
 # September 12th, 2021
 __version__='1.0.0'
 # 
 # To add in next version: 
 # -function of momentum for U, mean-fields and tight binding
 # -function of space for placing impurities
-# -plotting classes
+# -fourier tranform these functional hamiltonians using fourier_transform_hamiltonian
+# -add spectrum to plot
+# -add linecut to plot
+# -add fields to plot
+# -add recordings to plot
+# -incorporate config.py into its respective main.py
+# -implement free energy
 
-# Simulation of non-unitary, spin-triplet unconventional 
-# superconductivity and magnetism for local density of states,
-# quasiparticle interference and topological features.
+# Scanning tunnelling microscopy (STM) and angle-resolved photoemission
+# spectrocopy (ARPES) simulation of non-unitary, spin-triplet unconventional 
+# superconductivity and magnetism with impurities.
 #
 # Copyright (C) 2021, Henry Joseph Sheehy
 # 
@@ -39,7 +45,7 @@ os.chdir(ROOT_DIR)
 sys.path.append('src/')
 from imports import *
 ###################################################################
-########################## Preconfig ##############################
+############################ General ##############################
 ###################################################################
 Pauli_z = np.array([[1,0],[0,-1]])
 Pauli_y = np.array([[0,-1.0j],[1.0j,0]])
@@ -48,9 +54,7 @@ Pauli_plus = (Pauli_x+1.0j*Pauli_y)*(1./2.)
 Pauli_minus = (Pauli_x-1.0j*Pauli_y)*(1./2.)
 Pauli_vec = np.dstack([Pauli_x, Pauli_y, Pauli_z])
 Pauli_vec = np.moveaxis(Pauli_vec,-1,0)
-###################################################################
-############################ General ##############################
-###################################################################
+
 ALL=slice(None)
 
 def dagger(array):
@@ -68,10 +72,6 @@ def Index(dimensions: tuple) -> "array":
     given by the indexing Zn_Z'''
     return np.reshape(np.arange(np.prod(dimensions)),dimensions,'F')
 
-def kron(a : 'array', b : 'array'):
-    return np.kron(a,b)
-    # return np.multiply.outer(a,b).reshape(np.multiply(np.shape(a),np.shape(b)))
-
 def coordinates_to_indices(array, dimensions):
     dim=len(dimensions)
     temp=np.mod(array,dimensions)
@@ -81,44 +81,6 @@ def coordinates_to_indices(array, dimensions):
     temp=np.multiply(temp,multipler)
     temp=np.sum(temp,axis=-1)
     return temp
-###################################################################
-##################### Statistical Mechanics #######################
-###################################################################
-def Green_function(omega, eigenvalues, density_matrix):
-    '''7-dimensional data set: [x, y, z, spin, spin, orbital, orbital]'''
-    return np.einsum('e,ie->i', 1/(omega-eigenvalues), density_matrix,optimize=True)
-
-def DOS(energy_interval, resolution, eigenvalues, density_matrix):
-    '''8-dimensional data set: [x, y, z, spin, spin, orbital, orbital, omega]'''
-    omegas = np.array(energy_interval, dtype=complex_dtype) + 1.0j*resolution
-    green = np.array([Green_function(omega, eigenvalues, density_matrix) for omega in omegas])
-    dos = -(1/np.pi)*np.imag(green)
-    dos = np.moveaxis(dos,0,-1)
-    return dos
-
-def local_density_of_states(density_of_states, index, trace_over=True):
-    """[Spin-orbital resolved] local density of states
-    
-    parameters
-    ----------
-    omega : float
-        finds nearest value of omega in omegas
-    traced : bool
-        if True traces over the spin-orbital componenets 
-    layer : int
-        z component
-
-    returns 
-    ----------
-    ldos : array
-        local density of states
-    """
-    ldos = density_of_states[...,index]
-    if trace_over==True:
-        tmp = np.shape(ldos)
-        n_spins, n_orbs = tmp[-2:]
-        ldos = np.sum(ldos, axis=(-1,-2))/(n_spins*n_orbs)
-    return ldos
 
 ###################################################################
 ##################### Analytical Friedel ##########################
@@ -218,8 +180,11 @@ class tight_binding():
         anomalous thermal density matrix
     """
 
-    def __init__(self, dimensions, n_spins, basis=None, orbitals=None, pbc=None): #, k_dim=None):
-    
+    def __init__(self, dimensions, n_spins, basis=None, orbitals=None, pbc=None, k_space=False):
+        
+        self.model='tb'
+        self.k_space = k_space
+
         self.dimensions=dimensions
         self.n_spins=n_spins
         self.basis=np.array(basis,dtype=float)
@@ -290,8 +255,6 @@ class tight_binding():
 
         self._hamiltonian = None
 
-        self.coeff = self._fourier_coeffs()
-
     def set_temperature(self,temperature):
         self.temperature=temperature
 
@@ -312,13 +275,13 @@ class tight_binding():
             else:
                 spin_tensor = np.zeros([self.n_spins,self.n_spins])
                 spin_tensor[spin]=1
-            temp = onsite_amplitude*np.kron(spin_tensor,orbit_tensor)
+            temp = onsite_amplitude*kron(spin_tensor,orbit_tensor)
 
         elif np.shape(onsite_amplitude)[0]==self.n_spins:
             spin_tensor = hopping_amplitude
             if self.n_orbs>1:
                 if type(orbital)==type(None):
-                    ValueError('orbtal or spin_orbit_tensor not given!')
+                    ValueError('orbital or spin_orbit_tensor not given!')
                 else:
                     orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
                     orbit_tensor[orbital]=1
@@ -342,7 +305,7 @@ class tight_binding():
 
         sites=np.diag(sites)
 
-        return np.kron(temp, sites)
+        return kron(temp, sites)
 
     def set_onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
         if type(self._hamiltonian)==type(None):
@@ -417,21 +380,20 @@ class tight_binding():
 
     def ravel_hamiltonian(self):
         self._hamiltonian = np.reshape(self._hamiltonian, [self.n_dof,self.n_dof], 'F')
-
-    def _fourier_coeffs(self):
+    def fourier_coeff(self):
         x=self.coord_cell
         k=np.copy(x)
         k=k*2*np.pi/(self.dimensions)-np.pi
-        c=np.dot(x,k.T)
-        c=np.exp(-1.0j*c)
-        return c
+        coeff=np.dot(x,k.T)
+        coeff=np.exp(-1.0j*coeff)
+        return coeff
 
     def fourier_transform_psi(self,v):
-        coeff=self.coeff
+        coeff = self.fourier_coeff()
         return np.dot(np.conj(coeff), v)
 
     def inv_fourier_transform_psi(self,v):
-        coeff=self.coeff
+        coeff=np.conj(self.fourier_coeff())
         return np.dot(coeff, v)
 
     def fourier_transform_hamiltonian(self, transform=[], inverse_transform=[]):
@@ -464,8 +426,10 @@ class tight_binding():
         w,v = la.eigh(self._hamiltonian, overwrite_a=True)
         #from scipy.sparse.linalg import eigsh
         # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
-        # v=self.fourier_transform_psi(v)
-        # v=self.inv_fourier_transform_psi(v)
+        if self.k_space:
+            v=self.inv_fourier_transform_psi(v)
+            self.k_space=False
+
         self.exec_time = time.time() - t
         return w,v
 
@@ -512,9 +476,11 @@ class bogoliubov_de_gennes(tight_binding):
     def __init__(self, dimensions, n_spins, basis=None, orbitals=None, pbc=None): #, k_dim=None):
 
         self.tb_model = tight_binding(dimensions, n_spins, basis, orbitals, pbc)
-
+    
         super().__init__(dimensions, n_spins, basis, orbitals, pbc)
-        
+
+        self._model='bdg'
+
         self.friction = 0
         self.max_iterations = 100
         self.absolute_convergence_factor = 0.001
@@ -883,22 +849,21 @@ class bogoliubov_de_gennes(tight_binding):
         temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
 
-class greens_function(bogoliubov_de_gennes):
+class processed_data(bogoliubov_de_gennes):
 
-    def __init__(self, model: "tight binding or bogoliubov_de_gennes", energy_interval: '1D array', resolution: complex, eigenvalues, eigenvectors, anomalous=False):
+    def __init__(self, model: "tight binding or bogoliubov_de_gennes", energy_interval: '1D array', resolution: complex, eigenvalues=None, eigenvectors=None, include_renormalisation_fields=True, include_k_space=True):
         """Calls LAPACK Hermitian matrix solver from scipy.linalg.eigh
         with overwrite to conserve memory
 
-        Attributes
+        Optional data attributes
         ----------
 
-        dt : float
-            simulation time
-
-        Returns 
-        ----------
-        dos : array
-            density of states
+        density_of_states 
+        ft_density_of_states 
+        anomalous_density_of_states 
+        ft_anomalous_density_of_states 
+        hartree, fock, gorkov
+        recorded_fields
         """
         
         self.extended_dimensions = model.extended_dimensions
@@ -907,13 +872,61 @@ class greens_function(bogoliubov_de_gennes):
         self.energy_interval=energy_interval
         self.resolution=resolution
         
-        if anomalous:
-            density_matrix = self._anomalous_density_matrix(eigenvectors) 
-        else:
-            density_matrix = self._density_matrix(eigenvectors) 
-        density_of_states = DOS(energy_interval,resolution,eigenvalues,density_matrix)
         n_energy=len(energy_interval)
-        self.density_of_states = np.reshape(density_of_states, np.append(self.extended_dimensions,[n_energy]), 'F')
+
+        if model.model=='bdg':
+            
+            if type(eigenvalues)!=type(None) and type(eigenvectors)!=type(None):
+
+                anomalous_density_matrix = self._anomalous_density_matrix(eigenvectors) 
+                ados = self.anomalous_density_of_states(eigenvalues,anomalous_density_matrix)
+                self.anomalous_density_of_states = np.reshape(ados, np.append(self.extended_dimensions,[n_energy]), 'F')
+
+                if include_k_space:
+
+                    ft_eigenvectors = model.fourier_transform_psi(eigenvectors)
+                    ft_anomalous_density_matrix = self._anomalous_density_matrix(ft_eigenvectors) 
+                    ft_ados = self.anomalous_density_of_states(eigenvalues,ft_anomalous_density_matrix)
+                    self.ft_anomalous_density_of_states = np.reshape(ft_ados, np.append(self.extended_dimensions,[n_energy]), 'F')
+                
+            if include_renormalisation_fields:
+
+                self.hartree = model.hartree
+                self.fock = model.fock
+                self.gorkov = model.gorkov
+            
+            # field recording:
+            self._hartree_indices = model._hartree_indices
+            self._fock_indices = model._fock_indices
+            self._gorkov_indices = model._gorkov_indices
+
+        if type(eigenvalues)!=type(None) and type(eigenvectors)!=type(None):
+
+            if include_k_space:
+
+                ft_eigenvectors = model.fourier_transform_psi(eigenvectors)
+                ft_density_matrix = self._density_matrix(ft_eigenvectors) 
+
+                ft_dos = self.density_of_states(eigenvalues,ft_density_matrix)
+                self.ft_density_of_states = np.reshape(ft_dos, np.append(self.extended_dimensions,[n_energy]), 'F')
+
+            density_matrix = self._density_matrix(eigenvectors) 
+
+            dos = self.density_of_states(eigenvalues,density_matrix)
+            self.density_of_states = np.reshape(dos, np.append(self.extended_dimensions,[n_energy]), 'F')
+
+
+    def _greens_function(self, omega, eigenvalues, density_matrix):
+        '''7-dimensional data set: [x, y, z, spin, spin, orbital, orbital]'''
+        return np.einsum('e,ie->i', 1/(omega-eigenvalues), density_matrix,optimize=True)
+
+    def density_of_states(self, eigenvalues, density_matrix):
+        '''8-dimensional data set: [x, y, z, spin, spin, orbital, orbital, omega]'''
+        omegas = np.array(self.energy_interval, dtype=complex_dtype) + 1.0j*self.resolution
+        green = np.array([self._greens_function(omega, eigenvalues, density_matrix) for omega in omegas])
+        dos = -(1/np.pi)*np.imag(green)
+        dos = np.moveaxis(dos,0,-1)
+        return dos
 
     def local_density_of_states(self, energy, orbital, trace_over_spin=True):
         temp = self.density_of_states
@@ -923,7 +936,6 @@ class greens_function(bogoliubov_de_gennes):
         temp = temp[...,index]
         temp = temp[..., orbital]
         return temp
-        # return local_density_of_states(self.density_of_states, index, trace_over)
 
     def spectrum(self, locations, orbital, trace_over_spin=True):
         temp = self.density_of_states
@@ -1053,22 +1065,39 @@ class Lattice(tight_binding):
                         orb_1=orb_1[:2]
                         self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
 
-class LocalDensityOfStates(tight_binding):
-    def __init__(self, fig, ax, omegas, ldos, omega):
+class plot(processed_data):
 
+    def __init__(self, fig, ax, data):
+        
         self.fig = fig
         self.ax = ax
-
-        index = FindNearestValueOfArray(omegas, omega)
-        omega = omegas[index]
-
-        eV=np.real(omega)
-        epsilon=np.imag(omega)
-
-        self.ldos=ldos
-
-        x,y=np.shape(ldos)[:2]
         
+        self.data=data
+        self.energy_interval=data.energy_interval
+        self.resolution=data.resolution
+        self.density_of_states=data.density_of_states
+
+    def _imshow(self, ldos):
+
+        self.interpolation = 'none'
+
+        x=np.fft.fftshift(ldos)
+
+        self.im = self.ax.imshow(
+                x.T, extent=self._extent,
+                interpolation=self.interpolation,
+                vmin=self.vmin, vmax=self.vmax,
+                cmap=self.cmap)
+
+    def differential_current_map(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True):
+
+        ldos = self.data.local_density_of_states(energy, orbital, trace_over_spin)
+
+        ldos = ldos[layer]
+
+        eV = energy
+        epsilon = self.resolution
+
         self.text= (f'DOS map'
         '\n'
         f'$\omega={eV:.2f}$'
@@ -1091,28 +1120,156 @@ class LocalDensityOfStates(tight_binding):
                # f'{impurity_loc}, '
                # f'$V={V:.2f}$'
                # )
-        self.interpolation = 'none'
+
         self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
+
+        x,y=np.shape(ldos)[:2]
+
+        if layer==(ALL,ALL,0):
+            self.ax.set(xlabel='$x/a_x$', ylabel='$y/a_y$')
+
+        if layer==(ALL,0,ALL):
+            self.ax.set(xlabel='$x/a_x$', ylabel='$z/a_z$')
+
+        if layer==(0,ALL,ALL):
+            self.ax.set(xlabel='$y/a_y$', ylabel='$z/a_z$')
+
         self._extent = [-x/2,x/2,-y/2,y/2]
+        
         self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
 
-    def imshow(self,layer=(ALL,ALL,0)):
-        x=self.ldos[layer]
-        x=np.fft.fftshift(x)
+        self._imshow(ldos)
+
+        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
+
+        return self.fig,self.ax
+    #    cbar.ax.set_title(r'eV')
+
+    def quasiparticle_interference(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True, remove_central_bright_spot=True):
+        
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, trace_over_spin)
+        ldos = self.ldos[layer]
+
+        self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
+
+        f = np.fft.fft2(ldos, axes=(0,1), norm='ortho')
+        abs_f = np.abs(f)
+
+        if layer==(ALL,ALL,0):
+            self.ax.set(xlabel='$k_x a_x$', ylabel='$k_y a_y$')
+
+        if layer==(ALL,0,ALL):
+            self.ax.set(xlabel='$k_x a_x$', ylabel='$k_z a_z$')
+
+        if layer==(0,ALL,ALL):
+            self.ax.set(xlabel='$k_y a_y$', ylabel='$k_z a_z$')
+        
+        self._extent = [-1,1,-1,1]
+
+        x_label_list = ['$-\pi$', '0', '$\pi$']
+        y_label_list = ['$-\pi$', '0', '$\pi$']
+
+        self.ax.set_xticks([-1,0,1])
+        self.ax.set_yticks([-1,0,1])
+
+        self.ax.set_xticklabels(x_label_list)
+        self.ax.set_yticklabels(x_label_list)
+
+
+        # max/min without central bright spot and lines:
+        if remove_central_bright_spot:
+            vmax=[]
+            vmin=[]
+            temp=np.copy(abs_f)
+            temp[0,0]=0
+            vmax.append(np.amax(temp))
+            vmin.append(np.amin(temp))
+            self.vmax = np.max(vmax)
+            self.vmin = np.max(vmin)
+        
+        print(self.vmax)
+
+
+        self.cmap = LinearSegmentedColormap.from_list("", ["black","orange","white"])
+
+        self._imshow(abs_f)
+
+        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
+
+        return self.fig,self.ax
+        
+    def reciprocal_space_surface(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True):
+
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, trace_over_spin)
+
+        ldos = self.ldos[layer]
+
+        self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
+
+        x,y=np.shape(ldos)[:2]
+
+        if layer==(ALL,ALL,0):
+            self.ax.set(xlabel='$k_x a_x$', ylabel='$k_y a_y$')
+
+        if layer==(ALL,0,ALL):
+            self.ax.set(xlabel='$k_x a_x$', ylabel='$k_z a_z$')
+
+        if layer==(0,ALL,ALL):
+            self.ax.set(xlabel='$k_y a_y$', ylabel='$k_z a_z$')
+
+        self._extent = [-1,1,-1,1]
+
+        x_label_list = ['$-\pi$', '0', '$\pi$']
+        y_label_list = ['$-\pi$', '0', '$\pi$']
+
+        self.ax.set_xticks([-1,0,1])
+        self.ax.set_yticks([-1,0,1])
+
+        self.ax.set_xticklabels(x_label_list)
+        self.ax.set_yticklabels(x_label_list)
+        
+        self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
+
+        self._imshow(ldos)
+
+        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
+
+        return self.fig,self.ax
+
+    def band_structure(self, dimension, oribital=0, trace_over_spin=True):
+
+        self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
+        self.interpolation = 'none'
+
+        self.energy_interval = energy_interval
+        
+        self.xlabel=['$x/a_x$','$y/a_y$','$z/a_z$'][dimension]
+
+        self.ylabel='$\omega$'
+        
+        self.extended_dimensions=np.arange(len(np.shape(dos))-1)
+        self.extended_dimensions=tuple(np.delete(self.extended_dimensions,dimension))
+        self.dos=np.sum(dos,axis=self.extended_dimensions)
+
+        x=np.shape(self.dos)[0]
+        y=np.real(self.energy_interval)
+
+        self._extent = [-x/2,x/2,y[0],y[-1]]
+
+        x=self.dos
+        x=np.fft.fftshift(x,0)
         self.im = self.ax.imshow(
-                x.T, extent=self._extent,
+                x.T, extent=self._extent, origin='lower',
                 interpolation=self.interpolation,
                 vmin=self.vmin, vmax=self.vmax,
                 cmap=self.cmap)
 
-        self.ax.set(xlabel='$x/a_x$', ylabel='$y/a_y$')
-        
-        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
-        return self.fig,self.ax
-    #    cbar.ax.set_title(r'eV')
-        
-    def set_text_box(self):
-        text_box = AnchoredText(self.text, loc=2, pad=0.3, borderpad=0)
+        self.ax.set(xlabel=self.xlabel, ylabel=self.ylabel)
+
+        return self.fig, self.ax
+
+    def set_text_box(self,text='Energy'):
+        text_box = AnchoredText(text, loc=2, pad=0.3, borderpad=0)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         self.ax.add_artist(text_box)
 
@@ -1126,11 +1283,18 @@ class LocalDensityOfStates(tight_binding):
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         self.ax.add_artist(text_box)
 
-    def plot_3D(self):
+    def plot_3D(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True):
+
         import plotly.graph_objects as go
-        dimensions=self.dimensions
-        X, Y, Z = np.mgrid[0:dimensions[0], 0:dimensions[1], 0:dimensions[2]]
+
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, trace_over_spin)
+
+        x=int(self.dimensions[0]/2)
+        y=int(self.dimensions[1]/2)
+        z=int(self.dimensions[2]/2)
+        X, Y, Z = np.mgrid[-x:x+1, -y:y+1, -z:z+1]
         values = np.fft.fftshift(self.ldos)
+        #values=self.ldos
         minv=np.min(values)
         maxv=np.max(values)
 
@@ -1147,33 +1311,13 @@ class LocalDensityOfStates(tight_binding):
             caps= dict(x_show=False, y_show=False, z_show=False), # no caps
             ))
 
+        fig.update_layout(
+            scene = dict(
+                xaxis = dict(nticks=3, tickvals=[-x,0,x],),
+                yaxis = dict(nticks=3, tickvals=[-y,0,y],),
+                zaxis = dict(nticks=3, tickvals=[-z,0,z],),))
+            #width=700,
+            #margin=dict(r=20, l=10, b=10, t=10))
+
         return fig
-
-class Energy(tight_binding):
-    def __init__(self, fig, ax, model, dos):
-
-        super().__init__(model.dimensions, model.n_spins, model.basis, model.orbitals, model.pbc)
-        
-        self.fig = fig
-        self.ax = ax
-
-        self.dos=dos
-        
-        self.text= (f'Energy')    
-
-        self.vmin, self.vmax = np.amin(dos), np.amax(dos)
-
-    def plot(self):
-        x=np.arange(len(self.dos))
-        y=self.dos
-        y=np.fft.fftshift(y)
-        self.scatter = self.ax.scatter(
-                x,y) 
-                #vmin=self.vmin, vmax=self.vmax,
-                #cmap=self.cmap)
-
-        self.ax.set(xlabel='$x/a_x$', ylabel='Energy')
-        
-        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
-        return self.fig, self.ax
 

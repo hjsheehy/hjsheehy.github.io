@@ -4,8 +4,9 @@
 from utils import *
 from genimport import *
 from common import *
-##### standard libraries #####
+##### main libraries #####
 import numpy as np
+from numpy import kron
 import scipy
 from scipy import linalg as la
 import scipy.sparse as sp

@@ -77,18 +77,10 @@ if model!='tb':
     varsigma = 0#.035
     Delta1, Delta2 = np.array([varsigma, -varsigma]) + Delta
 
-    hartree_SO = kron(np.diag([phiUp,phiDown]),np.eye(n_orbs))
-    hartree = kron(hartree_SO, np.eye(np.prod(dimensions)))
-    hartree = np.diag(hartree)
-
-    fock = np.kron(np.kron(Pauli_x,np.eye(n_orbs)),np.ones([np.prod(dimensions),np.prod(dimensions)]))
-
-    gorkov_SO = kron(np.array([[0,+Delta1],[-Delta2,0]]), np.eye(n_orbs))
-    gorkov = kron(gorkov_SO, np.eye(np.prod(dimensions)))
 ############## Energy ###############
 resolution=0.1
 increment=0.01
-max_val=5*t 
+max_val=10*t 
 energy_interval = np.arange(start=-max_val, stop=max_val+increment, step=increment)
 ##########################################################
 ######################### Main ###########################
@@ -106,7 +98,7 @@ if model=='tb':
     #model.fourier_transform_hamiltonian(transform=axes)
     #model.fourier_transform_hamiltonian(inverse_transform=axes)
     eigenvalues,eigenvectors=model.solve()
-    dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
+    data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
 
 elif model=='mf':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals, pbc)
@@ -119,8 +111,7 @@ elif model=='mf':
     model.set_gorkov(spin_tensor)
     model.set_mean_field_hamiltonian()
     eigenvalues,eigenvectors=model.solve()
-    dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
-    ados=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors, anomalous=True)
+    data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
 
 elif model=='sc':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals)
@@ -138,8 +129,8 @@ elif model=='sc':
     model.set_max_iterations(max_iterations)
     model.set_temperature(T)
     eigenvalues,eigenvectors=model.self_consistent_calculation()    
-    dos=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors)
-    ados=greens_function(model, energy_interval, resolution, eigenvalues, eigenvectors, anomalous=True)
+    data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
+    print(np.shape(model.hartree))
 
 #     index1=
 #     index2=model.index[0,0,0,1,0]
@@ -225,27 +216,31 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 #fig.set_size_inches(w=latex_width, h=4.5) 
 
-omega=0
+energy=0
 layer=(slice(None),slice(None),0)
 if len(dimensions)==2:
     layer=(slice(None),slice(None))
 #dos = model.density_of_states
 orbital=0
-ldos = dos.local_density_of_states(omega, orbital)
-ldos = LocalDensityOfStates(fig, ax, energy_interval, ldos, omega)
-# fig=ldos.plot_3D()
-# fig.show()
-fig,ax=ldos.imshow(layer)
+
+# ldos 3D
+#fig=ldos.plot_3D()
+#fig.show()
+
+# ldos 2D
+fig,ax = plot(fig, ax, data).differential_current_map(energy, layer, orbital)
+#fig,ax=ldos.quasiparticle_interference(layer)
+#fig,ax=ldos.reciprocal_space_surface(layer)
+#fig,ax=band_structure
 plt.show()
 plt.close()
-#energy=Energy(fig,ax,model,ldos)
-#fig,ax=energy.plot()
-# dos=np.sum(model.density_of_states,(-3,-2))
-# y=dos.reshape(dos.shape[0],dos.shape[1]*dos.shape[2])
-# x=np.arange(dos.shape[0])
-# for i in range(np.shape(y)[1]):
-#     ax.scatter(x,y[:,i],c='k')
-# plt.show()
+
+# energy
+#dos=dos.density_of_states
+#dimension=0
+#energy=band_structure(fig,ax,model,dos,energy_interval,dimension)
+#fig,ax=energy.imshow()
+#plt.show()
 
 #######
 exit()

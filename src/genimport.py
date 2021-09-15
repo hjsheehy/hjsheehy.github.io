@@ -1,5 +1,6 @@
 import sys
 import os
+
 '''Generalise importing to modules with non .py extensions, e.g. .conf files.'''
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
