@@ -106,7 +106,7 @@ elif model=='mf':
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    model.set_hartree(phi)
+    model.set_hartree([1.2*phi,0.8*phi])
     spin_tensor=Delta*(1.0j*Pauli_y)
     model.set_gorkov(spin_tensor)
     model.set_mean_field_hamiltonian()
@@ -130,7 +130,6 @@ elif model=='sc':
     model.set_temperature(T)
     eigenvalues,eigenvectors=model.self_consistent_calculation()    
     data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
-    print(np.shape(model.hartree))
 
 #     index1=
 #     index2=model.index[0,0,0,1,0]
@@ -228,12 +227,64 @@ orbital=0
 #fig.show()
 
 # ldos 2D
-fig,ax = plot(fig, ax, data).differential_current_map(energy, layer, orbital)
+#fig,ax = plot(fig, ax, data).differential_current_map(energy, layer, orbital)
 #fig,ax=ldos.quasiparticle_interference(layer)
 #fig,ax=ldos.reciprocal_space_surface(layer)
 #fig,ax=band_structure
+
+# fields along line
+# xaxis = np.arange(data.extended_dimensions[0])
+# xaxis = wrap(xaxis,model.dimensions[0])
+# xaxis = np.fft.fftshift(xaxis)
+# xlabel = r'$x/a$'
+# 
+# gorkov = data.gorkov()
+# Delta_upDown = [gorkov[x,0,0,0,0,x,0,0,1,0] for x in range(np.shape(gorkov)[0])]
+# Delta_upDown = np.fft.fftshift(Delta_upDown)
+# field=Delta_upDown
+# label=r'$\Delta_{{\uparrow,\downarrow}}/t$'
+# 
+# hartree=data.hartree()
+# phiUp=hartree[:,0,0,0,0]
+# phiUp = np.fft.fftshift(phiUp)
+# twin_field=phiUp
+# twin_label=r'$\phi_\uparrow$'
+# 
+# phiDown=hartree[:,0,0,1,0]
+# phiDown = np.fft.fftshift(phiDown)
+# second_twin_field=phiDown
+# second_twin_label=r'$\phi_\downarrow$'
+# 
+# fig,ax=plot(fig,ax,data).fields(xaxis,xlabel,field,label,twin_field,twin_label,second_twin_field,second_twin_label)
+# plt.show()
+
+# recorded fields
+# xaxis = np.arange(data.iterations)
+# xlabel = r'Iterations'
+# 
+# gorkov = data.gorkov_record[0]
+# field=gorkov
+# label=r'$\Delta_{{\uparrow,\downarrow}}/t$'
+# 
+# hartree=data.hartree_record[0]
+# twin_field=hartree
+# twin_label=r'$\phi_\uparrow$'
+# 
+# fig,ax=plot(fig,ax,data).fields(xaxis,xlabel,field,label,twin_field,twin_label)
+# plt.show()
+
+# spectrum
+# locations=[[0,0,0]]
+# orbital=0
+# fig,ax=plot(fig,ax,data).spectrum(locations, orbital, trace_over_spin=True)
+# plt.show()
+
+# probe_magnetic_z
+plot = plot(fig,ax,data)
+fig,ax = plot.probe_magnetic_z(energy)
+plot.set_text_box(r'$\langle \hat M_z \rangle$')
+plot.set_cbar()
 plt.show()
-plt.close()
 
 # energy
 #dos=dos.density_of_states
@@ -253,7 +304,7 @@ unshaped = model.density_of_states
 model.density_of_states = model._density_of_states(w,v)
 print('\nHamiltonian:')
 print('Unshaped:')
-ham=np.real(ham)
+ham=ham
 print(np.diag(ham))
 print(np.shape(ham))
 dim = np.ravel(np.array([model.extended_dimensions,model.extended_dimensions]).T)

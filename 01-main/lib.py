@@ -12,13 +12,18 @@ __version__='1.0.0'
 # -add linecut to plot
 # -add fields to plot
 # -add recordings to plot
+# -add magnetism to plot
 # -incorporate config.py into its respective main.py
 # -implement free energy
+# -change spin to spin_polarisation in plots (None, Up, Down)
+# -implement reduced vs cartesian coordinates
+# -implement 3D ARPES (Fermi surface)
 
-# Scanning tunnelling microscopy (STM) and angle-resolved photoemission
-# spectrocopy (ARPES) simulation of non-unitary, spin-triplet unconventional 
-# superconductivity and magnetism with impurities.
-#
+# Scanning tunnelling microscopy (STM), quasiparticle interference (QPI) and 
+# angle-resolved photoemission spectrocopy (ARPES) simulation of (topological)
+# non-unitary spin-triplet unconventional superconductivity and magnetism, in 
+# quantum dots, thin films and 3D, with impurities.
+
 # Copyright (C) 2021, Henry Joseph Sheehy
 # 
 # PythU is free software: you can redistribute it and/or modify
@@ -182,7 +187,7 @@ class tight_binding():
 
     def __init__(self, dimensions, n_spins, basis=None, orbitals=None, pbc=None, k_space=False):
         
-        self.model='tb'
+        self._model='tb'
         self.k_space = k_space
 
         self.dimensions=dimensions
@@ -243,7 +248,7 @@ class tight_binding():
         self.coord[:,:self.n_dim] = wrap(self.coord[:,:self.n_dim], self.dimensions)
 
         self.coord_cell = self.coord[:,:self.n_dim]
-        
+
         self.position_cell = np.dot(self.coord_cell[:self.n_cells],basis)
 
         self.position = np.array([[self.position_cell[i] + self.orbitals[m] for m in range(self.n_orbs)] for i in range(self.n_cells)])
@@ -278,7 +283,13 @@ class tight_binding():
             temp = onsite_amplitude*kron(spin_tensor,orbit_tensor)
 
         elif np.shape(onsite_amplitude)[0]==self.n_spins:
-            spin_tensor = hopping_amplitude
+            if np.shape(onsite_amplitude)==np.shape(['spinUp','spinDown']):
+                spin_tensor=np.diag(onsite_amplitude)
+            elif np.shape(onsite_amplitude)==np.shape([['UpUp','UpDown'],['DownUp','DownDown']]):
+                spin_tensor = onsite_amplitude
+            else:   
+                ValueError('onsite_amplitude must be scalar, pair, spin matrix, or spin-orbit matrix')
+
             if self.n_orbs>1:
                 if type(orbital)==type(None):
                     ValueError('orbital or spin_orbit_tensor not given!')
@@ -288,8 +299,8 @@ class tight_binding():
                     temp = kron(spin_tensor,orbit_tensor)
             else:
                 temp = spin_tensor
-        elif np.shape(hopping_amplitude)[0]==self.n_spins*self.n_orbs:
-            temp = hopping_amplitude
+        elif np.shape(onsite_amplitude)[0]==self.n_spins*self.n_orbs:
+            temp = onsite_amplitude
 
         sites = np.zeros([self.n_cells])
         if type(location)==type(None):
@@ -390,6 +401,8 @@ class tight_binding():
 
     def fourier_transform_psi(self,v):
         coeff = self.fourier_coeff()
+        if np.shape(v)[0]==2*self.n_dof:
+            coeff=np.block([[coeff,np.conj(coeff)],[np.conj(coeff),coeff]])
         return np.dot(np.conj(coeff), v)
 
     def inv_fourier_transform_psi(self,v):
@@ -481,6 +494,8 @@ class bogoliubov_de_gennes(tight_binding):
 
         self._model='bdg'
 
+        self.iterations=0
+
         self.friction = 0
         self.max_iterations = 100
         self.absolute_convergence_factor = 0.001
@@ -499,6 +514,10 @@ class bogoliubov_de_gennes(tight_binding):
         self._fock_print_indices = []
         self._gorkov_print_indices = []
 
+        self._hartree_record=[]
+        self._fock_record=[]
+        self._gorkov_record=[]
+        
     def set_mean_field_hamiltonian(self):
 
         # initialise tight binding hamiltonian if doesn't exist:
@@ -510,12 +529,12 @@ class bogoliubov_de_gennes(tight_binding):
         n_dof = self.n_dof
 
         try:
-            self.hubbard_indices
+            self._hubbard_indices
         except:
             self._hubbard_u = np.diag(self.hartree)+self.fock+self.gorkov
             self._set_hubbard_indices()
-            self.fock=self.fock[self.hubbard_indices]
-            self.gorkov=self.gorkov[self.hubbard_indices]
+            self.fock=self.fock[self._hubbard_indices]
+            self.gorkov=self.gorkov[self._hubbard_indices]
 
         hartree=self.hartree
         fock=self.fock
@@ -524,10 +543,10 @@ class bogoliubov_de_gennes(tight_binding):
         hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex_dtype)
         hamiltonian[:n_dof,:n_dof]=self._tb_ham+np.diag(hartree)
         hamiltonian[n_dof:,n_dof:]=-np.conj(self._tb_ham)-np.conj(np.diag(hartree))
-        hamiltonian[self.hubbard_indices[0],self.anomalous_indices[1]]=fock
-        hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=-np.conj(fock)
-        hamiltonian[self.hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(gorkov)
-        hamiltonian[self.anomalous_indices[0],self.hubbard_indices[1]]=gorkov
+        hamiltonian[self._hubbard_indices[0],self.anomalous_indices[1]]=fock
+        hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=-np.conj(fock)
+        hamiltonian[self._hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(gorkov)
+        hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=gorkov
         self._hamiltonian = hamiltonian
 
     def set_hartree(self,onsite_amplitude,spin=None,orbital=None,axes=None,location=None):
@@ -555,11 +574,11 @@ class bogoliubov_de_gennes(tight_binding):
 
     def _set_hubbard_indices(self):
 
-        self.hubbard_indices = np.nonzero(self._hubbard_u)
+        self._hubbard_indices = np.nonzero(self._hubbard_u)
 
-        self.U_entries = self._hubbard_u[self.hubbard_indices]
+        self.U_entries = self._hubbard_u[self._hubbard_indices]
 
-        self.anomalous_indices=np.array(self.hubbard_indices)
+        self.anomalous_indices=np.array(self._hubbard_indices)
         self.anomalous_indices+=self.n_dof
         self.anomalous_indices=tuple(self.anomalous_indices)
 
@@ -638,8 +657,8 @@ class bogoliubov_de_gennes(tight_binding):
         # they're summed over
         w,v=eigenvalues,eigenvectors
         T=self.temperature
-        tmp0=v[self.hubbard_indices[0]]
-        tmp1=np.conj(v)[self.hubbard_indices[1]]
+        tmp0=v[self._hubbard_indices[0]]
+        tmp1=np.conj(v)[self._hubbard_indices[1]]
         tmp1a=v[self.anomalous_indices[1]]
         if T==0:
             tmp0=tmp0[:,:self.n_dof]
@@ -681,12 +700,6 @@ class bogoliubov_de_gennes(tight_binding):
 
     def __iter__(self):
 
-        self.iterations=0
-
-        self._hartree_record=[]
-        self._fock_record=[]
-        self._gorkov_record=[]
-        
         return self
 
     def __next__(self):
@@ -698,8 +711,8 @@ class bogoliubov_de_gennes(tight_binding):
         n_h = len(self._hartree_indices)
         n_f = len(self._fock_indices)
         n_g = len(self._gorkov_indices)
-        n_u = np.shape(self.hubbard_indices)[0]
-        hubbard_indices=np.transpose(self.hubbard_indices)
+        n_u = np.shape(self._hubbard_indices)[0]
+        hubbard_indices=np.transpose(self._hubbard_indices)
         # for i in range(n_u):
 
         temp=[]
@@ -747,8 +760,8 @@ class bogoliubov_de_gennes(tight_binding):
         f=np.einsum('i,i,i->',self.U_entries,fock,fock,optimize=True)
         g=np.einsum('i,i,i->',self.U_entries,gorkov,gorkov,optimize=True)
         o=np.dot(np.diag(self._tb_ham),hartree)
-        n=np.dot(self._tb_ham[self.hubbard_indices],fock)
-        #anom=ham[tuple([self.hubbard_indices[0]+self.n_dof,self.hubbard_indices[1]])]
+        n=np.dot(self._tb_ham[self._hubbard_indices],fock)
+        #anom=ham[tuple([self._hubbard_indices[0]+self.n_dof,self.hubbard_indices[1]])]
         #gg=np.dot(anom,gorkov)
         if self.iterations>1:
             self.energy_old=np.copy(self.energy)
@@ -797,8 +810,8 @@ class bogoliubov_de_gennes(tight_binding):
 
         self._set_hubbard_indices()
 
-        self.fock = self.fock[self.hubbard_indices]
-        self.gorkov = self.gorkov[self.hubbard_indices]
+        self.fock = self.fock[self._hubbard_indices]
+        self.gorkov = self.gorkov[self._hubbard_indices]
 
         iteration = iter(self)
         
@@ -825,7 +838,7 @@ class bogoliubov_de_gennes(tight_binding):
         self._fock_record = np.transpose(self._fock_record)
         self._gorkov_record = np.transpose(self._gorkov_record)
         
-        # Trash non
+        # Trash unnecessary data
         del(self._tb_ham)
         del(self._hubbard_u)
 
@@ -838,14 +851,14 @@ class bogoliubov_de_gennes(tight_binding):
     def fock(self):
         extended_dimensions=np.append(self.extended_dimensions,self.extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof],dtype=complex_dtype)
-        temp[self.hubbard_indices]=self._fock
+        temp[self._hubbard_indices]=self._fock
         temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
 
     def gorkov(self):
         extended_dimensions=np.append(self.extended_dimensions,self.extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof],dtype=complex_dtype)
-        temp[self.hubbard_indices]=self._gorkov
+        temp[self._hubbard_indices]=self._gorkov
         temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
 
@@ -866,39 +879,49 @@ class processed_data(bogoliubov_de_gennes):
         recorded_fields
         """
         
+        self.dimensions = model.dimensions
         self.extended_dimensions = model.extended_dimensions
         self.n_dof = model.n_dof
+        self.n_spins = model.n_spins
+        self.coord = model.coord
+        self.coord_cell = model.coord_cell
+        self.position_cell = model.position_cell
 
         self.energy_interval=energy_interval
         self.resolution=resolution
-        
+
         n_energy=len(energy_interval)
 
-        if model.model=='bdg':
+        if model._model=='bdg':
             
+            self._hubbard_indices = model._hubbard_indices
+            self.iterations = model.iterations
+
             if type(eigenvalues)!=type(None) and type(eigenvectors)!=type(None):
 
                 anomalous_density_matrix = self._anomalous_density_matrix(eigenvectors) 
-                ados = self.anomalous_density_of_states(eigenvalues,anomalous_density_matrix)
+                ados = self.density_of_states(eigenvalues,anomalous_density_matrix)
+                ados = np.real_if_close(ados)
                 self.anomalous_density_of_states = np.reshape(ados, np.append(self.extended_dimensions,[n_energy]), 'F')
 
                 if include_k_space:
 
                     ft_eigenvectors = model.fourier_transform_psi(eigenvectors)
                     ft_anomalous_density_matrix = self._anomalous_density_matrix(ft_eigenvectors) 
-                    ft_ados = self.anomalous_density_of_states(eigenvalues,ft_anomalous_density_matrix)
+                    ft_ados = self.density_of_states(eigenvalues,ft_anomalous_density_matrix)
+                    ft_ados = np.real_if_close(ft_ados)
                     self.ft_anomalous_density_of_states = np.reshape(ft_ados, np.append(self.extended_dimensions,[n_energy]), 'F')
                 
             if include_renormalisation_fields:
 
-                self.hartree = model.hartree
-                self.fock = model.fock
-                self.gorkov = model.gorkov
+                self._hartree_zip = np.real_if_close(model.hartree)
+                self._fock_zip = np.real_if_close(model.fock)
+                self._gorkov_zip = np.real_if_close(model.gorkov)
             
             # field recording:
-            self._hartree_indices = model._hartree_indices
-            self._fock_indices = model._fock_indices
-            self._gorkov_indices = model._gorkov_indices
+            self.hartree_record = np.real_if_close(model._hartree_record)
+            self.fock_record = np.real_if_close(model._fock_record)
+            self.gorkov_record = np.real_if_close(model._gorkov_record)
 
         if type(eigenvalues)!=type(None) and type(eigenvectors)!=type(None):
 
@@ -908,13 +931,31 @@ class processed_data(bogoliubov_de_gennes):
                 ft_density_matrix = self._density_matrix(ft_eigenvectors) 
 
                 ft_dos = self.density_of_states(eigenvalues,ft_density_matrix)
+                ft_dos = np.real_if_close(ft_dos)
                 self.ft_density_of_states = np.reshape(ft_dos, np.append(self.extended_dimensions,[n_energy]), 'F')
 
             density_matrix = self._density_matrix(eigenvectors) 
 
             dos = self.density_of_states(eigenvalues,density_matrix)
+            dos = np.real_if_close(dos)
             self.density_of_states = np.reshape(dos, np.append(self.extended_dimensions,[n_energy]), 'F')
 
+    def hartree(self):
+        temp = self._hartree_zip
+        temp = np.reshape(temp, self.extended_dimensions, 'F')
+        return temp
+
+    def fock(self):
+        temp=np.zeros([self.n_dof,self.n_dof],dtype=complex_dtype)
+        temp[self._hubbard_indices]=self._fock_zip
+        temp = np.reshape(temp, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
+        return temp
+
+    def gorkov(self):
+        temp=np.zeros([self.n_dof,self.n_dof],dtype=complex_dtype)
+        temp[self._hubbard_indices]=self._gorkov_zip
+        temp = np.reshape(temp, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
+        return temp
 
     def _greens_function(self, omega, eigenvalues, density_matrix):
         '''7-dimensional data set: [x, y, z, spin, spin, orbital, orbital]'''
@@ -928,21 +969,26 @@ class processed_data(bogoliubov_de_gennes):
         dos = np.moveaxis(dos,0,-1)
         return dos
 
-    def local_density_of_states(self, energy, orbital, trace_over_spin=True):
+    def local_density_of_states(self, energy, orbital, trace_over_spin=True, spin=None):
         temp = self.density_of_states
         if trace_over_spin:
             temp = np.sum(temp,-3)
+        elif type(spin)!=type(None):
+            temp = temp[...,spin,:,:]
         index = FindNearestValueOfArray(self.energy_interval,energy)
         temp = temp[...,index]
         temp = temp[..., orbital]
         return temp
 
-    def spectrum(self, locations, orbital, trace_over_spin=True):
+    def spectrum(self, locations, orbital, trace_over_spin=True, spin=None):
         temp = self.density_of_states
         if trace_over_spin:
             temp = np.sum(temp,-3)
-        temp = temp[..., orbital]
-        temp = [temp[location] for location in locations]
+        elif type(spin)!=type(None):
+            temp = temp[...,spin,:,:]
+        temp = temp[..., orbital,:]
+        location=locations[0]
+        temp = np.array([temp[(*location, ...)] for location in locations])
         return temp
 
 class Lattice(tight_binding):
@@ -1076,6 +1122,7 @@ class plot(processed_data):
         self.energy_interval=data.energy_interval
         self.resolution=data.resolution
         self.density_of_states=data.density_of_states
+        self.n_spins = data.n_spins
 
     def _imshow(self, ldos):
 
@@ -1104,22 +1151,6 @@ class plot(processed_data):
         '\n'
         f'$\epsilon={epsilon}$'
         )    
-        # k_F = Fermi_vector(mu, t)
-        # lambda_F = Friedel_wavelength(k_F)
-        # text_fermi = (f'$\lambda_F={lambda_F:.2f}$')
-        # text = ('tight_binding parameters: '
-               # f'$\mu={mu:.2f}$, '
-               # f'$s={s:.3f}$, '
-               # f'$\delta={delta:.3f}$, '
-               # f'$t={t:.2f}$, '
-               # f'$d=({d[0]:.2f},{d[1]:.2f},{d[2]:.2f})$, '
-               # f'$N_x = {n_sites_x}$, '
-               # f'$N_y = {n_sites_y}$'
-               # '\n'
-               # 'Impurity location: '
-               # f'{impurity_loc}, '
-               # f'$V={V:.2f}$'
-               # )
 
         self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
 
@@ -1143,7 +1174,47 @@ class plot(processed_data):
         self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
 
         return self.fig,self.ax
-    #    cbar.ax.set_title(r'eV')
+
+    def probe_magnetic_z(self, energy, layer=(ALL,ALL,0), orbital=0):
+
+        ldos = self.data.local_density_of_states(energy, orbital, trace_over_spin=False)
+
+        ldos = ldos[...,0] - ldos[...,1]
+    
+        ldos = ldos[layer]
+
+        eV = energy
+        epsilon = self.resolution
+
+        self.text= (f'\map'
+        '\n'
+        f'$\omega={eV:.2f}$'
+        '\n'
+        f'$\epsilon={epsilon}$'
+        )    
+
+        self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
+
+        x,y=np.shape(ldos)[:2]
+
+        if layer==(ALL,ALL,0):
+            self.ax.set(xlabel='$x/a_x$', ylabel='$y/a_y$')
+
+        if layer==(ALL,0,ALL):
+            self.ax.set(xlabel='$x/a_x$', ylabel='$z/a_z$')
+
+        if layer==(0,ALL,ALL):
+            self.ax.set(xlabel='$y/a_y$', ylabel='$z/a_z$')
+
+        self._extent = [-x/2,x/2,-y/2,y/2]
+        
+        self.cmap = ListedColormap(cm.PiYG(np.linspace(0, 1, 256)))
+
+        self._imshow(ldos)
+
+        self.fig.subplots_adjust(hspace=0.1, wspace=0.1)
+
+        return self.fig,self.ax
 
     def quasiparticle_interference(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True, remove_central_bright_spot=True):
         
@@ -1187,9 +1258,6 @@ class plot(processed_data):
             self.vmax = np.max(vmax)
             self.vmin = np.max(vmin)
         
-        print(self.vmax)
-
-
         self.cmap = LinearSegmentedColormap.from_list("", ["black","orange","white"])
 
         self._imshow(abs_f)
@@ -1321,3 +1389,103 @@ class plot(processed_data):
 
         return fig
 
+    def fields(self, xaxis, xlabel, field, label, twin_field=None, twin_label=None, second_twin_field=None, second_twin_label=None):
+    
+        color='tab:red'
+        
+        if len(field)!=len(label):
+            ValueError("length of field not equal to length of label")
+
+            if type(xaxis)==type(None):
+                xaxis = np.arange(len(field))
+
+            field=field
+            label=label
+            self.ax.plot(xaxis, field, color=color,marker='.',markersize=4,label=label)
+            self.ax.set_ylabel(label, color=color)
+            self.ax.tick_params(axis='y', labelcolor=color)
+        
+        if type(twin_field)!=type(None):
+
+            self.twin_ax = self.ax.twinx()
+            
+            color = 'tab:blue'
+
+            if len(twin_field)!=len(twin_label):
+                ValueError("length of twin_field not equal to length of twin_label")
+            
+            field=twin_field
+            label=twin_label
+
+            self.twin_ax.plot(xaxis, field, color=color,marker='x',markersize=4,label=label)  
+            self.twin_ax.set_ylabel(label, color=color)
+            self.twin_ax.tick_params(axis='y', labelcolor=color)
+
+        if type(second_twin_field)!=type(None):
+
+            self.twin_ax2 = self.ax.twinx()
+            
+            color = 'tab:green'
+
+            if len(second_twin_field)!=len(second_twin_label):
+                ValueError("length of second_twin_field not equal to length of second_twin_label")
+
+            field=second_twin_field
+            label=second_twin_label
+
+            self.twin_ax2.plot(xaxis, field, color=color,marker='x',markersize=4,label=label)  
+            self.twin_ax2.set_ylabel(label, color=color)
+            self.twin_ax2.tick_params(axis='y', labelcolor=color)
+
+            self.twin_ax2.spines.right.set_position(("axes", 1.2))
+
+
+        self.ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        self.ax.set_xlabel(xlabel)
+
+        plt.tight_layout()
+
+        return self.fig, self.ax 
+
+    def spectrum(self, locations, orbital, trace_over_spin=True):
+
+        spectrum = self.data.spectrum(locations, orbital, trace_over_spin)
+
+        n = len(spectrum)
+        colors = [cm.nipy_spectral(i) for i in np.linspace(0, 1, n)]
+
+        for i in range(n):
+
+
+            if not trace_over_spin:
+                s=0 
+                x,y=self.energy_interval,spectrum[i,s]
+                self.ax.plot(x,y, linestyle='solid', color=colors[i],label=(f'$\mathbf{{r}}={locations[i]}$, ' + r'$\uparrow$'))
+                self.ax.fill_between(x,y,0,color=colors[i], alpha=0.4)
+                s=1
+                x,y=self.energy_interval,spectrum[i,s]
+                self.ax.plot(x,y, linestyle='dotted', color=colors[i],label=(f'$\mathbf{{r}}={locations[i]}$, ' + r'$\downarrow$'))
+                self.ax.fill_between(x,y,0,color=colors[i], alpha=0.4)
+            else:
+                x,y=self.energy_interval,spectrum[i]
+                self.ax.plot(x,y, linestyle='solid', color=colors[i],label=(f'$\mathbf{{r}}={locations[i]}$'))
+                self.ax.fill_between(x,y,0,color=colors[i], alpha=0.4)
+
+
+        self.ax.set(xlabel=r'$\omega$')  
+        self.ax.set(ylabel=r'Density of states')
+
+        text_DOS = ('Spectrum'
+        '\n'
+        f'$\epsilon={self.resolution}$'
+        )    
+
+        self.fig.text(.22, .81, text_DOS,
+                 {'bbox': dict(boxstyle="square", alpha=0.5, fc="white",
+                               ec="none", pad=0.2)}, ha='center', va='center')
+                               
+        legend = self.fig.legend(loc="upper left", 
+        fancybox=True, shadow=True, #prop=fontP,
+        bbox_to_anchor=(0.14,0.58,1,0.2))
+
+        return self.fig,self.ax
