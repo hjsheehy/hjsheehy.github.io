@@ -131,8 +131,7 @@ def caption():
     fermi_vector = Fermi_vector(mu, t, omega)
     friedel_wavelength = Friedel_wavelength(fermi_vector)
 
-    text=rf'''
-Benchmarking to observe attenuation of finite size effects with
+    text=rf'''Benchmarking to observe attenuation of finite size effects with
 increasing n.
 '''
     with open(output+'.txt', 'w') as f:

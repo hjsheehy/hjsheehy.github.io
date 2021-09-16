@@ -117,8 +117,7 @@ def caption():
     fermi_vector = Fermi_vector(mu, t, omega)
     friedel_wavelength = Friedel_wavelength(fermi_vector)
 
-    text=rf'''
-The local density of states of a spinless square lattice tight-binding
+    text=rf'''The local density of states of a spinless square lattice tight-binding
 model at $\mu/t={mu:.2f}$ with ${dimensions[0]}\times{dimensions[1]}$
 sites, a single orbital with an impurity at the centre with coupling
 strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous

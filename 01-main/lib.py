@@ -8,12 +8,8 @@ __version__='1.0.0'
 # -function of momentum for U, mean-fields and tight binding
 # -function of space for placing impurities
 # -fourier tranform these functional hamiltonians using fourier_transform_hamiltonian
-# -add spectrum to plot
 # -add linecut to plot
-# -add fields to plot
-# -add recordings to plot
-# -add magnetism to plot
-# -incorporate config.py into its respective main.py
+# -incorporate config.py into its respective ##-main.py
 # -implement free energy
 # -change spin to spin_polarisation in plots (None, Up, Down)
 # -implement reduced vs cartesian coordinates

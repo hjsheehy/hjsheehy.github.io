@@ -47,8 +47,7 @@ def caption():
     fermi_vector = Fermi_vector(mu, t, omega)
     friedel_wavelength = Friedel_wavelength(fermi_vector)
 
-    text=rf'''
-Two simple lattices with ${n}\times{n}$ lattice sites, with single (blue) orbital (right) or multiorbital (red, bleu) (left). 
+    text=rf'''Two simple lattices with ${n}\times{n}$ lattice sites, with single (blue) orbital (right) or multiorbital (red, blue) (left). 
 Lattice impurities are gives by the black dot with a central asterix. 
 Hopping vectors for the first site are denoted by black, dashed arrows.
 '''

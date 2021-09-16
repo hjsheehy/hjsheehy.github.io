@@ -1,4 +1,3 @@
-
 The local density of states of a spinless square lattice tight-binding
 model at $\mu/t=3.57$ with $33\times33$
 sites, a single orbital with an impurity at the centre with coupling
