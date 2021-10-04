@@ -12,7 +12,6 @@ __version__='1.0.0'
 # -incorporate config.py into its respective ##-main.py
 # -implement free energy
 # -change spin to spin_polarisation in plots (None, Up, Down)
-# -implement reduced vs cartesian coordinates
 # -implement 3D ARPES (Fermi surface)
 
 # Scanning tunnelling microscopy (STM), quasiparticle interference (QPI) and 
@@ -286,15 +285,14 @@ class tight_binding():
             else:   
                 ValueError('onsite_amplitude must be scalar, pair, spin matrix, or spin-orbit matrix')
 
-            if self.n_orbs>1:
-                if type(orbital)==type(None):
-                    ValueError('orbital or spin_orbit_tensor not given!')
-                else:
-                    orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
-                    orbit_tensor[orbital]=1
-                    temp = kron(spin_tensor,orbit_tensor)
+            if type(orbital)==type(None):
+                orbit_tensor = np.eye(self.n_orbs)
             else:
-                temp = spin_tensor
+                orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
+                orbit_tensor[orbital]=1
+
+            temp = kron(spin_tensor,orbit_tensor)
+
         elif np.shape(onsite_amplitude)[0]==self.n_spins*self.n_orbs:
             temp = onsite_amplitude
 
@@ -378,9 +376,9 @@ class tight_binding():
         for location in locations:
             self.set_onsite(onsite_amplitude=impurity_amplitude, spin=spin, orbital=orbital, location=location)
 
-    def set_magnetic_impurities(self, M, locations, spin_matrix=None, orbital=None):
+    def set_magnetic_impurities(self, M, locations, orbital=None):
         spin_matrix=np.einsum('i,ijk->jk',M,Pauli_vec)
-        self.set_onsite_spin(spin_matrix, orbital, locations)
+        self.set_impurities(spin_matrix, locations, orbital=orbital)
 
     def unravel_hamiltonian(self):
         self._hamiltonian = np.reshape(self._hamiltonian, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
@@ -878,10 +876,14 @@ class processed_data(bogoliubov_de_gennes):
         self.dimensions = model.dimensions
         self.extended_dimensions = model.extended_dimensions
         self.n_dof = model.n_dof
+        self.n_dim = model.n_dim
         self.n_spins = model.n_spins
+        self.n_orbs = model.n_orbs
+        self.n_cells = model.n_cells
         self.coord = model.coord
         self.coord_cell = model.coord_cell
         self.position_cell = model.position_cell
+        self.coordinates_to_orbital_position = model.coordinates_to_orbital_position
 
         self.energy_interval=energy_interval
         self.resolution=resolution
@@ -986,6 +988,25 @@ class processed_data(bogoliubov_de_gennes):
         location=locations[0]
         temp = np.array([temp[(*location, ...)] for location in locations])
         return temp
+
+    def cartesian_real_space(self, n_pts: list, dos=None, gaussian_mean=0.2):
+
+        if type(dos)==type(None):
+            dos = np.ones(self.dimensions)
+
+        def gaussian_convolution(x,x0,sigma):
+            return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
+        coord = self.coordinates_to_orbital_position
+        x = []
+        for i in range(self.n_dim):
+            _min = np.min(coord[...,i])*1.1
+            _max = np.max(coord[...,i])*1.1
+            x.append(np.linspace(_min,_max,n_pts[i]))
+        x = np.meshgrid(*x)
+        coords = np.reshape(coord,[self.n_orbs,self.n_cells,self.n_dim])
+        dos=np.reshape(dos,[self.n_orbs,self.n_cells])
+        gaussian = [np.sum([gaussian_convolution(x,coords[o,i],gaussian_mean)*dos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbs)]
+        return gaussian
 
 class Lattice(tight_binding):
     def __init__(self, fig, ax, model, ldos, layer, spins, orbs, annotate_orbs=True, show_cell_borders=True, show_basis_vectors=True, show_hopping=True, show_impurities=True, show_only_centre=True):
@@ -1119,6 +1140,7 @@ class plot(processed_data):
         self.resolution=data.resolution
         self.density_of_states=data.density_of_states
         self.n_spins = data.n_spins
+        self.n_dim = data.n_dim
 
     def _imshow(self, ldos):
 

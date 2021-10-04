@@ -25,7 +25,7 @@ confname = os.path.join(DATA,fileName,confname)
 if n_orbs==1:   
     orbitals=[[0,0,0]]
 if n_orbs==2:
-    orbitals=[[0,0,0],[0.35,0,0]]
+    orbitals=[[0,0,0],[0.75,0,0]]
 if n_orbs==1:
     hoppings=[[-t, 0, 0, [1,0,0]], [-t, 0, 0, [0,1,0]]]
 if n_orbs==2:
@@ -43,7 +43,7 @@ impurity_location = [[0,0]]
 if len(dimensions)==3:
     pbc=[True,True,False]
     #pbc=[False,False,False]
-    basis=[[2,0,0],[0,3,0],[0,0,1]]
+    basis=[[2.2,0.56,0],[0.2,2,0],[0,0,1]]
     hoppings = [[-t, 0, 0, [1,0,0]],
                 [-t, 0, 0, [0,1,0]],
                 [-t, 0, 0, [0,0,1]]]
@@ -92,13 +92,26 @@ if model=='tb':
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    # M=[0,0,1]
-    # model.set_magnetic_impurities(M,impurity_location)
+    M=[0,0,1]
+    #model.set_magnetic_impurities(M,impurity_location)
     axes=[0,1]
     #model.fourier_transform_hamiltonian(transform=axes)
     #model.fourier_transform_hamiltonian(inverse_transform=axes)
     eigenvalues,eigenvectors=model.solve()
     data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
+    dos = data.local_density_of_states(0,[0,1])
+    cartesian = data.cartesian_real_space([400,400,1],dos)
+
+    interpolation = 'none'
+
+    x=np.sum(cartesian,0)[:,:,0]
+
+    plt.imshow(
+            x.T, 
+            interpolation=interpolation)
+
+    plt.show()
+    exit()
 
 elif model=='mf':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals, pbc)
