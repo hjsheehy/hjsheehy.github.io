@@ -28,18 +28,13 @@ def Main():
 ############################# Square ###############################
 ####################################################################
 model='tb'
-dos='False'
-n={n}
-mu={mu}
+n_x=n_y=n={n}
+n_z=1
 n_spins={n_spins}
 n_orbs={n_orbs}
+mu={mu}
 t={t}
-V={V}
-U={U}
-T=0
-friction=0
-max_iterations=100
-eps=0.001
+V=1.21
 '''
         with open(confname+'.conf', 'w') as f:
             f.write(temp_conf)

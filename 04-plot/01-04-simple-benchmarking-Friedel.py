@@ -110,8 +110,19 @@ def main():
 def caption():
     fermi_vector = Fermi_vector(mu, t, omega)
     friedel_wavelength = Friedel_wavelength(fermi_vector)
+    [nx,ny,nz]=dimensions=data.dimensions
 
-    text=rf'''
+    text=rf'''The local density of states of a spinless square lattice tight-binding
+model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+sites, a single orbital with an impurity at the centre with coupling
+strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+waves in the electron quasiparticle density. The electronic excitations
+at zero temperature necessarily carry the Fermi energy, and hence the 
+wavefunction describing the excitations is of the Fermi wavelength. 
+The electronic charge distrbution is the square modulus of the
+wavefunction and hence takes on twice the periodicty or double the
+wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+{friedel_wavelength:.3}$. \\
 '''
     with open(output+'.txt', 'w') as f:
         f.write(text)

@@ -123,11 +123,26 @@ def FindIndicesOfArray(array, bound1, bound2):
     lowerBound = min(bound1, bound2)
     return np.where(np.logical_and(array>=lowerBound, array<=upperBound))[0]
 ###################################################################
+########################### Display array #########################
+###################################################################
+def DisplayArray(ax,array):
+    array.real[abs(array.real)<1e-13]=0
+    array.imag[abs(array.imag)<1e-13]=0
+    array=np.real_if_close(array)
+
+    ax.matshow(np.abs(array).T, cmap=plt.cm.Blues)
+    [x,y]=np.shape(array)
+    for i in range(x):
+        for j in range(y):
+            c = array[i,j]
+            ax.text(i, j, str(c), va='center', ha='center')
+    return ax
+###################################################################
 ############################# Lattice #############################
 ###################################################################
 #class tight_binding():
     """A class for the lattice containing the following objects:
-    n_orbs
+    n_orbitals
     n_dim
     n_cells
     n_atoms
@@ -189,11 +204,16 @@ class tight_binding():
         self.n_spins=n_spins
         self.basis=np.array(basis,dtype=float)
         self.orbitals=orbitals
-        self.n_orbs = len(orbitals)
+        self.n_orbitals = len(orbitals)
         self.n_dim = len(dimensions)
         self.temperature = 0 
 
-        self.reciprocal_basis = la.inv(self.basis)
+        self.hoppings=[]
+        self.label_hoppings=[]
+        self.impurities=[]
+        
+        self.inverse_basis = la.inv(self.basis)
+        self.reciprocal_basis = 2*np.pi * self.inverse_basis
 
         #self.k_dim = k_dim
 
@@ -201,8 +221,6 @@ class tight_binding():
             self.pbc=np.ones([self.n_dim],dtype=bool)
         else:
             self.pbc=pbc
-
-        print(self.pbc)
 
         # avoid hopping to itself when one-dimensional
         # avoid double counting when two-dimensional
@@ -232,25 +250,31 @@ class tight_binding():
                 raise ValueError(f'Basis vector {vec} not {self.n_dim}D!')
 
         # Append a dimension for the orbitals:
-        self.extended_dimensions  = np.append(self.dimensions, [self.n_spins,self.n_orbs])
+        self.extended_dimensions  = np.append(self.dimensions, [self.n_spins,self.n_orbitals])
         self.n_cells = np.prod(self.dimensions)
-        self.n_atoms = self.n_cells * self.n_orbs
+        self.n_atoms = self.n_cells * self.n_orbitals
         self.n_dof = self.n_atoms * n_spins
 
         self.centre = np.array(np.array(self.dimensions)/2, dtype=int)  # centred-coordinates
-        self.coord=np.reshape(np.indices(self.extended_dimensions),[len(self.extended_dimensions),self.n_dof],'F').T
+        self.coord = np.reshape(np.indices(self.extended_dimensions),[len(self.extended_dimensions),self.n_dof],'F').T
 
         self.coord[:,:self.n_dim] = wrap(self.coord[:,:self.n_dim], self.dimensions)
 
         self.coord_cell = self.coord[:,:self.n_dim]
 
-        self.position_cell = np.dot(self.coord_cell[:self.n_cells],basis)
+        self._position_cell = np.dot(self.coord_cell[:self.n_cells],basis)
 
-        self.position = np.array([[self.position_cell[i] + self.orbitals[m] for m in range(self.n_orbs)] for i in range(self.n_cells)])
+        self.cartesian = np.array([[self._position_cell[i] + self.orbitals[m] for m in range(self.n_orbitals)] for i in range(self.n_cells)])
+        self.reciprocal_cartesian = np.dot(self.cartesian,self.reciprocal_basis)
 
-        self.coordinates_to_cell_position = np.reshape(self.position_cell, [*self.dimensions,self.n_dim],'F')
-        self.coordinates_to_orbital_position = np.reshape(self.position, [*self.dimensions,self.n_orbs,self.n_dim],'F')
-        
+        self.coordinates_to_cell_position = np.reshape(self._position_cell, [*self.dimensions,self.n_dim],'F')
+        self.coordinates_to_orbital_position = np.reshape(self.cartesian, [*self.dimensions,self.n_orbitals,self.n_dim],'F')
+        self.reciprocal_to_orbital_position = np.reshape(self.reciprocal_cartesian, [*self.dimensions,self.n_orbitals,self.n_dim],'F')
+        self.com=[]
+        for i in range(self.n_dim):
+            com=np.sum(np.array(self.orbitals)[:,i])/self.n_orbitals
+            self.com.append(com)
+        self.com=self.com
         ####################################################
 
         self._hamiltonian = None
@@ -262,19 +286,19 @@ class tight_binding():
     ########### Hamiltonian ############
     ####################################
 
-    def _onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
+    def _onsite(self, onsite_amplitude, spins=None, orbitals=None, axes=None, location=None):
 
         if np.isscalar(onsite_amplitude):
-            if type(orbital)==type(None):
-                orbit_tensor = np.eye(self.n_orbs)
-            else:
-                orbit_tensor = np.zeros([self.n_orbs,self.n_orbs])
-                orbit_tensor[orbital]=1
-            if type(spin)==type(None):
-                spin_tensor = np.eye(self.n_spins)
-            else:
-                spin_tensor = np.zeros([self.n_spins,self.n_spins])
-                spin_tensor[spin]=1
+            if type(orbitals)==type(None):
+                orbitals = np.arange(self.n_orbitals)
+            orbit_tensor=np.zeros([self.n_orbitals])
+            orbit_tensor[orbitals]=np.ones([len(orbitals)])
+            orbit_tensor=np.diag(orbit_tensor)
+            if type(spins)==type(None):
+                spins = np.arange(self.n_spins)
+            spin_tensor=np.zeros([self.n_spins])
+            spin_tensor[spins]=np.ones([len(spins)])
+            spin_tensor=np.diag(spin_tensor)
             temp = onsite_amplitude*kron(spin_tensor,orbit_tensor)
 
         elif np.shape(onsite_amplitude)[0]==self.n_spins:
@@ -285,15 +309,15 @@ class tight_binding():
             else:   
                 ValueError('onsite_amplitude must be scalar, pair, spin matrix, or spin-orbit matrix')
 
-            if type(orbital)==type(None):
-                orbit_tensor = np.eye(self.n_orbs)
-            else:
-                orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
-                orbit_tensor[orbital]=1
-
+            if type(orbitals)==type(None):
+                orbitals = np.arange(self.n_orbitals)
+            orbit_tensor=np.zeros([self.n_orbitals])
+            orbit_tensor[orbitals]=np.ones([len(orbitals)])
+            orbit_tensor=np.diag(orbit_tensor)
+            
             temp = kron(spin_tensor,orbit_tensor)
 
-        elif np.shape(onsite_amplitude)[0]==self.n_spins*self.n_orbs:
+        elif np.shape(onsite_amplitude)[0]==self.n_spins*self.n_orbitals:
             temp = onsite_amplitude
 
         sites = np.zeros([self.n_cells])
@@ -312,17 +336,25 @@ class tight_binding():
 
         return kron(temp, sites)
 
-    def set_onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
+    def set_onsite(self, onsite_amplitude, spins=None, orbitals=None, axes=None, location=None):
         if type(self._hamiltonian)==type(None):
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
-        self._hamiltonian += self._onsite(onsite_amplitude, spin, orbital, axes, location)
+        self._hamiltonian += self._onsite(onsite_amplitude, spins, orbitals, axes, location)
         
-    
-    def set_hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+    def set_hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, label='', add_time_reversal=True):
+
         if type(self._hamiltonian)==type(None):
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
         self._hamiltonian += self._hopping(hopping_amplitude=hopping_amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
         
+        if type(orb_i)==type(None):
+            orb_i=0
+        if type(orb_f)==type(None):
+            orb_f=0
+
+        self.hoppings.append([orb_i,orb_f,hop_vector])
+        self.label_hoppings.append(label)
+
     def _hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
             
         if type(hop_vector)==type(None):
@@ -352,16 +384,16 @@ class tight_binding():
 
         if np.shape(hopping_amplitude)[0]==self.n_spins:
             spin_tensor = hopping_amplitude
-            if self.n_orbs>1:
+            if self.n_orbitals>1:
                 if type(orb_i)==type(None) or type(orb_f)==type(None):
                     ValueError('orb_i, orb_f or spin_orbit_tensor not given!')
                 else:
-                    orbit_tensor=np.zeros([self.n_orbs, self.n_orbs])
+                    orbit_tensor=np.zeros([self.n_orbitals, self.n_orbitals])
                     orbit_tensor[orb_i,orb_f]=1
                     spin_orbit_tensor=kron(spin_tensor,orbit_tensor)
             else:
                 spin_orbit_tensor = spin_tensor
-        elif np.shape(hopping_amplitude)[0]==self.n_spins*self.n_orbs:
+        elif np.shape(hopping_amplitude)[0]==self.n_spins*self.n_orbitals:
             spin_orbit_tensor = hopping_amplitude
 
         temp=kron(spin_orbit_tensor,temp)
@@ -370,15 +402,27 @@ class tight_binding():
         if add_time_reversal and not onsite:
             temp+=dagger(temp)
 
+        # print('spin tensor:')
+        # print(spin_tensor)
+        # print('orbital tensor:')
+        # print(orbit_tensor)
+
         return temp
 
-    def set_impurities(self, impurity_amplitude, locations, spin=None, orbital=None):
+    def set_impurities(self, impurity_amplitude, locations, spins=None, orbitals=None):
+        
         for location in locations:
-            self.set_onsite(onsite_amplitude=impurity_amplitude, spin=spin, orbital=orbital, location=location)
+            self.set_onsite(onsite_amplitude=impurity_amplitude, spins=spins, orbitals=orbitals, location=location)
+        
+        if type(spins)==type(None):
+            spins=np.arange(self.n_spins)
+        if type(orbitals)==type(None):
+            orbitals=np.arange(self.n_orbitals)
+        self.impurities.append([locations,list(spins),list(orbitals)])
 
-    def set_magnetic_impurities(self, M, locations, orbital=None):
+    def set_magnetic_impurities(self, M, locations, orbitals=None):
         spin_matrix=np.einsum('i,ijk->jk',M,Pauli_vec)
-        self.set_impurities(spin_matrix, locations, orbital=orbital)
+        self.set_impurities(spin_matrix, locations, orbitals=orbitals)
 
     def unravel_hamiltonian(self):
         self._hamiltonian = np.reshape(self._hamiltonian, np.append(self.extended_dimensions,self.extended_dimensions), 'F')
@@ -543,8 +587,25 @@ class bogoliubov_de_gennes(tight_binding):
         hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=gorkov
         self._hamiltonian = hamiltonian
 
-    def set_hartree(self,onsite_amplitude,spin=None,orbital=None,axes=None,location=None):
-        self.hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spin=spin, orbital=orbital, axes=axes, location=location))
+        #fig, ax = plt.subplots(1)
+        #ax=DisplayArray(ax,hamiltonian)
+        #plt.show()
+        #exit()
+
+    def reset_hartree(self):
+        self.hartree=np.zeros([self.n_dof], dtype=complex_dtype)
+        self._hartree_record=[]
+
+    def reset_fock(self):
+        self.fock=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
+        self._fock_record=[]
+
+    def reset_gorkov(self):
+        self.gorkov=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
+        self._gorkov_record=[]
+
+    def set_hartree(self,onsite_amplitude,spins=None,orbitals=None,axes=None,location=None):
+        self.hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spins=spins, orbitals=orbitals, axes=axes, location=location))
 
     def set_fock(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
         self.fock += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
@@ -552,8 +613,8 @@ class bogoliubov_de_gennes(tight_binding):
     def set_gorkov(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
         self.gorkov += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
-    def set_external_hartree(self,onsite_amplitude,spin=None,orbital=None,axes=None,location=None):
-        self.external_hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spin=spin, orbital=orbital, axes=axes, location=location))
+    def set_external_hartree(self,onsite_amplitude,spins=None,orbitals=None,axes=None,location=None):
+        self.external_hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spins=spins, orbitals=orbitals, axes=axes, location=location))
 
     def set_external_fock(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
         self.external_fock += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
@@ -578,7 +639,7 @@ class bogoliubov_de_gennes(tight_binding):
 
     def record_hartree(self, location, spin, orbit, _print=False):
         self.hartree_print = _print
-        tmp=np.append(np.append(location,spin),orbit)
+        tmp=np.append(np.append(location,orbit),spin)
         index=np.ravel(coordinates_to_indices(tmp, self.extended_dimensions))
         self._hartree_indices.append(index)
         self._hartree_print_indices.append(_print)
@@ -587,8 +648,8 @@ class bogoliubov_de_gennes(tight_binding):
         self.fock_print = _print
         if type(orbital_a)==type(None) and type(orbital_b)==type(None):
             orbital_a=orbital_b=0
-        tmp_a=np.append(np.append(location_a,spin_a),orbital_a)
-        tmp_b=np.append(np.append(location_b,spin_b),orbital_b)
+        tmp_a=np.append(np.append(location_a,orbital_a),spin_a)
+        tmp_b=np.append(np.append(location_b,orbital_b),spin_b)
         index_a=coordinates_to_indices(tmp_a, self.extended_dimensions)
         index_b=coordinates_to_indices(tmp_b, self.extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof])
@@ -601,8 +662,8 @@ class bogoliubov_de_gennes(tight_binding):
         self.gorkov_print = _print
         if type(orbital_a)==type(None) and type(orbital_b)==type(None):
             orbital_a=orbital_b=0
-        tmp_a=np.append(np.append(location_a,spin_a),orbital_a)
-        tmp_b=np.append(np.append(location_b,spin_b),orbital_b)
+        tmp_a=np.append(np.append(location_a,orbital_a),spin_a)
+        tmp_b=np.append(np.append(location_b,orbital_b),spin_b)
         index_a=coordinates_to_indices(tmp_a, self.extended_dimensions)
         index_b=coordinates_to_indices(tmp_b, self.extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof])
@@ -793,7 +854,7 @@ class bogoliubov_de_gennes(tight_binding):
         # update fields:
         self.hartree, self.fock, self.gorkov = hartree, fock, gorkov 
         
-        print(np.sum(w[:self.n_dof]))
+        #print(np.sum(w[:self.n_dof]))
         return w,v
 
     def self_consistent_calculation(self):
@@ -821,8 +882,10 @@ class bogoliubov_de_gennes(tight_binding):
             
             eps = self.absolute_convergence_factor
             if (np.allclose(hartree_old,self.hartree,atol=eps) & np.allclose(fock_old,self.fock,atol=eps) & np.allclose(gorkov_old,self.gorkov,atol=eps)):
+                self.converged=True
                 break
             if i+1 == self.max_iterations:
+                self.converged=False
                 print('Did not converge within max_iterations!')
                 break
 
@@ -831,10 +894,6 @@ class bogoliubov_de_gennes(tight_binding):
         self._hartree_record = np.transpose(self._hartree_record)
         self._fock_record = np.transpose(self._fock_record)
         self._gorkov_record = np.transpose(self._gorkov_record)
-        
-        # Trash unnecessary data
-        del(self._tb_ham)
-        del(self._hubbard_u)
 
         return w,v
 
@@ -875,15 +934,22 @@ class processed_data(bogoliubov_de_gennes):
         
         self.dimensions = model.dimensions
         self.extended_dimensions = model.extended_dimensions
+        self.basis = model.basis
+        self.orbitals = model.orbitals
+        self.hoppings = model.hoppings
+        self.label_hoppings = model.label_hoppings
+        self.impurities = model.impurities
         self.n_dof = model.n_dof
         self.n_dim = model.n_dim
         self.n_spins = model.n_spins
-        self.n_orbs = model.n_orbs
+        self.n_orbitals = model.n_orbitals
         self.n_cells = model.n_cells
         self.coord = model.coord
         self.coord_cell = model.coord_cell
-        self.position_cell = model.position_cell
         self.coordinates_to_orbital_position = model.coordinates_to_orbital_position
+        self.reciprocal_to_orbital_position = model.reciprocal_to_orbital_position
+        self.centre = model.centre
+        self.com = model.com
 
         self.energy_interval=energy_interval
         self.resolution=resolution
@@ -898,7 +964,7 @@ class processed_data(bogoliubov_de_gennes):
             if type(eigenvalues)!=type(None) and type(eigenvectors)!=type(None):
 
                 anomalous_density_matrix = self._anomalous_density_matrix(eigenvectors) 
-                ados = self.density_of_states(eigenvalues,anomalous_density_matrix)
+                ados = self._density_of_states(eigenvalues,anomalous_density_matrix)
                 ados = np.real_if_close(ados)
                 self.anomalous_density_of_states = np.reshape(ados, np.append(self.extended_dimensions,[n_energy]), 'F')
 
@@ -906,7 +972,7 @@ class processed_data(bogoliubov_de_gennes):
 
                     ft_eigenvectors = model.fourier_transform_psi(eigenvectors)
                     ft_anomalous_density_matrix = self._anomalous_density_matrix(ft_eigenvectors) 
-                    ft_ados = self.density_of_states(eigenvalues,ft_anomalous_density_matrix)
+                    ft_ados = self._density_of_states(eigenvalues,ft_anomalous_density_matrix)
                     ft_ados = np.real_if_close(ft_ados)
                     self.ft_anomalous_density_of_states = np.reshape(ft_ados, np.append(self.extended_dimensions,[n_energy]), 'F')
                 
@@ -928,13 +994,13 @@ class processed_data(bogoliubov_de_gennes):
                 ft_eigenvectors = model.fourier_transform_psi(eigenvectors)
                 ft_density_matrix = self._density_matrix(ft_eigenvectors) 
 
-                ft_dos = self.density_of_states(eigenvalues,ft_density_matrix)
+                ft_dos = self._density_of_states(eigenvalues,ft_density_matrix)
                 ft_dos = np.real_if_close(ft_dos)
                 self.ft_density_of_states = np.reshape(ft_dos, np.append(self.extended_dimensions,[n_energy]), 'F')
 
             density_matrix = self._density_matrix(eigenvectors) 
 
-            dos = self.density_of_states(eigenvalues,density_matrix)
+            dos = self._density_of_states(eigenvalues,density_matrix)
             dos = np.real_if_close(dos)
             self.density_of_states = np.reshape(dos, np.append(self.extended_dimensions,[n_energy]), 'F')
 
@@ -956,179 +1022,96 @@ class processed_data(bogoliubov_de_gennes):
         return temp
 
     def _greens_function(self, omega, eigenvalues, density_matrix):
-        '''7-dimensional data set: [x, y, z, spin, spin, orbital, orbital]'''
+        '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
         return np.einsum('e,ie->i', 1/(omega-eigenvalues), density_matrix,optimize=True)
 
-    def density_of_states(self, eigenvalues, density_matrix):
-        '''8-dimensional data set: [x, y, z, spin, spin, orbital, orbital, omega]'''
+    def _density_of_states(self, eigenvalues, density_matrix):
+        '''8-dimensional data set: [x, y, z, orbital, orbital, spin, spin, omega]'''
         omegas = np.array(self.energy_interval, dtype=complex_dtype) + 1.0j*self.resolution
         green = np.array([self._greens_function(omega, eigenvalues, density_matrix) for omega in omegas])
         dos = -(1/np.pi)*np.imag(green)
         dos = np.moveaxis(dos,0,-1)
         return dos
 
-    def local_density_of_states(self, energy, orbital, trace_over_spin=True, spin=None):
+    def local_density_of_states(self, energy, orbital, spin=None):
         temp = self.density_of_states
-        if trace_over_spin:
-            temp = np.sum(temp,-3)
-        elif type(spin)!=type(None):
-            temp = temp[...,spin,:,:]
+        if type(spin)==type(None):
+            temp = np.sum(temp,-2)
+        else:
+            temp = temp[...,spin,:]
         index = FindNearestValueOfArray(self.energy_interval,energy)
         temp = temp[...,index]
         temp = temp[..., orbital]
         return temp
 
-    def spectrum(self, locations, orbital, trace_over_spin=True, spin=None):
+    def spectrum(self, locations, orbital, spins=None):
         temp = self.density_of_states
-        if trace_over_spin:
-            temp = np.sum(temp,-3)
-        elif type(spin)!=type(None):
-            temp = temp[...,spin,:,:]
+        if type(spin)==type(None):
+            temp = np.sum(temp,-2)
+        else:
+            temp = temp[...,spin,:]
         temp = temp[..., orbital,:]
         location=locations[0]
         temp = np.array([temp[(*location, ...)] for location in locations])
         return temp
 
-    def cartesian_real_space(self, n_pts: list, dos=None, gaussian_mean=0.2):
-
-        if type(dos)==type(None):
-            dos = np.ones(self.dimensions)
+    def ldos_cartesian(self, ldos, n_pts=40, gaussian_mean=0.4):
 
         def gaussian_convolution(x,x0,sigma):
             return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
         coord = self.coordinates_to_orbital_position
-        x = []
+        xx = []
+        n_pts=np.multiply([n_pts,n_pts],self.dimensions)
+        for i in range(self.n_dim):
+            _min = np.min(coord[...,i])-0.5
+            _max = np.max(coord[...,i])+0.5
+            xx.append(np.linspace(_min,_max,n_pts[i]))
+        xx = np.meshgrid(*xx)
+
+        coords = np.reshape(coord,[self.n_orbitals,self.n_cells,self.n_dim])
+        ldos = np.reshape(ldos,[self.n_orbitals,self.n_cells])
+
+        gaussian = [np.sum([gaussian_convolution(xx,coords[o,i],gaussian_mean)*ldos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbitals)]
+        
+        gaussian=np.sum(gaussian,0)
+        gaussian=np.flip(np.fft.fftshift(gaussian).T,axis=0)
+        return gaussian
+
+    def qpi_cartesian(self, ldos, n_pts=40, gaussian_mean=2, remove_central_bright_spot=True):
+        
+        ldos = np.fft.fft2(ldos, axes=(0,1), norm='ortho')
+
+        if remove_central_bright_spot:
+            ldos[0,0]=0
+
+        def gaussian_convolution(x,x0,sigma):
+            return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
+        coord = self.reciprocal_to_orbital_position
+        xx = []
+        n_pts=np.multiply([n_pts,n_pts],self.dimensions)
         for i in range(self.n_dim):
             _min = np.min(coord[...,i])*1.1
             _max = np.max(coord[...,i])*1.1
-            x.append(np.linspace(_min,_max,n_pts[i]))
-        x = np.meshgrid(*x)
-        coords = np.reshape(coord,[self.n_orbs,self.n_cells,self.n_dim])
-        dos=np.reshape(dos,[self.n_orbs,self.n_cells])
-        gaussian = [np.sum([gaussian_convolution(x,coords[o,i],gaussian_mean)*dos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbs)]
+            xx.append(np.linspace(_min,_max,n_pts[i]))
+        xx = np.meshgrid(*xx)
+
+        coords = np.reshape(coord,[self.n_orbitals,self.n_cells,self.n_dim])
+        ldos = np.reshape(ldos,[self.n_orbitals,self.n_cells])
+
+        gaussian = [np.sum([gaussian_convolution(xx,coords[o,i],gaussian_mean)*ldos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbitals)]
+
+        gaussian=np.sum(gaussian,0) #sum over orbitals
+
+        gaussian = np.abs(gaussian)
+        
+        gaussian=np.sum(gaussian,-1)
+
+        ldos=np.abs(ldos)
+
         return gaussian
 
-class Lattice(tight_binding):
-    def __init__(self, fig, ax, model, ldos, layer, spins, orbs, annotate_orbs=True, show_cell_borders=True, show_basis_vectors=True, show_hopping=True, show_impurities=True, show_only_centre=True):
 
-        super().__init__(model.dimensions, model.n_spins, model.basis, model.orbitals, model.hoppings, model.impurities)
-
-        self.fig = fig
-        self.ax = ax
-        # Colors and labels:
-        self.color_orb = plt.cm.rainbow(np.linspace(0,1,self.n_orbs))
-        self.label_basis = list(string.ascii_uppercase)
-        self.label_orb = list(string .ascii_lowercase)
-
-        # Show hopping:
-        if show_hopping:
-            self.label_hopping=[r'$\delta$']
-            for link in self.hoppings:
-                self._plt_hopping(*link, show_only_centre)
-
-        # Find orbitals in layer to be plotted:
-        for o, orb in enumerate(self.orbitals):
-            
-            tmp=layer+(spins,o,slice(2))
-            temp = self.pos_orb[tmp]
-            pos = temp.reshape([self.dimensions[0]*self.dimensions[1]*self.n_spins, 2])
-            size = ldos[:,:,:,o].reshape([self.dimensions[0]*self.dimensions[1]*self.n_spins])
-            xx, yy = zip(*pos)
-            s=size*20/(np.mean(size))
-            self.ax.scatter(xx, yy, s=s, color=self.color_orb[o])
-
-        # Impurities
-        if show_impurities:
-            [V, impurity_loc, impurity_spin, impurity_orb] = self.impurities
-            ll=[]
-            for loc in impurity_loc:
-                if len(loc)==2:
-                    loc.append(0)
-                ll.append(loc)
-            ll = np.array(ll)
-            ss=[]
-            for spin in impurity_spin:
-                if spin in spins:
-                    ss.append(spin)
-            oo=[]
-            for orb in impurity_orb:
-                oo.append(orb)
-            n_imp = np.shape(ll)[0]
-            for o in oo:
-                if ll!=[]:
-                    pos = (self.pos_orb[ll[:,0],ll[:,1],ll[:,2],ss,o,:2])
-                    xx, yy = zip(*pos)
-                    s=10/np.mean(self.dimensions[0:1])
-                    self.ax.scatter(xx, yy, s=6*s, color='k', marker='o')
-                    self.ax.scatter(xx, yy, s=s, color=self.color_orb[o], marker='*')
-        
-        # Cell borders:
-        if show_cell_borders==True:
-            width = self.basis[0][0]
-            # width = 2*basis[0][0] # 2 for hexagonal self
-            height = self.basis[1][1]
-
-            tmp=layer+(0,0,slice(2))
-            temp = self.pos_orb[tmp]
-            for a_x, a_y in zip(*(temp.reshape([self.dimensions[0]*self.dimensions[1],2])+self.com[:2]).T):
-                self.ax.add_patch(Rectangle(
-                    xy=(a_x-width/2, a_y-height/2) ,width=width, height=height,
-                    linewidth=1, color='blue', fill=False))
-        
-        # Annotate orbitals:
-        for o, orb in enumerate(self.orbitals):
-            if annotate_orbs==True:
-                self.ax.annotate(self.label_orb[o], self.orbitals[o][:2]+[0.05,0.05], horizontalalignment='right', verticalalignment='bottom', color=self.color_orb[o])
-        # Draw basis vectors:
-        if show_basis_vectors==True:
-            for i in range(2): # Two basis vectors are plotted in the plane
-                self.ax.annotate(text='', xytext=self.basis[i][:2],xy=self.orbitals[0][:2],  arrowprops=dict(arrowstyle='<-', lw=2))
-                self.ax.annotate(text=self.label_basis[i], xytext=0.5*self.basis[i][:2]+[0.05,0.05],xy=self.orbitals[0][:2])
-
-    def _plt_hopping(self, t: complex, orb_i: int, orb_f: int, cell_hop: tuple, PBC=True, show_only_centre=True):
-        if len(cell_hop)==2:
-            cell_hop.append(0)
-        cell_hop = np.array(cell_hop)
-        cells = self.n_cells
-        s=0
-        if (cell_hop==np.zeros([3])).all() and PBC==True:
-            if show_only_centre:
-                index=[0]
-            else:
-                index=np.arange(cells)
-            for i in index:
-                [xi,yi,zi] = Z_Zn(i, self.dimensions)
-                [xf,yf,zf] = np.mod([xi,yi,zi] + cell_hop, self.dimensions)
-                orb_0 = self.pos_orb[xi,yi,zi,s,orb_i] 
-                orb_1 = self.pos_orb[xf,yf,zf,s,orb_f]
-                orb_0=orb_0[:2]
-                orb_1=orb_1[:2]
-                self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
-                # self.ax.annotate(text=self.label_hopping[0], xytext=0.5*orb_1, xy=orb_0)
-        # else:
-        for dimension in range(self.n_dim):
-            temp=np.zeros(3)
-            temp[dimension]=1
-            if (temp==cell_hop).all():
-                if show_only_centre:
-                    index=[0]
-                else:
-                    index=np.arange(cells)
-                for index_i in index: 
-                    [xi,yi,zi] = Z_Zn(index_i, self.dimensions)
-                    [xf,yf,zf] = np.mod([xi,yi,zi] + cell_hop, self.dimensions)
-                    coord_i = self.coord_cell[index_i]
-                    edge = bool(coord_i[dimension]>=self.centre[dimension])
-                    if edge and not PBC:
-                        pass
-                    else:
-                        orb_0 = self.pos_orb[xi,yi,zi,s,orb_i] 
-                        orb_1 = self.pos_orb[xf,yf,zf,s,orb_f]
-                        orb_0=orb_0[:2]
-                        orb_1=orb_1[:2]
-                        self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
-
-class plot(processed_data):
+class plot_data(processed_data):
 
     def __init__(self, fig, ax, data):
         
@@ -1141,6 +1124,19 @@ class plot(processed_data):
         self.density_of_states=data.density_of_states
         self.n_spins = data.n_spins
         self.n_dim = data.n_dim
+        self.hoppings = data.hoppings
+        self.label_hoppings = data.label_hoppings
+        self.impurities = data.impurities
+        self.n_orbitals = data.n_orbitals
+        self.orbitals = data.orbitals
+        self.n_cells = data.n_cells
+        self.dimensions = data.dimensions
+        self.coord = data.coord
+        self.coord_cell = data.coord_cell
+        self.centre = data.centre
+        self.coordinates_to_orbital_position = data.coordinates_to_orbital_position
+        self.basis = data.basis
+        self.com = data.com
 
     def _imshow(self, ldos):
 
@@ -1149,16 +1145,23 @@ class plot(processed_data):
         x=np.fft.fftshift(ldos)
 
         self.im = self.ax.imshow(
-                x.T, extent=self._extent,
+                x[::-1].T, extent=self._extent,
                 interpolation=self.interpolation,
                 vmin=self.vmin, vmax=self.vmax,
-                cmap=self.cmap)
+                cmap=self.cmap,
+                origin='lower')
 
-    def differential_current_map(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True):
+    def differential_current_map(self, energy, layer=(ALL,ALL,0), orbital=0, spin=None, cartesian=False, n_pts=10, gaussian_mean=0.4):
 
-        ldos = self.data.local_density_of_states(energy, orbital, trace_over_spin)
+        x,y=self.dimensions[:2]
+        self._extent = [-x/2,x/2,-y/2,y/2]
+
+        ldos = self.data.local_density_of_states(energy, orbital, spin)
 
         ldos = ldos[layer]
+        if cartesian:
+            ldos=self.data.ldos_cartesian(ldos, n_pts, gaussian_mean)
+            self._extent = [-x/2-0.5/n_pts,x/2+0.5/n_pts,-y/2-0.5/n_pts,y/2+0.5/n_pts]
 
         eV = energy
         epsilon = self.resolution
@@ -1172,7 +1175,6 @@ class plot(processed_data):
 
         self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
 
-        x,y=np.shape(ldos)[:2]
 
         if layer==(ALL,ALL,0):
             self.ax.set(xlabel='$x/a_x$', ylabel='$y/a_y$')
@@ -1183,7 +1185,6 @@ class plot(processed_data):
         if layer==(0,ALL,ALL):
             self.ax.set(xlabel='$y/a_y$', ylabel='$z/a_z$')
 
-        self._extent = [-x/2,x/2,-y/2,y/2]
         
         self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
 
@@ -1195,7 +1196,7 @@ class plot(processed_data):
 
     def probe_magnetic_z(self, energy, layer=(ALL,ALL,0), orbital=0):
 
-        ldos = self.data.local_density_of_states(energy, orbital, trace_over_spin=False)
+        ldos = self.data.local_density_of_states(energy, orbital)
 
         ldos = ldos[...,0] - ldos[...,1]
     
@@ -1234,9 +1235,9 @@ class plot(processed_data):
 
         return self.fig,self.ax
 
-    def quasiparticle_interference(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True, remove_central_bright_spot=True):
+    def quasiparticle_interference(self, energy, layer=(ALL,ALL,0), orbital=0, spins=None, remove_central_bright_spot=True):
         
-        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, trace_over_spin)
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, spin)
         ldos = self.ldos[layer]
 
         self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
@@ -1284,9 +1285,9 @@ class plot(processed_data):
 
         return self.fig,self.ax
         
-    def reciprocal_space_surface(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True):
+    def reciprocal_space_surface(self, energy, layer=(ALL,ALL,0), orbital=0, spins=None):
 
-        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, trace_over_spin)
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, spin)
 
         ldos = self.ldos[layer]
 
@@ -1322,40 +1323,39 @@ class plot(processed_data):
 
         return self.fig,self.ax
 
-    def band_structure(self, dimension, oribital=0, trace_over_spin=True):
+    def band_structure(self, dimension, oribital=0, spins=None):
 
         self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
         self.interpolation = 'none'
 
-        self.energy_interval = energy_interval
-        
         self.xlabel=['$x/a_x$','$y/a_y$','$z/a_z$'][dimension]
 
         self.ylabel='$\omega$'
         
+        dos = self.data.density_of_states
         self.extended_dimensions=np.arange(len(np.shape(dos))-1)
         self.extended_dimensions=tuple(np.delete(self.extended_dimensions,dimension))
-        self.dos=np.sum(dos,axis=self.extended_dimensions)
+        dos=np.sum(dos,axis=self.extended_dimensions)
 
-        x=np.shape(self.dos)[0]
+        x=np.shape(dos)[0]
         y=np.real(self.energy_interval)
 
         self._extent = [-x/2,x/2,y[0],y[-1]]
 
-        x=self.dos
+        x=dos
         x=np.fft.fftshift(x,0)
         self.im = self.ax.imshow(
                 x.T, extent=self._extent, origin='lower',
                 interpolation=self.interpolation,
-                vmin=self.vmin, vmax=self.vmax,
+                #vmin=self.vmin, vmax=self.vmax,
                 cmap=self.cmap)
 
         self.ax.set(xlabel=self.xlabel, ylabel=self.ylabel)
 
         return self.fig, self.ax
 
-    def set_text_box(self,text='Energy'):
-        text_box = AnchoredText(text, loc=2, pad=0.3, borderpad=0)
+    def set_text_box(self):
+        text_box = AnchoredText(self.text, loc=2, pad=0.3, borderpad=0)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         self.ax.add_artist(text_box)
 
@@ -1369,11 +1369,11 @@ class plot(processed_data):
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         self.ax.add_artist(text_box)
 
-    def plot_3D(self, energy, layer=(ALL,ALL,0), orbital=0, trace_over_spin=True):
+    def plot_3D(self, energy, orbital=0, spins=None):
 
         import plotly.graph_objects as go
 
-        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, trace_over_spin)
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, spin)
 
         x=int(self.dimensions[0]/2)
         y=int(self.dimensions[1]/2)
@@ -1465,9 +1465,9 @@ class plot(processed_data):
 
         return self.fig, self.ax 
 
-    def spectrum(self, locations, orbital, trace_over_spin=True):
+    def spectrum(self, locations, orbital, spins=None):
 
-        spectrum = self.data.spectrum(locations, orbital, trace_over_spin)
+        spectrum = self.data.spectrum(locations, orbital, spin)
 
         n = len(spectrum)
         colors = [cm.nipy_spectral(i) for i in np.linspace(0, 1, n)]
@@ -1475,7 +1475,7 @@ class plot(processed_data):
         for i in range(n):
 
 
-            if not trace_over_spin:
+            if not spin:
                 s=0 
                 x,y=self.energy_interval,spectrum[i,s]
                 self.ax.plot(x,y, linestyle='solid', color=colors[i],label=(f'$\mathbf{{r}}={locations[i]}$, ' + r'$\uparrow$'))
@@ -1507,3 +1507,125 @@ class plot(processed_data):
         bbox_to_anchor=(0.14,0.58,1,0.2))
 
         return self.fig,self.ax
+
+    def lattice(self, energy, model, layer, spins, orbitals, annotate_orbs=True, show_cell_borders=True, show_basis_vectors=True, show_hopping=True, show_impurities=True, show_only_centre=True):
+
+        ldos = self.data.local_density_of_states(energy, orbitals)
+        ldos = ldos[layer]
+
+        # Colors and labels:
+        self.color_orb = plt.cm.rainbow(np.linspace(0,1,self.n_orbitals))
+        self.label_basis = list(string.ascii_uppercase)
+        self.label_orb = list(string .ascii_lowercase)
+
+        # Show hopping:
+        if show_hopping:
+            for i, link in enumerate(self.hoppings):
+                self._plt_hopping(*link, self.label_hoppings[i], show_only_centre)
+
+        # Find orbitals in layer to be plotted:
+        for o, orb in enumerate(self.orbitals):
+            tmp=layer+(o,slice(2))
+            print(np.shape(self.coordinates_to_orbital_position))
+            temp = self.coordinates_to_orbital_position[tmp]
+            print(np.shape(temp))
+            pos = temp.reshape([self.dimensions[0]*self.dimensions[1], 2])
+            size = ldos[...,o].reshape([self.dimensions[0]*self.dimensions[1]])
+            xx, yy = zip(*pos)
+            s=size*40/(np.mean(size))
+            self.ax.scatter(xx, yy, s=s, color=self.color_orb[o])
+
+        # Impurities
+        if show_impurities:
+            for impurities in self.impurities:
+                [impurity_loc, impurity_spin, impurity_orb] = impurities
+                ll=[]
+                for loc in impurity_loc:
+                    if len(loc)==2:
+                        loc.append(0)
+                    ll.append(loc)
+                ll = np.array(ll)
+                oo=[]
+                for orb in impurity_orb:
+                    oo.append(orb)
+                n_imp = np.shape(ll)[0]
+                for o in oo:
+                    if ll!=[]:
+                        indices = tuple([list(ll[:,i]) for i in range(self.n_dim)]+[o,slice(None,2,1)])
+                        pos = self.coordinates_to_orbital_position[indices]
+                        xx, yy = zip(*pos)
+                        s=10/np.mean(self.dimensions[0:1])
+                        self.ax.scatter(xx, yy, s=6*s, color='k', marker='o')
+                        self.ax.scatter(xx, yy, s=s, color=self.color_orb[o], marker='*')
+        
+        # Cell borders:
+        if show_cell_borders==True:
+            width = self.basis[0][0]
+            # width = 2*basis[0][0] # 2 for hexagonal self
+            height = self.basis[1][1]
+
+            tmp=layer+(0,slice(2))
+            temp = self.coordinates_to_orbital_position[tmp]
+            for a_x, a_y in zip(*(temp.reshape([self.dimensions[0]*self.dimensions[1],2])+self.com[:2]).T):
+                self.ax.add_patch(Rectangle(
+                    xy=(a_x-width/2, a_y-height/2) ,width=width, height=height,
+                    linewidth=1, color='blue', fill=False))
+        
+        # Annotate orbitals:
+        for o, orb in enumerate(self.orbitals):
+            if annotate_orbs==True:
+                self.ax.annotate(self.label_orb[o], self.orbitals[o][:2]+np.array([0.02,0.02]), horizontalalignment='right', verticalalignment='bottom', color=self.color_orb[o])
+
+        # Draw basis vectors:
+        if show_basis_vectors==True:
+            for i in range(2): # Two basis vectors are plotted in the plane
+                self.ax.annotate(text='', xytext=self.basis[i][:2],xy=self.orbitals[0][:2],  arrowprops=dict(arrowstyle='<-', lw=2))
+                self.ax.annotate(text=self.label_basis[i], xytext=0.5*self.basis[i][:2]+[0.05,0.05],xy=self.orbitals[0][:2])
+
+        return self.fig, self.ax
+
+    def _plt_hopping(self, orb_i: int, orb_f: int, cell_hop: tuple, label='', PBC=True, show_only_centre=True):
+        cell_hop = np.array(cell_hop)
+        cells = self.n_cells
+        if (cell_hop==np.zeros([self.n_dim])).all() and PBC==True:
+            if show_only_centre:
+                index=[0]
+            else:
+                index=np.arange(cells)
+            for i in index:
+                index_i = self.coord[i][:self.n_dim]
+                index_f = np.mod(index_i + cell_hop, self.dimensions)
+                index_i = list(index_i)+[orb_i]
+                orb_0 = self.coordinates_to_orbital_position[tuple(index_i)] 
+                index_f = list(index_f)+[orb_f]
+                orb_1 = self.coordinates_to_orbital_position[tuple(index_f)]
+                orb_0=orb_0[:2]
+                orb_1=orb_1[:2]
+                self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
+                self.ax.annotate(text=label, xytext=0.5*(orb_0+orb_1)+(0,0.01), xy=orb_0)
+        # else:
+        for dimension in range(self.n_dim):
+            temp=np.zeros(self.n_dim)
+            temp[dimension]=1
+            if (temp==cell_hop).all():
+                if show_only_centre:
+                    index=[0]
+                else:
+                    index=np.arange(cells)
+                for i in index: 
+                    index_i = self.coord[i][:self.n_dim]
+                    index_f = np.mod(index_i + cell_hop, self.dimensions)
+                    coord_i = self.coord_cell[i]
+                    edge = bool(coord_i[dimension]>=self.centre[dimension])
+                    if edge and not PBC:
+                        pass
+                    else:
+                        index_i = list(index_i)+[orb_i,ALL]
+                        orb_0 = self.coordinates_to_orbital_position[tuple(index_i)] 
+                        index_f = list(index_f)+[orb_f,ALL]
+                        orb_1 = self.coordinates_to_orbital_position[tuple(index_f)]
+                        orb_0=orb_0[:2]
+                        orb_1=orb_1[:2]
+                        self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
+                        self.ax.annotate(text=label, xytext=0.5*(orb_0+orb_1)+(0,0.01), xy=orb_0)
+

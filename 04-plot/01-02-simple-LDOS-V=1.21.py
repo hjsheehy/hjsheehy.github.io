@@ -4,112 +4,168 @@ from plt_lib import *
 ########################################################
 layer=(slice(None),slice(None),0)
 omega=0
+orbital=0
 n_data=len(filenames)
 
 nrow = 2; ncol = 2;
 
 fig, axs = plt.subplots(nrows=nrow, ncols=ncol)
-
-# ldos=[]
-# for i in range(n_data):
-#     filename = filenames[i]
-#     globals().update(conf_file(filename))
-
-#     import _pickle as cPickle
-#     with open(filename, 'rb') as f:
-#         model = cPickle.load(f)
 ########################################################
-########################## Plot ########################
+######################### Plot a #######################
 ########################################################
-def main():
-    label_x = r'$x/a_x$'
-    label_y = r'$y/a_y$'
+label_x = r'$x/a_x$'
+label_y = r'$y/a_y$'
+
+label_sites = r'No. sites from $r_0$ to $r_\text{horiz}$'
+labels=['Normal state', 'BCS state', r'Equal spin n.n.', r'Spin singlet n.n.']
+
+colors = [cm.rainbow(i) for i in np.linspace(0, 1, n_data)]
+min_list,max_list=[],[]
+for k in range(n_data):
+    filename = filenames[k]
+    globals().update(conf_file(filename))
+
+    import _pickle as cPickle
+    with open(filename, 'rb') as f:
+        data = cPickle.load(f)
     
-    label_sites = r'No. sites from $r_0$ to $r_\text{horiz}$'
-    labels=['TB', 'BCS', 'BCS n.n.']
+    if model=='tb':
+        i=j=0
+        plotdata=plot_data(fig, axs[i,j], data)
+        fig, axs[i,j] = plotdata.differential_current_map(omega)
+        plotdata.set_label(labels[0])
+        plotdata.set_cbar()
+        plotdata.set_text_box()
 
-    colors = [cm.rainbow(i) for i in np.linspace(0, 1, n_data)]
-    min_list,max_list=[],[]
+    if model=='sc':
+        if hubbard=='onsite':
+            i=0; j=1
+            plotdata=plot_data(fig, axs[i,j], data)
+            fig, axs[i,j] = plotdata.differential_current_map(omega)
+            plotdata.set_label(labels[1])
+            plotdata.set_cbar()
 
-    for k in range(n_data):
-        filename = filenames[k]
-        globals().update(conf_file(filename))
+        if hubbard=='nn_equal':
+            i=1; j=0
+            plotdata=plot_data(fig, axs[i,j], data)
+            fig, axs[i,j] = plotdata.differential_current_map(omega)
+            plotdata.set_label(labels[2])
+            plotdata.set_cbar()
 
+        if hubbard=='nn_opposite':
+            i=1; j=1
+            plotdata=plot_data(fig, axs[i,j], data)
+            fig, axs[i,j] = plotdata.differential_current_map(omega)
+            plotdata.set_label(labels[3])
+            plotdata.set_cbar()
 
-        import _pickle as cPickle
-        with open(filename, 'rb') as f:
-            Model = cPickle.load(f)
-        ldos = LDOS(Model.density_of_states, Model.omegas, omega, trace_over=True, layer=layer)
-        vmin,vmax=np.amin(ldos),np.amax(ldos)
-        min_list.append(vmin)
-        max_list.append(vmax)
+axs[0,0].get_shared_x_axes().join(axs[0,0],axs[0,1])
+axs[1,0].get_shared_x_axes().join(axs[0,0],axs[1,0])
+axs[1,1].get_shared_x_axes().join(axs[1,1],axs[1,0])
+axs[0,0].set_xticklabels([])
+axs[0,1].set_xticklabels([])
+axs[0,1].get_shared_y_axes().join(axs[0,1],axs[0,0])
+axs[1,0].get_shared_y_axes().join(axs[1,1],axs[1,0])
+axs[0,1].set_yticklabels([])
+axs[1,1].set_yticklabels([])
+axs[0,0].set(xlabel='')
+axs[0,1].set(xlabel='',ylabel='')
+axs[1,1].set(ylabel='')
+axs[1,1].get_shared_x_axes().join(axs[0,1],axs[1,1])
 
-        centre=Model.centre
-        y=0
-        x_edge=centre[0]+1
-        dis_straight=[x for x in range(x_edge)]
-        dos_straight=[ldos[x,y] for x in range(x_edge)]
+plt.tight_layout()
 
-        i=j=1
-        axs[i,j].plot(dis_straight, dos_straight, label=f'$n$', color=colors[k])
-        
-        xx=x_edge-5
-        yy=ldos[y,x_edge]
+fig.set_size_inches(w=latex_width, h=4.5) 
 
-        if model=='tb':
-            label=labels[0]
-            xxx,yyy=-40,-20
-        if model=='sc':
-            if hubbard=='onsite':
-                label=labels[1]
-                xxx,yyy=-40,-20
-            if hubbard=='nn':
-                label=labels[2]
-                xxx,yyy=-50,20
+plt.savefig(output+'_a.pdf', bbox_inches = "tight")
+plt.close()
+########################################################
+######################### Plot b #######################
+########################################################
+nrow=2; ncol=1
+fig, axs = plt.subplots(nrows=nrow, ncols=ncol)
 
-        axs[i,j].annotate(label,
-                    xy=(xx,yy), xycoords='data',
-                    xytext=(xxx, yyy), textcoords='offset pixels',
-            arrowprops=dict(arrowstyle="->",
-                            connectionstyle="angle3,angleA=0,angleB=-90"))
+for k in range(n_data):
+    filename = filenames[k]
+    globals().update(conf_file(filename))
 
-        if model=='tb':
-            i=j=0
-            ldos_tb = LocalDensityOfStates(fig, axs[i,j], Model, ldos=ldos, omega=omega)
-        if model=='sc':
-            if hubbard=='onsite':
-                i=0; j=1
-                ldos_bcs = LocalDensityOfStates(fig, axs[i,j], Model, ldos=ldos, omega=omega)
-            if hubbard=='nn':
-                i=1; j=0
-                ldos_nn = LocalDensityOfStates(fig, axs[i,j], Model, ldos=ldos, omega=omega)
+    import _pickle as cPickle
+    with open(filename, 'rb') as f:
+        data = cPickle.load(f)
 
-    vmin,vmax=min(min_list),max(max_list)
+    [nx,ny,nz]=dimensions=data.dimensions
+
+    plotdata = plot_data(fig, axs[0], data)
+    ldos = data.local_density_of_states(omega,orbital=0)
+    vmin,vmax=np.amin(ldos),np.amax(ldos)
+    min_list.append(vmin)
+    max_list.append(vmax)
+
+    centre=data.centre
+    y=0
+    x_edge=centre[0]+1
+    dis_straight=[x for x in range(x_edge)]
+    dos_straight=[ldos[x,y] for x in range(x_edge)]
+
+    axs[0].plot(dis_straight, dos_straight, color=colors[k])
+
+    if model=='tb':
+        label=labels[0]
+        xxx,yyy=10,-30
+    if model=='sc':
+
+        fock=data.fock()
+        gorkov=data.gorkov()
+        if hubbard=='onsite':
+            label=labels[1]
+            gorkov=np.real([gorkov[x,0,0,0,0,x,0,0,1,0] for x in range(nx)])
+            fock=np.real([fock[x,0,0,0,0,x,0,0,1,0] for x in range(nx)])
+            xxx,yyy=-70,-30
+        if hubbard=='nn_equal':
+            label=labels[2]
+            gorkov=np.real([gorkov[x,0,0,0,0,(x+1)%nx,0,0,0,0] for x in range(nx)])
+            fock=np.real([fock[x,0,0,0,0,(x+1)%nx,0,0,0,0] for x in range(nx)])
+            xxx,yyy=-60,30
+        if hubbard=='nn_opposite':
+            label=labels[3]
+            xxx,yyy=20,20
+            gorkov=np.real([gorkov[x,0,0,0,0,(x+1)%nx,0,0,1,0] for x in range(nx)])
+            fock=np.real([fock[x,0,0,0,0,(x+1)%nx,0,0,1,0] for x in range(nx)])
     
-    for i,x in enumerate([ldos_tb,ldos_bcs,ldos_nn]):
-        # x.vmin=vmin
-        # x.vmax=vmax
-        x.imshow()
-        x.set_cbar()
-        x.set_label(labels[i])
-    
-    ldos_tb.set_text_box()
+        gorkov=gorkov[:centre[0]+1]
+        fock=fock[:centre[0]+1]
+        axs[1].plot(dis_straight, gorkov, color=colors[k])
+        axs[1].plot(dis_straight, fock, color=colors[k], linestyle='dashed')
 
-    axs[0,0].get_shared_x_axes().join(axs[0,0],axs[0,1])
-    axs[0,0].set_xticklabels([])
-    axs[0,1].get_shared_y_axes().join(axs[0,1],axs[0,0])
-    axs[0,1].set_yticklabels([])
-    axs[0,0].set(xlabel='')
-    axs[0,1].set(xlabel='',ylabel='')
-    axs[1,1].set(xlabel=label_x, ylabel=f'\n\n\nLDOS($\omega=0$)'+r'$|_{{\mathbf{{r}}=[x,0]}}$')
-    #axs[1,1].tick_params(axis="y",direction="in", pad=-22)
-    #axs[1,1].get_shared_x_axes().join(axs[0,1],axs[1,1])
-    axs[1,1].set_ylim([0,1.01*vmax])
+    xx=x_edge-int(data.centre[0]/2) + xxx/40
+    yy=ldos[y,x_edge]
 
-    plt.tight_layout()
+    axs[0].annotate(label,
+                xy=(xx,yy), xycoords='data',
+                xytext=(xxx, yyy), textcoords='offset pixels',
+        arrowprops=dict(arrowstyle="->",
+                        connectionstyle="angle3,angleA=0,angleB=-90"))
 
-    fig.set_size_inches(w=latex_width, h=4.5) 
-    return
+# a.set_label(r'Gorkov channel')
+# b.set_label(r'Fock channel')
+# (axs[1]).legend()
+
+axs[1].legend(['Gorkov channel', 'Fock channel'],labelcolor='k')
+
+vmin,vmax=min(min_list),max(max_list)
+
+axs[0].set(ylabel=f'LDOS($\omega=0$)'+r'$|_{{\mathbf{{r}}=[x,0]}}$')
+axs[1].set(ylabel=f'Renormalisation field')
+axs[1].set(xlabel=label_x)
+axs[0].set_ylim([vmin,1.01*vmax])
+############################################# 
+############# Fock and Gorkov fields ########
+#############################################
+plt.tight_layout()
+
+fig.set_size_inches(w=latex_width, h=4.5) 
+
+plt.savefig(output+'_b.pdf', bbox_inches = "tight")
 ########################################################
 ######################### Caption ######################
 ########################################################
@@ -117,23 +173,31 @@ def caption():
     fermi_vector = Fermi_vector(mu, t, omega)
     friedel_wavelength = Friedel_wavelength(fermi_vector)
 
-    text=rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${dimensions[0]}\times{dimensions[1]}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$.
+    text=rf'''The local density of states of a spinless 
+square lattice tight-binding model at $\mu/t={mu:.2f}$ 
+with ${nx}\times{ny}$ sites, a single orbital with an 
+impurity at the centre with coupling strength $V/t={V:.2f}$. 
+The superconducting models are solved self-consistently. 
+Observe that in the BCS model (with interaction coupling 
+$U={U}$), the  Friedel oscillations remain, but are 
+attenuated in magnitude, as electronic charge is lost
+to the formation of Cooper pairs.
+In the simplest nearest-neighbour model of superconductivity,
+an onsite BCS model with an additional equal-spin,
+nearest-neighbour pairing term (with coupling 
+$U_\text{{nn}}={U_nn}$), no equal-spin,
+nearest-neighbour superconductivity emerges. Charge density 
+is distributed into the Fock channel, which is a renormalisation
+of the hopping parameter. The Fock channel oscillates in space
+in phase with the Fridel oscillations of the charge density.
+Adding a nearest-neighbour, singlet term 
+($U_\text{{nn, singlet}}={U_nn_opp}$) to the previous
+model, we observe nearest-neighbour Cooper pairing
+and zero Fock density, like the conventional BCS model.
 '''
     with open(output+'.txt', 'w') as f:
         f.write(text)
 ########################################################
 ########################## Main ########################
 ########################################################
-main()
-plt.savefig(output+'.pdf', bbox_inches = "tight")
 caption()

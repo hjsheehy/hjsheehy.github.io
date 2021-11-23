@@ -1,3 +1,3 @@
-Two simple lattices with $3\times3$ lattice sites, with single (blue) orbital (right) or multiorbital (red, bleu) (left). 
+Two simple lattices with $3\times3$ lattice sites, with single (blue) orbital (right) or multiorbital (red, blue) (left). 
 Lattice impurities are gives by the black dot with a central asterix. 
 Hopping vectors for the first site are denoted by black, dashed arrows.

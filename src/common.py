@@ -36,7 +36,7 @@ def ClearOutFolder(out_folder, silent=False):
     CreateFolder(out_folder)
     if len(os.listdir(out_folder)) != 0:
         if not silent:
-            if YesNo(f'{out_folder}\nClear out folder before creating new .conf files?'):
+            if YesNo(f'Clear out folder before creating new .conf files located at\n{out_folder}?'):
                 pass
             else:
                 exit()
@@ -51,3 +51,10 @@ def humansize(nbytes):
         i += 1
     f = ('%.2f' % nbytes).rstrip('0').rstrip('.')
     return '%s %s' % (f, suffixes[i])
+
+def closest_point(points,point):
+    points = np.asarray(points)
+    deltas = points - point
+    dist_2 = np.einsum('ij,ij->i', deltas, deltas)
+    return np.argmin(dist_2)
+

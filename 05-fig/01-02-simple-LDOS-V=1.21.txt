@@ -1,11 +1,21 @@
-The local density of states of a spinless square lattice tight-binding
-model at $\mu/t=-3.57$ with $53\times53$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t=1.21$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{Friedel}=\lambda_\text{Fermi}/2=
-4.79$.
+The local density of states of a spinless 
+square lattice tight-binding model at $\mu/t=-3.27$ 
+with $53\times53$ sites, a single orbital with an 
+impurity at the centre with coupling strength $V/t=1.21$. 
+The superconducting models are solved self-consistently. 
+Observe that in the BCS model (with interaction coupling 
+$U=2.8$), the  Friedel oscillations remain, but are 
+attenuated in magnitude, as electronic charge is lost
+to the formation of Cooper pairs.
+In the simplest nearest-neighbour model of superconductivity,
+an onsite BCS model with an additional equal-spin,
+nearest-neighbour pairing term (with coupling 
+$U_\text{nn}=1.2$), no equal-spin,
+nearest-neighbour superconductivity emerges. Charge density 
+is distributed into the Fock channel, which is a renormalisation
+of the hopping parameter. The Fock channel oscillates in space
+in phase with the Fridel oscillations of the charge density.
+Adding a nearest-neighbour, singlet term 
+($U_\text{nn, singlet}=0.8$) to the previous
+model, we observe nearest-neighbour Cooper pairing
+and zero Fock density, like the conventional BCS model.

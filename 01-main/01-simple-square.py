@@ -21,56 +21,62 @@ confname = os.path.join(DATA,fileName,confname)
 #########################################################
 ################# Simple square model ###################
 #########################################################
+dimensions=[n_x,n_y,n_z]
+t=1
 
 if n_orbs==1:   
     orbitals=[[0,0,0]]
 if n_orbs==2:
-    orbitals=[[0,0,0],[0.75,0,0]]
+    orbitals=[[0,0,0],[0.25,0,0]]
 if n_orbs==1:
     hoppings=[[-t, 0, 0, [1,0,0]], [-t, 0, 0, [0,1,0]]]
 if n_orbs==2:
     hoppings=[[-t, 0, 1, [0,0,0]],[-t, 1, 0, [1,0,0]],[-t, 1, 1, [0,1,0]],[-t, 0, 0, [0,1,0]]]
-basis=[[1,0,0],[0,1,0]]
-pbc=[True,True]
-#pbc=[False,False]
+basis=[[1,0,0],[0,1,0],[0,0,1]]
+pbc=[True,True,True]
 SO_spin=np.eye(n_spins)
 SO_orbital=np.eye(n_orbs)
 SO_onsite=-mu*kron(SO_spin,SO_orbital)
-############ hopping ##############
-hoppings = [[-t, 0, 0, [1,0]],
-            [-t, 0, 0, [0,1]]]
-impurity_location = [[0,0]]
-if len(dimensions)==3:
-    pbc=[True,True,False]
-    #pbc=[False,False,False]
-    basis=[[2.2,0.56,0],[0.2,2,0],[0,0,1]]
-    hoppings = [[-t, 0, 0, [1,0,0]],
-                [-t, 0, 0, [0,1,0]],
-                [-t, 0, 0, [0,0,1]]]
-    impurity_location = [[0,0,0]] #,[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[6,0,0]]
+impurity_location = [[0,0,0]]
 ############# interaction #############
 if model=='sc':
     if hubbard=='onsite':
-        U_orbs = np.eye(n_orbs)
         U_spin = Pauli_x
-        hubbard_SO = -U*kron(U_spin, U_orbs)
-        hubbard_U =[[hubbard_SO, [0,0,0]]]
-    if hubbard=='nn':
         U_orbs = np.eye(n_orbs)
-        U_spin = Pauli_x
         hubbard_SO = -U*kron(U_spin, U_orbs)
+        hubbard_U =[[hubbard_SO, None, None, [0,0,0]]]
+    if hubbard=='nn_equal':
+        U_spin = Pauli_x
+        U_orbs = np.eye(n_orbs)
+        hubbard_SO = -U*kron(U_spin, U_orbs)
+        U_spin_nn = np.eye(n_spins)
         U_orbs_nn = np.eye(n_orbs)
-        U_spin_nn = np.eye(n_spins)#+Pauli_x
-        hubbard_SO_nn = -U*kron(U_spin_nn, U_orbs_nn)
-        hubbard_U =[[hubbard_SO, [0,0,0]],
-                    [hubbard_SO_nn, [1,0,0]],
-                    [hubbard_SO_nn, [0,1,0]]]
-        if len(dimensions)==3:
-            if dimensions[2]>1:
-                hubbard_U =[[hubbard_SO, [0,0,0]],
-                            [hubbard_SO_nn, [1,0,0]],
-                            [hubbard_SO_nn, [0,1,0]],
-                            [hubbard_SO_nn, [0,0,1]]]
+        hubbard_SO_nn = -U_nn*kron(U_spin_nn, U_orbs_nn)
+        hubbard_U =[[hubbard_SO, None, None, [0,0,0]],
+                    [hubbard_SO_nn, None, None, [1,0,0]],
+                    [hubbard_SO_nn, None, None, [0,1,0]],
+                    [hubbard_SO_nn, None, None, [0,0,1]]]
+
+    if hubbard=='nn_opposite':
+        U_spin = Pauli_x
+        U_orbs = np.eye(n_orbs)
+        hubbard_SO = -U*kron(U_spin, U_orbs)
+
+        U_spin_nn = np.eye(n_spins)
+        U_orbs_nn = np.eye(n_orbs)
+        hubbard_SO_nn = -U_nn*kron(U_spin_nn, U_orbs_nn)
+        hubbard_U =[[hubbard_SO,  None, None, [0,0,0]],
+                    [hubbard_SO_nn, None, None, [1,0,0]],
+                    [hubbard_SO_nn, None, None, [0,1,0]],
+                    [hubbard_SO_nn, None, None, [0,0,1]]]
+
+        U_spin_nn_opp = Pauli_x
+        U_orbs_nn = np.eye(n_orbs)
+        hubbard_SO_nn_opp = -U_nn_opp*kron(U_spin_nn_opp, U_orbs_nn)
+        hubbard_U = hubbard_U + ([
+                    [hubbard_SO_nn_opp, None, None, [1,0,0]],
+                    [hubbard_SO_nn_opp, None, None, [0,1,0]],
+                    [hubbard_SO_nn_opp, None, None, [0,0,1]]])
 if model!='tb':
     ############ Mean-field #############
     phiUp, phiDown, Delta= phi, phi, Delta
@@ -97,21 +103,8 @@ if model=='tb':
     axes=[0,1]
     #model.fourier_transform_hamiltonian(transform=axes)
     #model.fourier_transform_hamiltonian(inverse_transform=axes)
-    eigenvalues,eigenvectors=model.solve()
-    data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
-    dos = data.local_density_of_states(0,[0,1])
-    cartesian = data.cartesian_real_space([400,400,1],dos)
-
-    interpolation = 'none'
-
-    x=np.sum(cartesian,0)[:,:,0]
-
-    plt.imshow(
-            x.T, 
-            interpolation=interpolation)
-
-    plt.show()
-    exit()
+    eigenvalues,eigenvectors = model.solve()
+    data = processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
 
 elif model=='mf':
     model = bogoliubov_de_gennes(dimensions, n_spins, basis, orbitals, pbc)
@@ -132,13 +125,45 @@ elif model=='sc':
     for link in hoppings:
         model.set_hopping(*link)
     model.set_impurities(V, impurity_location)
-    model.set_hubbard_u(hubbard_SO)
+    for link in hubbard_U:
+        model.set_hubbard_u(*link)
     model.set_hartree(phi)
+    model.set_fock(phi)
     model.set_gorkov(Delta*(1.0j*Pauli_y))
-    model.record_hartree([0,0,0], 0, 0, True)
-    model.record_hartree([1,0,0], 0, 0, True)
-    model.record_gorkov([0,0,0], [0,0,0], 0, 1, 0, 0, True)
-    model.record_gorkov([0,0,0], [0,0,0], 1, 0, 0, 0, True)
+    if hubbard=='nn_equal':
+        model.set_fock(zeta*np.ones([2,2]),None, None, hop_vector=[1,0,0])
+        model.set_fock(zeta*np.ones([2,2]),None, None, hop_vector=[0,1,0])
+        model.set_gorkov(Delta, None, None, hop_vector=[1,0,0])
+        model.set_gorkov(Delta, None, None, hop_vector=[0,1,0])
+        model.set_gorkov(Delta, None, None, hop_vector=[0,0,1])
+        
+    if hubbard=='nn_opposite':
+        model.set_fock(zeta*np.ones([2,2]),None, None, hop_vector=[1,0,0])
+        model.set_fock(zeta*np.ones([2,2]),None, None, hop_vector=[0,1,0])
+        model.set_gorkov(Delta, None, None, hop_vector=[1,0,0])
+        model.set_gorkov(Delta, None, None, hop_vector=[0,1,0])
+        model.set_gorkov(Delta, None, None, hop_vector=[0,0,1])
+        model.set_gorkov(Delta*(1.0j*Pauli_y), None, None, hop_vector=[1,0,0])
+        model.set_gorkov(Delta*(1.0j*Pauli_y), None, None, hop_vector=[0,1,0])
+        model.set_gorkov(Delta*(1.0j*Pauli_y), None, None, hop_vector=[0,0,1])
+
+ #   temp=model.fock
+#    temp=np.reshape(temp, np.append(model.extended_dimensions,model.extended_dimensions), 'F')
+#    print(temp[0,0,0,:,0,1,0,0,:,0])
+#    print(temp[1,0,0,:,0,0,0,0,:,0])
+#    print(temp[0,0,0,:,0,0,1,0,:,0])
+#    print(temp[0,1,0,:,0,0,0,0,:,0])
+#    print('')
+
+    _print=False
+
+    model.record_hartree([0,0,0], 0, 0, _print)
+    model.record_gorkov([0,0,0], [0,0,0], 0, 1, 0, 0, _print)
+    model.record_gorkov([0,0,0], [1,0,0], 0, 0, 0, 0, _print)
+    model.record_gorkov([0,0,0], [1,0,0], 0, 1, 0, 0, _print)
+    model.record_fock([0,0,0], [1,0,0], 0, 0, 0, 0, _print)
+    model.record_fock([0,0,0], [1,0,0], 0, 1, 0, 0, _print)
+
     model.set_max_iterations(max_iterations)
     model.set_temperature(T)
     eigenvalues,eigenvectors=model.self_consistent_calculation()    
@@ -221,7 +246,10 @@ elif model=='sc':
 #     plt.close()
 
 with open(confname+'.npz', 'wb') as f:
-    cPickle.dump(model, f)
+    cPickle.dump(data, f)
+
+exit()
+
 ########################## temp ###########################
 import matplotlib.pyplot as plt
 fig = plt.figure()
@@ -293,11 +321,11 @@ orbital=0
 # plt.show()
 
 # probe_magnetic_z
-plot = plot(fig,ax,data)
-fig,ax = plot.probe_magnetic_z(energy)
-plot.set_text_box(r'$\langle \hat M_z \rangle$')
-plot.set_cbar()
-plt.show()
+#plot = plot(fig,ax,data)
+#fig,ax = plot.probe_magnetic_z(energy)
+#plot.set_text_box(r'$\langle \hat M_z \rangle$')
+#plot.set_cbar()
+#plt.show()
 
 # energy
 #dos=dos.density_of_states
@@ -305,61 +333,3 @@ plt.show()
 #energy=band_structure(fig,ax,model,dos,energy_interval,dimension)
 #fig,ax=energy.imshow()
 #plt.show()
-
-#######
-exit()
-#######
-ham = model.set_hamiltonian()
-w,v = la.eigh(ham, overwrite_a=True)
-dm = model._density_matrix(v) 
-model.density_of_states = DOS(model.omegas,w,dm)
-unshaped = model.density_of_states
-model.density_of_states = model._density_of_states(w,v)
-print('\nHamiltonian:')
-print('Unshaped:')
-ham=ham
-print(np.diag(ham))
-print(np.shape(ham))
-dim = np.ravel(np.array([model.extended_dimensions,model.extended_dimensions]).T)
-shaped=np.reshape(ham, dim)
-print('Reshaped:')
-print(shaped[:,:,0,0,0])
-print(np.shape(ham))
-n_dof=model.n_dof
-unshaped=np.reshape(ham, [n_dof, n_dof])
-print('Check')
-print(np.array_equal(ham, unshaped))
-print('------------------')
-print('\nDensity of states')
-print('Unshaped:')
-print(np.shape(model.density_of_states))
-dim = np.ravel(np.array([model.extended_dimensions,model.extended_dimensions]).T)
-shaped=np.reshape(ham, dim)
-print('Reshaped:')
-print(np.shape(ham))
-n_dof=model.n_dof
-unshaped=np.reshape(ham, [n_dof, n_dof])
-print('Check')
-print(np.array_equal(ham, unshaped))
-
-omegas=self.omegas
-dimensions=np.append(self.extended_dimensions,len(omegas))
-
-density_matrix=self._density_matrix(v)
-
-density_of_states=DOS(omegas,w,density_matrix)
-
-self.density_of_states = np.reshape(density_of_states, dimensions)
-
-temp = np.copy(self.density_of_states)
-
-self.density_of_states = np.array(
-        [[[[[density_of_states[index[x, y, z, s, m]]
-        for m in range(dimensions[4])]
-        for s in range(dimensions[3])]
-        for z in range(dimensions[2])]
-        for y in range(dimensions[1])] 
-        for x in range(dimensions[0])])
-print(temp[:,0,0,0,0,0])
-print(model.density_of_states[:,0,0,0,0,0])
-print(np.array_equal(temp,self.density_of_states))
