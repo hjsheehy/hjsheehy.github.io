@@ -130,6 +130,8 @@ elif model=='sc':
     model.set_hartree(phi)
     model.set_fock(phi)
     model.set_gorkov(Delta*(1.0j*Pauli_y))
+
+
     if hubbard=='nn_equal':
         model.set_fock(zeta*np.ones([2,2]),None, None, hop_vector=[1,0,0])
         model.set_fock(zeta*np.ones([2,2]),None, None, hop_vector=[0,1,0])
@@ -164,8 +166,9 @@ elif model=='sc':
     model.record_fock([0,0,0], [1,0,0], 0, 0, 0, 0, _print)
     model.record_fock([0,0,0], [1,0,0], 0, 1, 0, 0, _print)
 
-    model.set_max_iterations(max_iterations)
+    model.set_max_iterations(1000)
     model.set_temperature(T)
+    model.set_friction(0.7)
     eigenvalues,eigenvectors=model.self_consistent_calculation()    
     data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
 

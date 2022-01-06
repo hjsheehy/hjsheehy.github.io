@@ -1,12 +1,12 @@
 #!/usr/bin/bash
 
 # PythU Unix shell scripting module
-# September 12th, 2021
+# January, 2022
 __version__='1.0.0'
 
 # A module for scripting large PythU simulations
 #
-# Copyright (C) 2021, Henry Joseph Sheehy
+# Copyright (C) 2022, Henry Joseph Sheehy
 # 
 # PythU is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ License()
 {
     # Display License
     echo "PythU Unix shell scripting module"
-    echo "September 12th, 2021"
+    echo "January, 2022"
     echo "__version__='1.0.0'"
     echo 
     echo "A module for scripting large PythU simulations"
     echo 
-    echo "Copyright (C) 2021, Henry Joseph Sheehy"
+    echo "Copyright (C) 2022, Henry Joseph Sheehy"
     echo 
     echo "PythU is free software: you can redistribute it and/or modify"
     echo "it under the terms of the GNU General Public License as published by"
@@ -74,9 +74,10 @@ Help()
 }
 
 num="" # initialise var
-pwr="" 
+pwr="init" 
+cln=false
 
-while getopts :hgn:p: flag; do
+while getopts :hgcn:p: flag; do
    case ${flag} in
       h) # display Help
          Help
@@ -84,6 +85,7 @@ while getopts :hgn:p: flag; do
       g) # display License
          License
          exit;;
+      c) cln=true;;
       n) num=${OPTARG};;
       p) pwr=${OPTARG};;
      \?) echo "Error: Invalid option"
@@ -114,6 +116,7 @@ then
     echo "Please supply simulation number (format: -n ##-##) or call -h for help."
     exit 2
 fi
+modelConf="${num:0:5}"
 model="${num:0:2}"
 model=($model*.py)
 #########################################################
@@ -139,8 +142,8 @@ filename=$(basename $confFolder$num*)
 confFolder=$confFolder/$filename
 confOutFolder=$confFolder/$outFolder
 dataFolder=$dataFolder/$filename
-plotFolder=$plotFolder/$filename
-figFolder=$figFolder/$filename.pdf
+plotFolder=$plotFolder$modelConf
+figFolder=$figFolder$modelConf
 activeFolder=$activeFolder/$filename
 inFolder=$inFolder/$filename
 # outFolder=$outFolder/$filename
@@ -205,17 +208,30 @@ then
     then
         rm -r ${dataFolder}
         mkdir $dataFolder
+        mv $confOutFolder/* $inFolder
     else
-        for f in ${dataFolder}/*.npz ; do
-            f="${confOutFolder}/`basename ${f%.*}.conf`"
-            mv $f $confFolder
-        done
+        if ! ${cln}
+        then
+            for f in ${dataFolder}/*.npz ; do
+                f="${confOutFolder}/`basename ${f%.*}.conf`"
+                mv $f $confFolder
+            done
+            if [ `ls $confOutFolder | wc -l` -gt 0 ] 
+            then
+              mv $confOutFolder/* $inFolder
+              mv $confFolder/*.conf $confOutFolder
+            fi
+        else
+            mv $confOutFolder/* $inFolder
+        fi
     wait
     fi
+else
+    mv $confOutFolder/* $inFolder
 fi    
 
 plt=false
-if [ ${pwr} = '' ]
+if [ ${pwr} = 'init' ]
 then
     read -p 'Plot output? [Y/N]' -n 1 -r
     echo    # (optional) move to a new line
@@ -229,16 +245,8 @@ fi
 ##################### scripting ########################
 ########################################################
 echo 'Execution beginning...'
+open_figure=${plt}
 
-if [ `ls $confOutFolder | wc -l` -gt 0 ] 
-then
-  mv $confOutFolder/* $inFolder
-  mv $confFolder/*.conf $confOutFolder
-fi
-
-if ${plt}; then
-    echo `xdg-open $figFolder` &
-fi
 function func {
     while [ `ls $inFolder | wc -l` -gt 0 ] ; do
         grab_name=`ls ${inFolder}/*.conf | head -n 1`
@@ -255,7 +263,14 @@ function func {
 
         if ${plt}
         then
-            python3 ${plotFolder}.py -s > /dev/null 2>&1 &
+            for plot_script in ${plotFolder}*.py; do
+                python3 $plot_script -s > /dev/null 2>&1 &
+                if ${open_figure}; then
+                    open_figure=false
+                    (echo `xdg-open $figFolder*.pdf` &) &
+                    echo $open_figure &
+                fi
+            done
         fi
     done
 }
@@ -267,14 +282,30 @@ function main {
     wait
     rm -r $inFolder $activeFolder
     echo "Execution finished"
+    notify-send "Execution finished"
+
+    if ! ${plt}
+    then
+        for plot_script in ${plotFolder}*.py; do
+            python3 $plot_script -s > /dev/null 2>&1 &
+        done
+    fi
 
     if ${slp}
     then
+        echo "Sleeping in 30 seconds..."
+        echo "[ctrl+c] to cancel."
+        notify-send "Sleeping in 30 seconds..."
+        sleep 30s
         echo `systemctl suspend`
     fi
 
     if ${sdn}
     then
+        echo "Shuting down in 30 seconds..."
+        echo "[ctrl+c] to cancel."
+        notify-send "Shuting down in 30 seconds..."
+        sleep 30s
         echo `systemctl poweroff`
     fi
 }

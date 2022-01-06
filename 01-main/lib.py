@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # PythU Python self-consistent Hubbard U module
-# September 12th, 2021
+# January, 2022
 __version__='1.0.0'
 # 
 # To add in next version: 
@@ -9,17 +9,27 @@ __version__='1.0.0'
 # -function of space for placing impurities
 # -fourier tranform these functional hamiltonians using fourier_transform_hamiltonian
 # -add linecut to plot
-# -incorporate config.py into its respective ##-main.py
-# -implement free energy
 # -change spin to spin_polarisation in plots (None, Up, Down)
 # -implement 3D ARPES (Fermi surface)
-
+# -automate name creation in conf.py
+# -class Phase_diagram():
+#       x-label
+#       y-label
+#       x_bound(min,max,delta)
+#       y_bound(min,max,delta)
+#       trajectories.append('forward', 'reverse')
+#       starting_pts.append('default',')
+#       initial_mean_fields=a list of labels, e.g. ['int', 'unitary']
+# -combine sweeps and choose minimum of free energy
+# -automated method of using bulk mean-fields as an applied bias onto the surface layer
+# -add dictionary to field records
+############################################################################       
 # Scanning tunnelling microscopy (STM), quasiparticle interference (QPI) and 
 # angle-resolved photoemission spectrocopy (ARPES) simulation of (topological)
 # non-unitary spin-triplet unconventional superconductivity and magnetism, in 
 # quantum dots, thin films and 3D, with impurities.
 
-# Copyright (C) 2021, Henry Joseph Sheehy
+# Copyright (C) 2022, Henry Joseph Sheehy
 # 
 # PythU is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -138,40 +148,18 @@ def DisplayArray(ax,array):
             ax.text(i, j, str(c), va='center', ha='center')
     return ax
 ###################################################################
-############################# Lattice #############################
-###################################################################
-#class tight_binding():
-    """A class for the lattice containing the following objects:
-    n_orbitals
-    n_dim
-    n_cells
-    n_atoms
-    n_dof
-    index: initialised Zn_Z
-    coord: initialised Z_Zn
-    coord_cell: array of coordinates in basis
-    coord_orb: array of indices of orbitals
-    pos_cell: array of real space coordinates of cells
-    pos_orb: array of real space coordinates of orbitals
-    com_orb: centre of mass of the orbitals in real space
-    color_orb: list of colors 
-    label_orb: list of strings
-    label_basis: list of strings"""
-#    def __init__(self, dimensions, n_spins, basis, orbitals, hoppings, impurities,pbc=None):
-
-        #positions = np.empty(np.append(self.extended_dimensions,[3]))
-        #self.pos_orb = np.copy(positions)
-        #for index in range(self.n_dof):
-        #    coord = tuple(self.coord[index])
-            # Add zero vector to 2D basis:
-        #    pos = np.dot(self.coord_cell[index], self.basis)
-        #    positions[coord] = pos
-        #    self.pos_orb[coord] = pos + self.orbitals[coord[4]]
-        # Origin is the lattice centre of mass:
-        #self.com = np.mean(orbitals,axis=0)
-###################################################################
 ######################### Hamiltonian #############################
 ###################################################################
+# class phase_diagram():
+#     def __init__(self):
+#         self.x_label='x'
+#         self.y_label='y'
+#         self.x_arange=[0, 5, 0.5]
+#         self.y_arange=[0, 5, 0.5]
+#         self.n_pts=[5]
+# 
+#     def set_mean_field():
+
 class tight_binding():
     """Tight-binding model on a lattice defined by the tight_binding parent class
     
@@ -214,6 +202,15 @@ class tight_binding():
         
         self.inverse_basis = la.inv(self.basis)
         self.reciprocal_basis = 2*np.pi * self.inverse_basis
+
+        self.hartree_iterations=None
+        self.fock_iterations=None
+        self.gorkov_iterations=None
+
+        self.print_V=None
+        self.print_V_mf=None
+        self.print_Eg=None
+        self.print_free_energy=None
 
         #self.k_dim = k_dim
 
@@ -307,7 +304,7 @@ class tight_binding():
             elif np.shape(onsite_amplitude)==np.shape([['UpUp','UpDown'],['DownUp','DownDown']]):
                 spin_tensor = onsite_amplitude
             else:   
-                ValueError('onsite_amplitude must be scalar, pair, spin matrix, or spin-orbit matrix')
+                raise ValueError('onsite_amplitude must be scalar, pair, spin matrix, or spin-orbit matrix')
 
             if type(orbitals)==type(None):
                 orbitals = np.arange(self.n_orbitals)
@@ -356,6 +353,11 @@ class tight_binding():
         self.label_hoppings.append(label)
 
     def _hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
+        
+        for orb in [orb_i,orb_f]:
+            if type(orb)!=type(None):
+                if orb>=self.n_orbitals:
+                    raise ValueError(f'Orbital index {orb} greater than n_orbitals={self.n_orbitals}!')
             
         if type(hop_vector)==type(None):
             hop_vector=np.zeros([self.n_dim])
@@ -383,10 +385,14 @@ class tight_binding():
             hopping_amplitude = hopping_amplitude*np.eye(self.n_spins)
 
         if np.shape(hopping_amplitude)[0]==self.n_spins:
-            spin_tensor = hopping_amplitude
+            if (np.shape(hopping_amplitude)==np.array([self.n_spins,self.n_spins])).all():
+                spin_tensor = hopping_amplitude
+            else:
+                spin_tensor = np.diag(hopping_amplitude)
+
             if self.n_orbitals>1:
                 if type(orb_i)==type(None) or type(orb_f)==type(None):
-                    ValueError('orb_i, orb_f or spin_orbit_tensor not given!')
+                    raise ValueError('orb_i, orb_f or spin_orbit_tensor not given!')
                 else:
                     orbit_tensor=np.zeros([self.n_orbitals, self.n_orbitals])
                     orbit_tensor[orb_i,orb_f]=1
@@ -397,7 +403,7 @@ class tight_binding():
             spin_orbit_tensor = hopping_amplitude
 
         temp=kron(spin_orbit_tensor,temp)
-        
+
         onsite = bool(orb_i==orb_f and np.array_equal(hop_vector, np.zeros([self.n_dim])))
         if add_time_reversal and not onsite:
             temp+=dagger(temp)
@@ -534,9 +540,9 @@ class bogoliubov_de_gennes(tight_binding):
 
         self.iterations=0
 
-        self.friction = 0
-        self.max_iterations = 100
-        self.absolute_convergence_factor = 0.001
+        self.friction = 0.7
+        self.max_iterations = 1000
+        self.absolute_convergence_factor = 0.00001
         
         self.hartree=np.zeros([self.n_dof], dtype=complex_dtype)
         self.fock=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
@@ -552,10 +558,20 @@ class bogoliubov_de_gennes(tight_binding):
         self._fock_print_indices = []
         self._gorkov_print_indices = []
 
-        self._hartree_record=[]
-        self._fock_record=[]
-        self._gorkov_record=[]
+        self.hartree_iterations=[]
+        self.fock_iterations=[]
+        self.gorkov_iterations=[]
         
+        self.V=[]
+        self.V_mf=[]
+        self.Eg=[]
+        self.free_energy=[]
+        
+        self.print_V=False
+        self.print_V_mf=False
+        self.print_Eg=False
+        self.print_free_energy=False
+
     def set_mean_field_hamiltonian(self):
 
         # initialise tight binding hamiltonian if doesn't exist:
@@ -569,6 +585,7 @@ class bogoliubov_de_gennes(tight_binding):
         try:
             self._hubbard_indices
         except:
+            print('Hubbard U tensor not given!')
             self._hubbard_u = np.diag(self.hartree)+self.fock+self.gorkov
             self._set_hubbard_indices()
             self.fock=self.fock[self._hubbard_indices]
@@ -579,12 +596,12 @@ class bogoliubov_de_gennes(tight_binding):
         gorkov=self.gorkov
 
         hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex_dtype)
-        hamiltonian[:n_dof,:n_dof]=self._tb_ham+np.diag(hartree)
-        hamiltonian[n_dof:,n_dof:]=-np.conj(self._tb_ham)-np.conj(np.diag(hartree))
-        hamiltonian[self._hubbard_indices[0],self.anomalous_indices[1]]=fock
-        hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=-np.conj(fock)
-        hamiltonian[self._hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(gorkov)
-        hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=gorkov
+        hamiltonian[:n_dof,:n_dof]=self._tb_ham-np.diag(hartree)
+        hamiltonian[n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(np.diag(hartree)))
+        hamiltonian[self._hubbard_indices[0],self.anomalous_indices[1]]=-fock
+        hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=-(-np.conj(fock))
+        hamiltonian[self._hubbard_indices[0],self.anomalous_indices[1]]=-np.conj(-gorkov)
+        hamiltonian[self.anomalous_indices[0],self._hubbard_indices[1]]=-gorkov
         self._hamiltonian = hamiltonian
 
         #fig, ax = plt.subplots(1)
@@ -594,15 +611,15 @@ class bogoliubov_de_gennes(tight_binding):
 
     def reset_hartree(self):
         self.hartree=np.zeros([self.n_dof], dtype=complex_dtype)
-        self._hartree_record=[]
+        self.hartree_iterations=[]
 
     def reset_fock(self):
         self.fock=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
-        self._fock_record=[]
+        self.fock_iterations=[]
 
     def reset_gorkov(self):
         self.gorkov=np.zeros([self.n_dof,self.n_dof], dtype=complex_dtype)
-        self._gorkov_record=[]
+        self.gorkov_iterations=[]
 
     def set_hartree(self,onsite_amplitude,spins=None,orbitals=None,axes=None,location=None):
         self.hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spins=spins, orbitals=orbitals, axes=axes, location=location))
@@ -637,9 +654,9 @@ class bogoliubov_de_gennes(tight_binding):
         self.anomalous_indices+=self.n_dof
         self.anomalous_indices=tuple(self.anomalous_indices)
 
-    def record_hartree(self, location, spin, orbit, _print=False):
+    def record_hartree(self, location, spin, orbital, _print=False):
         self.hartree_print = _print
-        tmp=np.append(np.append(location,orbit),spin)
+        tmp=np.append(np.append(location,orbital),spin)
         index=np.ravel(coordinates_to_indices(tmp, self.extended_dimensions))
         self._hartree_indices.append(index)
         self._hartree_print_indices.append(_print)
@@ -715,43 +732,117 @@ class bogoliubov_de_gennes(tight_binding):
         tmp0=v[self._hubbard_indices[0]]
         tmp1=np.conj(v)[self._hubbard_indices[1]]
         tmp1a=v[self.anomalous_indices[1]]
+        tmp0=tmp0[:,:self.n_dof]
+        tmp1=tmp1[:,:self.n_dof]
+        tmp1a=tmp1a[:,:self.n_dof]
+        w=w[:self.n_dof]
         if T==0:
-            tmp0=tmp0[:,:self.n_dof]
-            tmp1=tmp1[:,:self.n_dof]
-            tmp1a=tmp1a[:,:self.n_dof]
-            hartree_entries = np.einsum('in,in->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),optimize=True)
-            fock_entries = -np.einsum('in,in->i',tmp0,tmp1,optimize=True)
-            gorkov_entries = np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
+            trace_density = np.einsum('in,in->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),optimize=True)
+            density = np.einsum('in,in->i',tmp0,tmp1,optimize=True)
+            anomalous_density = -np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
 
         # Nonzero temperature thermal density matrix:
         # the eigenvalues are weighted by the Fermi function
         else:
             # Fermi function:
             f = 1/(np.exp(w/T)+1)
-            hartree_entries = np.einsum('in,in,n->i',v[:self.n_dof],np.conj(v[:self.n_dof]),f,optimize=True) 
-            fock_entries = -np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
-            gorkov_entries = (1/2)*np.einsum('in,in,n->i',tmp0,tmp1a,2*f-1,optimize=True)
-        return hartree_entries, fock_entries, gorkov_entries
+            trace_density = np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
+            density = np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
+            anomalous_density = -np.einsum('in,in,n->i',tmp0,tmp1a,f,optimize=True)
+        # print(trace_density)
+        # print(density)
+        # print(anomalous_density)
+        # exit()
+        return trace_density, density, anomalous_density
 
     def anomalous_fourier_transform(self,v):
         coeff=self.coeff
         coeff=np.block([[coeff,np.conj(coeff)],[np.conj(coeff),coeff]])
         return np.dot(coeff.T,v)
 
-    def _set_fields(self, hartree_entries, fock_entries, gorkov_entries):
+    def _set_fields(self, trace_density, density, anomalous_density):
         """Returns Hartree, Fock, Gorkov"""
-        hartree = -np.einsum('ij,j->i',self._hubbard_u,hartree_entries,optimize=True)
-        fock =   +np.multiply(self.U_entries,fock_entries)
-        gorkov = -np.multiply(self.U_entries,gorkov_entries)
-
-        #free_energy=0
-        #free_energy = np.einsum('i,i->',self.U_entries,gorkov_)
-        #free_energy+= np.einsum('ij,i,j->',self._hubbard_u,hartree,hartree)
-        # free_energy=free_energy+np.sum(self.w[:self.n_dof])
-        #print(free_energy)
+        hartree = +np.einsum('ij,j->i',self._hubbard_u,trace_density,optimize=True)
+        fock    = -np.multiply(self.U_entries,density)
+        gorkov  = +np.multiply(self.U_entries,anomalous_density)
 
         return hartree, fock, gorkov
         # return np.real_if_close(hartree), np.real_if_close(fock), np.real_if_close(gorkov)
+
+    def calculate_free_energy(self, w, trace_density, density, anomalous_density):
+
+        self.Eg.append(np.real(np.sum(w[:self.n_dof] + np.diagonal(self._hamiltonian)[:self.n_dof])/self.n_dof))
+
+        if self.temperature==0:
+            self.f_mf=self.Eg
+        else:
+            self.f_mf=np.real(self.Eg-2*self.temperature*np.sum(np.log(1+np.exp(-w[self.n_dof:]/self.temperature)))/self.n_dof)
+        
+        h=np.sum(self.hartree*trace_density)
+        h+=h
+        f=np.sum(self.fock*density)
+        f+=np.conj(f)
+        g=np.sum(self.gorkov*anomalous_density)
+        g+=np.conj(g)
+
+        self.V_mf.append(np.real(-(h+f+g)/self.n_dof))
+
+        h=np.einsum('ij,i,j->',self._hubbard_u,trace_density,trace_density,optimize=True)
+        f=np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
+        g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
+
+        self.V.append(np.real(-(h-f+g)/self.n_dof))
+
+        self.free_energy.append(self.f_mf[-1]+self.V[-1]-self.V_mf[-1])
+
+        if self.print_V:
+            print(self.V[-1])
+        if self.print_V_mf:
+            print(self.V_mf[-1])
+        if self.print_Eg:
+            print(self.Eg[-1])
+        if self.print_free_energy:
+            print(self.free_energy[-1])
+
+        return self.free_energy[-1]
+
+    def record_fields(self):
+
+        hubbard_indices=np.transpose(self._hubbard_indices)
+
+        temp_hartree=[]
+        temp_fock=[]
+        temp_gorkov=[]
+
+        for index in self._hartree_indices:
+            temp_hartree.append(complex(self.hartree[index]))
+        
+        for index in self._fock_indices:
+            for i,hubbard_index in enumerate(hubbard_indices):
+                if np.array_equal(index,hubbard_index):
+                    temp_fock.append(self.fock[i])
+
+        for index in self._gorkov_indices:
+            for i,hubbard_index in enumerate(hubbard_indices):
+                if np.array_equal(index,hubbard_index):
+                    temp_gorkov.append(self.gorkov[i])
+
+        self.hartree_iterations.append(temp_hartree)
+        self.fock_iterations.append(temp_fock)
+        self.gorkov_iterations.append(temp_gorkov)
+
+        if np.sum(self._hartree_print_indices)>0:
+            print('\nHartree field:')
+            temp=np.array(self.hartree_iterations[-1])
+            print(temp[self._hartree_print_indices])
+        if np.sum(self._fock_print_indices)>0:
+            print('\nFock field:')
+            temp=np.array(self.fock_iterations[-1])
+            print(temp[self._fock_print_indices])
+        if np.sum(self._gorkov_print_indices)>0:
+            print('\nGorkov field:')
+            temp=np.array(self.gorkov_iterations[-1])
+            print(temp[self._gorkov_print_indices])
 
     def __iter__(self):
 
@@ -759,102 +850,33 @@ class bogoliubov_de_gennes(tight_binding):
 
     def __next__(self):
         
-        hartree, fock, gorkov = self.hartree, self.fock, self.gorkov
-        #hartree, fock, gorkov = self._hartree+self.external_hartree, self._fock+self.external_fock, self._gorkov+self.external_gorkov
+        ################## Record fields ###################
         
-        ########### record fields: ###########
-        n_h = len(self._hartree_indices)
-        n_f = len(self._fock_indices)
-        n_g = len(self._gorkov_indices)
-        n_u = np.shape(self._hubbard_indices)[0]
-        hubbard_indices=np.transpose(self._hubbard_indices)
-        # for i in range(n_u):
+        self.record_fields()
 
-        temp=[]
-        for index in self._hartree_indices:
-            temp.append(complex(self.hartree[index]))
-        self._hartree_record.append(temp)
-        
-        temp_fock=[]
-        temp_gorkov=[]
-
-        for i,hubbard_index in enumerate(hubbard_indices):
-
-            for index in self._fock_indices:
-                if np.array_equal(index,hubbard_index):
-                    temp_fock.append(fock[i])
-
-            for index in self._gorkov_indices:
-                if np.array_equal(index,hubbard_index):
-                    temp_gorkov.append(gorkov[i])
-
-        self._fock_record.append(temp_fock)
-        self._gorkov_record.append(temp_gorkov)
-
-        if np.sum(self._hartree_print_indices)>0:
-            print('\nHartree field:')
-            temp=np.array(self._hartree_record[-1])
-            print(temp[self._hartree_print_indices])
-        if np.sum(self._fock_print_indices)>0:
-            print('\nFock field:')
-            temp=np.array(self._fock_record[-1])
-            print(temp[self._fock_print_indices])
-        if np.sum(self._gorkov_print_indices)>0:
-            print('\nGorkov field:')
-            temp=np.array(self._gorkov_record[-1])
-            print(temp[self._gorkov_print_indices])
-
-
-        ##################################
+        ############ Solve mean-field Hamiltonian #############
 
         self.set_mean_field_hamiltonian()
         w,v = self.solve()
-        #i=int(self.n_dof/2)
-        Eg=np.sum(la.eigh(self._tb_ham,eigvals_only=True))/self.n_dof
-        h=np.einsum('ij,i,j->',self._hubbard_u,hartree,hartree,optimize=True)
-        f=np.einsum('i,i,i->',self.U_entries,fock,fock,optimize=True)
-        g=np.einsum('i,i,i->',self.U_entries,gorkov,gorkov,optimize=True)
-        o=np.dot(np.diag(self._tb_ham),hartree)
-        n=np.dot(self._tb_ham[self._hubbard_indices],fock)
-        #anom=ham[tuple([self._hubbard_indices[0]+self.n_dof,self.hubbard_indices[1]])]
-        #gg=np.dot(anom,gorkov)
-        if self.iterations>1:
-            self.energy_old=np.copy(self.energy)
-        self.energy=h-f+g+o-n#+gg
-        self.energy=self.energy/self.n_dof
-        #print(self.energy)
 
-        if self.iterations>1:
-            self.en_old=np.copy(self.en)
-        self.en=np.sum(w[self.n_dof:])/self.n_dof
-        #print(self.en)
+        trace_density, density, anomalous_density = self._thermal_density_matrix(w,v)
 
-        #if self.iterations>1:
-        #    print(self.en<self.en_old)
-        if self.temperature==0:
-            f_mf=0
-        else:
-            f_mf =-self.temperature*np.sum(np.log(1+np.exp(-w[self.n_dof:]/self.temperature)))/self.n_dof
-        #print(f_mf)
+        hartree, fock, gorkov = self._set_fields(trace_density, density, anomalous_density)
 
-        self.free_energy=self.energy+f_mf
-        #print(free_energy)
-        #print('------')
+        ##################### Free energy ######################
+        
+        self.calculate_free_energy(w, trace_density, density, anomalous_density)
 
-        #print(np.sum(self.w[:self.n_dof]))
-
-        hartree_entries, fock_entries, gorkov_entries = self._thermal_density_matrix(w,v)
-
-        hartree, fock, gorkov = self._set_fields(hartree_entries, fock_entries, gorkov_entries)
+        ####################### Friction ########################
 
         hartree = (1-self.friction)*hartree + self.friction*self.hartree
         fock = (1-self.friction)*fock + self.friction*self.fock
         gorkov = (1-self.friction)*gorkov + self.friction*self.gorkov
         
-        # update fields:
+        ###################### Update fields #####################
+
         self.hartree, self.fock, self.gorkov = hartree, fock, gorkov 
-        
-        #print(np.sum(w[:self.n_dof]))
+
         return w,v
 
     def self_consistent_calculation(self):
@@ -891,9 +913,9 @@ class bogoliubov_de_gennes(tight_binding):
 
         self.exec_time = time.time() - t
 
-        self._hartree_record = np.transpose(self._hartree_record)
-        self._fock_record = np.transpose(self._fock_record)
-        self._gorkov_record = np.transpose(self._gorkov_record)
+        self.hartree_iterations = np.transpose(self.hartree_iterations)
+        self.fock_iterations = np.transpose(self.fock_iterations)
+        self.gorkov_iterations = np.transpose(self.gorkov_iterations)
 
         return w,v
 
@@ -951,6 +973,14 @@ class processed_data(bogoliubov_de_gennes):
         self.centre = model.centre
         self.com = model.com
 
+        self.hartree_iterations=model.hartree_iterations
+        self.fock_iterations=model.fock_iterations
+        self.gorkov_iterations=model.gorkov_iterations
+        self.V=model.print_V
+        self.V_mf=model.V_mf
+        self.Eg=model.Eg
+        self.free_energy=model.free_energy
+
         self.energy_interval=energy_interval
         self.resolution=resolution
 
@@ -983,9 +1013,9 @@ class processed_data(bogoliubov_de_gennes):
                 self._gorkov_zip = np.real_if_close(model.gorkov)
             
             # field recording:
-            self.hartree_record = np.real_if_close(model._hartree_record)
-            self.fock_record = np.real_if_close(model._fock_record)
-            self.gorkov_record = np.real_if_close(model._gorkov_record)
+            self.hartree_record = np.real_if_close(model.hartree_iterations)
+            self.fock_record = np.real_if_close(model.fock_iterations)
+            self.gorkov_record = np.real_if_close(model.gorkov_iterations)
 
         if type(eigenvalues)!=type(None) and type(eigenvectors)!=type(None):
 
@@ -1039,6 +1069,16 @@ class processed_data(bogoliubov_de_gennes):
             temp = np.sum(temp,-2)
         else:
             temp = temp[...,spin,:]
+        index = FindNearestValueOfArray(self.energy_interval,energy)
+        temp = temp[...,index]
+        temp = temp[..., orbital]
+        return temp
+
+    def magnetism(self, energy, orbital):
+        temp = self.density_of_states
+        if self.n_spins==1:
+            return temp[...,0,:]*0
+        temp = temp[...,0,:]-temp[...,1,:]
         index = FindNearestValueOfArray(self.energy_interval,energy)
         temp = temp[...,index]
         temp = temp[..., orbital]
@@ -1138,6 +1178,14 @@ class plot_data(processed_data):
         self.basis = data.basis
         self.com = data.com
 
+        self.hartree_iterations=data.hartree_iterations
+        self.fock_iterations=data.fock_iterations
+        self.gorkov_iterations=data.gorkov_iterations
+        self.V=data.V
+        self.V_mf=data.V_mf
+        self.Eg=data.Eg
+        self.free_energy=data.free_energy
+
     def _imshow(self, ldos):
 
         self.interpolation = 'none'
@@ -1175,7 +1223,6 @@ class plot_data(processed_data):
 
         self.vmin, self.vmax = np.amin(ldos), np.amax(ldos)
 
-
         if layer==(ALL,ALL,0):
             self.ax.set(xlabel='$x/a_x$', ylabel='$y/a_y$')
 
@@ -1185,7 +1232,6 @@ class plot_data(processed_data):
         if layer==(0,ALL,ALL):
             self.ax.set(xlabel='$y/a_y$', ylabel='$z/a_z$')
 
-        
         self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
 
         self._imshow(ldos)
@@ -1412,7 +1458,7 @@ class plot_data(processed_data):
         color='tab:red'
         
         if len(field)!=len(label):
-            ValueError("length of field not equal to length of label")
+            raise ValueError("length of field not equal to length of label")
 
             if type(xaxis)==type(None):
                 xaxis = np.arange(len(field))
@@ -1430,7 +1476,7 @@ class plot_data(processed_data):
             color = 'tab:blue'
 
             if len(twin_field)!=len(twin_label):
-                ValueError("length of twin_field not equal to length of twin_label")
+                raise ValueError("length of twin_field not equal to length of twin_label")
             
             field=twin_field
             label=twin_label
@@ -1446,7 +1492,7 @@ class plot_data(processed_data):
             color = 'tab:green'
 
             if len(second_twin_field)!=len(second_twin_label):
-                ValueError("length of second_twin_field not equal to length of second_twin_label")
+                raise ValueError("length of second_twin_field not equal to length of second_twin_label")
 
             field=second_twin_field
             label=second_twin_label

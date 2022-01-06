@@ -7,6 +7,8 @@ yy=[]
 zz1=[]
 zz2=[]
 zz3=[]
+zz4=[]
+zz5=[]
 MU=[]
 n_data=len(filenames)
 
@@ -25,30 +27,34 @@ for k in range(n_data):
     centre=data.centre
     ldos_a = data.local_density_of_states(energy, orbital=0)
     ldos_b = data.local_density_of_states(energy, orbital=1)
-    ldos=ldos_a-ldos_b
-    ldos=ldos[:,centre[1]]
-    z1=np.sum(np.abs(ldos))/len(ldos)
+    anisotropy=ldos_a-ldos_b
+    anisotropy=anisotropy[:,centre[1]]
+    z1=np.sum(np.abs(anisotropy))/len(anisotropy)
+    z4=np.sum(anisotropy)**2/np.sum(np.square(anisotropy))
+    z5=np.sum(np.abs(ldos_a)+np.abs(ldos_b))
     gorkov=data.gorkov()
 
     y=centre[1]
     Delta_T=np.real([[gorkov[x,y,0,s,x,y,1,s] for x in range(data.dimensions[0])] for s in range(data.n_spins)])
     Delta_T=np.sum(Delta_T,0)/data.n_spins
-    z2=np.sum(Delta_T)/len(Delta_T)
+    z2=np.abs(np.sum(Delta_T)/len(Delta_T))
     Delta_R=np.real([[gorkov[x-1,y,1,s,x,y,0,s] for x in range(data.dimensions[0])] for s in range(data.n_spins)])
     Delta_R=np.sum(Delta_R,0)/data.n_spins
-    z3=np.sum(Delta_R)/len(Delta_R)
+    z3=np.abs(np.sum(Delta_R)/len(Delta_R))
 
     zz1.append(z1)
     zz2.append(z2)
     zz3.append(z3)
+    zz4.append(z4)
+    zz5.append(z5)
     MU.append(mu)
 
 del y
 
-titles=['CDW','$\Delta_T$','$\Delta_R$']
+titles=[r'Staggered density',r'$|\overline{\Delta_T}|$',r'$|\overline{\Delta_R}|$', r'Inverse participation ratio (IPR)',r'Magnetisation, $\sum_\text{sites, orbitals}|\langle\hat M \rangle|$']
 MUs=np.unique(MU)
 for mu in MUs:
-    for i,zz in enumerate([zz1,zz2,zz3]):
+    for i,zz in enumerate([zz1,zz2,zz3,zz4,zz5]):
         x=np.array(xx); y=np.array(yy); z=np.array(zz)
         
         x=x[MU==mu]

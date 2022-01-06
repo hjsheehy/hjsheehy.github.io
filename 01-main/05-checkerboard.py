@@ -1,29 +1,12 @@
-from lib import *
-#########################################################
-################# from .conf import * ###################
-#########################################################
-if len(sys.argv) < 2:
-        print('Please supply conf file')
-        sys.exit()
-    
-conf = sys.argv[-1]
-
-confname = conf.split('.conf')[0]
-config_module = import_path(os.path.join(MAIN,conf))
-module_dict, to_import = import_all(config_module)
-globals().update({name: module_dict[name] for name in to_import})
-
-confname = os.path.basename(confname) 
-fileName = os.path.dirname(sys.argv[1])
-fileName = os.path.basename(fileName)
-confname = os.path.join(DATA,fileName,confname)
+from conf import *
 #########################################################
 ################# Simple square model ###################
 #########################################################
 temperature=0
-max_iterations=500
-friction=0.8
-absolute_convergence_factor=0.0001
+max_iterations=1000
+friction=0.9
+friction=0.5
+absolute_convergence_factor=0.00001
 ############## Energy ###############
 resolution=0.1
 increment=0.01
@@ -46,78 +29,128 @@ model.set_hubbard_u(hubbard_R, orb_i=1, orb_f=0, hop_vector=[1,0])
 model.set_hubbard_u(hubbard_R, orb_i=0, orb_f=0, hop_vector=[0,1])
 model.set_hubbard_u(hubbard_R, orb_i=1, orb_f=1, hop_vector=[0,1])
 
-model.set_hartree([1.2*phi,0.8*phi])
+spin_sector=np.eye(2)
+spin_sector[[1,1]]=0
 
-model.set_fock(zeta_v*np.eye(2), orb_i=0, orb_f=1, hop_vector=[0,0])
-model.set_fock(zeta_w*np.eye(2), orb_i=1, orb_f=0, hop_vector=[1,0])
-model.set_fock(zeta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
-model.set_fock(zeta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
+def set_mean_fields(state):
 
-model.set_gorkov(Delta_v*np.eye(2), orb_i=0, orb_f=1, hop_vector=[0,0])
-model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=0, hop_vector=[1,0])
-model.set_gorkov(Delta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
-model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
+    if state=='INT':
+        model.set_hartree([1.25*phi,0.75*phi])
+
+        model.set_fock(zeta_v*spin_sector, orb_i=0, orb_f=1, hop_vector=[0,0])
+        model.set_fock(zeta_w*np.eye(2), orb_i=1, orb_f=0, hop_vector=[1,0])
+        model.set_fock(zeta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
+        model.set_fock(zeta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
+
+        model.set_gorkov(Delta_v*spin_sector, orb_i=0, orb_f=1, hop_vector=[0,0])
+        model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=0, hop_vector=[1,0])
+        model.set_gorkov(Delta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
+        model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
+
+    if state=='unitary':
+        model.set_hartree([1.25*phi,0.75*phi])
+
+        model.set_fock(zeta_v*np.eye(2), orb_i=0, orb_f=1, hop_vector=[0,0])
+        model.set_fock(zeta_w*np.eye(2), orb_i=1, orb_f=0, hop_vector=[1,0])
+        model.set_fock(zeta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
+        model.set_fock(zeta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
+
+        model.set_gorkov(Delta_v*np.eye(2), orb_i=0, orb_f=1, hop_vector=[0,0])
+        model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=0, hop_vector=[1,0])
+        model.set_gorkov(Delta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
+        model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
+
+set_mean_fields(state)
+
+########## Clean database: redo nans #########
+repair_database=False
+if repair_database:
+    with open(confName+'.npz', 'rb') as f:
+        data = cPickle.load(f)
+    hartree=data.hartree()
+    fock=data.fock()
+    gorkov=data.gorkov()
+    if np.any(np.isnan(hartree)):
+        print('nan: repairing...')
+    else:
+        print('clean')
+        exit()
 
 ######## Importing previous meanfields #######
 dataDir=os.listdir(os.path.join(DATA,fileName))
 
-if len(dataDir)>0:
-    MU=np.array([float(txt.split("_")[1]) for txt in dataDir])
-    R=np.array([float(txt.split("_")[2]) for txt in dataDir])
-    T=np.array([float(txt.split("_")[3]) for txt in dataDir])
+# if len(dataDir)>0:
+#     VV=np.array([float(txt.split("_")[1]) for txt in dataDir])
+#     MU=np.array([float(txt.split("_")[2]) for txt in dataDir])
+#     R=np.array([float(txt.split("_")[3]) for txt in dataDir])
+#     T=np.array([float(txt.split("_")[4]) for txt in dataDir])
 
-    point=[mu,U_R,U_T]
-    points=np.array([MU,R,T]).T
-    i=closest_point(points,point)
-    [MU,R,T]=[MU[i],R[i],T[i]]
-    val=f'{mu:0.2f}_{R:0.4f}_{T:0.4f}'
-    i=len(dataDir)
-    tmp=False
-    for ss in dataDir:
-        i-=1
-        if any(val in s for s in dataDir):
-            closestFile=dataDir[i]
-            tmp=True
-    if tmp:
-        closestFile = os.path.join(DATA,fileName,closestFile)
-        with open(closestFile, 'rb') as f:
-            data = cPickle.load(f)
+#     point=[V,mu,U_R,U_T]
+#     points=np.array([VV,MU,R,T]).T
+#     i=closest_point(points,point)
+#     [VV,MU,R,T]=[VV[i],MU[i],R[i],T[i]]
+#     val=f'{VV:0.2f}_{MU:0.2f}_{R:0.4f}_{T:0.4f}'
+#     i=len(dataDir)
+#     for ss in dataDir:
+#         i-=1
+#         if any(val in s for s in dataDir):
+#             closestFile=dataDir[i]
+#     closestFile = os.path.join(DATA,fileName,closestFile)
+txt=os.path.basename(confName).split("_") 
+i=int(txt[-1])
+j=int(txt[-2])
+if i>0:
+    friction=0.5
+    txt[-1]=f'{(i-1):03d}'
+    name=""
+    for a in txt:
+        name = name + a + '_'
+    name = name[:-1]+'.npz'
+    previousFile = os.path.join(DATA,fileName,name)
+
+    if not os.path.exists(previousFile):
+        exit()
+    
+    with open(previousFile, 'rb') as f:
+        data = cPickle.load(f)
+
+    hartree=data.hartree()
+    fock=data.fock()
+    gorkov=data.gorkov()
+
+    if np.any(np.isnan(hartree)):
+        print('is nan')
         
-        hartree=data.hartree()
-        fock=data.fock()
-        gorkov=data.gorkov()
+        exit()
 
-        if np.any(np.isnan(hartree)):
-            print('is nan')
+        model.reset_hartree()
+        model.reset_fock()
+        model.reset_gorkov()
 
-            hartree=np.random.uniform(low=0.1, high=1.3, size=np.shape(data.hartree()))
-            fock=np.random.uniform(low=0.1, high=2.3, size=np.shape(data.fock()))
-            gorkov=np.random.uniform(low=0.1, high=4.3, size=np.shape(data.gorkov()))
+        phi=np.random.uniform(low=0.1, high=1.3)
+        zeta_v=np.random.uniform(low=0.1, high=2.3)
+        zeta_w=np.random.uniform(low=0.1, high=2.3)
+        Delta_v=np.random.uniform(low=1.1, high=4.3)
+        Delta_w=np.random.uniform(low=1.1, high=4.3)
+        
+        set_mean_fields()
 
-            extended_dimensions=np.append(model.extended_dimensions,model.extended_dimensions)
+    extended_dimensions=np.append(model.extended_dimensions,model.extended_dimensions)
 
-            model.hartree=np.reshape(hartree,model.n_dof,'F')
-            model.fock=np.reshape(fock,[model.n_dof,model.n_dof],'F')
-            model.gorkov=np.reshape(gorkov,[model.n_dof,model.n_dof],'F')
-
-        extended_dimensions=np.append(model.extended_dimensions,model.extended_dimensions)
-
-        model.hartree=np.real_if_close(np.reshape(hartree,model.n_dof,'F'))
-        model.fock=np.real_if_close(np.reshape(fock,[model.n_dof,model.n_dof],'F'))
-        model.gorkov=np.real_if_close(np.reshape(gorkov,[model.n_dof,model.n_dof],'F'))
+    model.hartree=np.real_if_close(np.reshape(hartree,model.n_dof,'F'))
+    model.fock=np.real_if_close(np.reshape(fock,[model.n_dof,model.n_dof],'F'))
+    model.gorkov=np.real_if_close(np.reshape(gorkov,[model.n_dof,model.n_dof],'F'))
 
 _print=False
 # _print=True
 
-# model.record_hartree([0,0], 0, 0, _print)
-# model.record_hartree([0,0], 1, 1, _print)
+model.record_hartree([0,0], 0, 0, _print)
+model.record_hartree([0,0], 1, 1, _print)
 model.record_gorkov(location_a=[5,0], location_b=[5,0], spin_a=0, spin_b=0, orbital_a=0, orbital_b=1, _print=_print)
+model.record_gorkov(location_a=[5,0], location_b=[5,0], spin_a=1, spin_b=1, orbital_a=0, orbital_b=1, _print=_print)
 model.record_gorkov(location_a=[4,0], location_b=[5,0], spin_a=0, spin_b=0, orbital_a=1, orbital_b=0, _print=_print)
-# model.record_gorkov(location_a=[0,0], location_b=[0,1], spin_a=0, spin_b=0, orbital_a=0, orbital_b=0, _print=_print)
-# model.record_fock(location_a=[5,0], location_b=[5,0], spin_a=0, spin_b=0, orbital_a=0, orbital_b=1, _print=_print)
-# model.record_fock(location_a=[4,0], location_b=[5,0], spin_a=0, spin_b=0, orbital_a=1, orbital_b=0, _print=_print)
-# model.record_fock(location_a=[0,0], location_b=[1,0], spin_a=0, spin_b=0, orbital_a=1, orbital_b=0, _print=_print)
-# model.record_fock(location_a=[0,0], location_b=[1,0], spin_a=0, spin_b=1, orbital_a=1, orbital_b=0, _print=_print)
+model.record_fock(location_a=[5,0], location_b=[5,0], spin_a=0, spin_b=0, orbital_a=0, orbital_b=1, _print=_print)
+model.record_fock(location_a=[4,0], location_b=[5,0], spin_a=0, spin_b=0, orbital_a=1, orbital_b=0, _print=_print)
 
 model.set_max_iterations(max_iterations)
 model.set_friction(friction)
@@ -125,6 +158,7 @@ model.set_absolute_convergence_factor(absolute_convergence_factor)
 model.set_temperature(temperature)
 eigenvalues,eigenvectors=model.self_consistent_calculation()    
 
+reset=True
 reset=False
 attempts=1
 for counter in range(attempts):
@@ -135,15 +169,13 @@ for counter in range(attempts):
         model.reset_fock()
         model.reset_gorkov()
 
-        hartree=np.random.uniform(low=0.1, high=1.3, size=np.shape(data.hartree()))
-        fock=np.random.uniform(low=0.1, high=2.3, size=np.shape(data.fock()))
-        gorkov=np.random.uniform(low=0.1, high=4.3, size=np.shape(data.gorkov()))
+        phi=np.random.uniform(low=0.1, high=1.3)
+        zeta_v=np.random.uniform(low=0.1, high=2.3)
+        zeta_w=np.random.uniform(low=0.1, high=2.3)
+        Delta_v=np.random.uniform(low=1.1, high=4.3)
+        Delta_w=np.random.uniform(low=1.1, high=4.3)
 
-        extended_dimensions=np.append(model.extended_dimensions,model.extended_dimensions)
-
-        model.hartree=np.reshape(hartree,model.n_dof,'F')
-        model.fock=np.reshape(fock,[model.n_dof,model.n_dof],'F')
-        model.gorkov=np.reshape(gorkov,[model.n_dof,model.n_dof],'F')
+        set_mean_fields()
 
         eigenvalues,eigenvectors=model.self_consistent_calculation()    
 
@@ -159,7 +191,7 @@ del(model._hubbard_u)
 
 data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
 
-with open(confname+'.npz', 'wb') as f:
+with open(confName+'.npz', 'wb') as f:
     cPickle.dump(data, f)
 exit()
 ########################################################

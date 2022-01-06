@@ -1,6 +1,6 @@
 The local density of states of a spinless 
 square lattice tight-binding model at $\mu/t=-3.27$ 
-with $53\times53$ sites, a single orbital with an 
+with $21\times21$ sites, a single orbital with an 
 impurity at the centre with coupling strength $V/t=1.21$. 
 The superconducting models are solved self-consistently. 
 Observe that in the BCS model (with interaction coupling 
