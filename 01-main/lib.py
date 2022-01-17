@@ -17,7 +17,6 @@ __version__='1.0.0'
 #       y-label
 #       x_bound(min,max,delta)
 #       y_bound(min,max,delta)
-#       trajectories.append('forward', 'reverse')
 #       starting_pts.append('default',')
 #       initial_mean_fields=a list of labels, e.g. ['int', 'unitary']
 # -combine sweeps and choose minimum of free energy
@@ -160,6 +159,363 @@ def DisplayArray(ax,array):
 # 
 #     def set_mean_field():
 
+###################################################################
+########################### Orbitals ##############################
+###################################################################
+class Orbital():
+    """An atomic orbital, instantiated with a position and name"""
+
+    def __init__(self,name:str,label=None):
+        self.name=name
+        self.label=label
+        self.Z=1
+        self.index=None
+
+        if name=='1s':
+            n=1
+            label='$1s$'
+
+            def radial_wave_function(self,r:float)->float:
+                return 2*self.Z**(3/2)*np.exp(-self._rho(r)/2)
+
+            def angular_wave_function(self)->float:
+                return np.sqrt(1/(4*np.pi))
+
+            def wavefunction(self,x:float,y:float,z:float)->float:
+                r=self.radius(x,y,z)
+                return self.radial_wave_function(r)*self.angular_wave_function()
+
+        if name=='d_xz':
+            n=4
+            label='$d_{xz}$'
+
+            def radial_wave_function(self,r:float)->float:
+                rho=self._rho(r)
+                return (1/(96*np.sqrt(5)))*(6-rho)*rho**2*Z**(3/2)*np.exp(-rho/2)
+
+            def angular_wave_function(self,r:float,x:float,z:float)->float:
+                return np.sqrt(60/(16*np.pi))*x*z/r**2
+
+            def wavefunction(self,x:float,y:float,z:float)->float:
+                r=self.radius(x,y,z)
+                return self.radial_wave_function(r)*self.angular_wave_function(r,x,z)
+
+        if name=='d_yz':
+            n=4
+            label='$4d_{yz}$'
+
+            def radial_wave_function(self,r:float)->float:
+                rho=self._rho(r)
+                return (1/(96*np.sqrt(5)))*(6-rho)*rho**2*z**(3/2)*np.exp(-rho/2)
+
+            def angular_wave_function(self,r:float,y:float,z:float)->float:
+                return np.sqrt(60/(16*np.pi))*y*z/r**2
+
+            def wavefunction(self,x:float,y:float,z:float)->float:
+                r=self.radius(x,y,z)
+                return self.radial_wave_function(r)*self.angular_wave_function(r,y,z)
+          
+        if name=='d_xy':
+            n=4
+            label='$4d_{xy}$'
+
+            def radial_wave_function(self,r:float)->float:
+                rho=self._rho(r)
+                return (1/(96*np.sqrt(5)))*(6-rho)*rho**2*Z**(3/2)*np.exp(-rho/2)
+
+            def angular_wave_function(self,r:float,x:float,y:float)->float:
+                return np.sqrt(60/(16*np.pi))*x*y/r**2
+
+            def wavefunction(self,x:float,y:float,z:float) -> float:
+                r=self.radius(x,y,z)
+                return self.radial_wave_function(r)*self.angular_wave_function(r,x,y)
+
+    def __repr__(self):
+        return "Orbital()"
+
+    def __str__(self):
+        return "{self.name} orbital"
+    
+    def set_effective_nuclear_charge(self,Z:int|float)->float|int:
+        self.Z=Z
+
+    def _rho(self,r:float)->float:
+        return 2*self.Z*r/self.n
+
+    def radius(self,x:float,y:float,z:float)->float:
+        return numpy.linalg.norm([x,y,z])
+
+    def electron_density(self,x:float,y:float,z:float)->float:
+        return np.abs(self.wavefunction(x,y,z))**2
+
+###################################################################
+####################### Crystal lattice ###########################
+###################################################################
+class Atom():
+    """An atom, instantiated with a Cartesian position, a name and an empty list of orbitals"""
+    Vectors=list[list[float]]
+    def __init__(self, position:Vectors,name:str):
+        self.position=position
+        self.name=name
+        self.index=None
+        self._orbitals=[]
+        self._orbital_dict=dict()
+        self._orbital_indices=[]
+        self._index=0 # counter for orbital indices
+
+    def __repr__(self):
+        return "Atom()"
+
+    def __str__(self):
+        return f"{self.name} atom, located at {self.position} with {self.n_orbitals} orbitals: {self.orbitals}"
+    
+    def add_orbital(self, orbital:str|type(Orbital)):
+        if type(orbital)==str:
+            orbital=Orbital(orbital)
+        # if not isinstance(orbital,Orbital):
+        #     raise ValueError(f'{orbital} is not an instance of the Orbital class!')
+        orbital.index=self._index
+        self._orbitals.append(orbital)
+        self._orbital_dict[orbital.name]=self._index
+        self._orbital_indices.append(self._index)
+        self._index+=1
+
+    def orbital_index(self,orbital):
+        if type(orbital)==int:
+            return orbital%self.n_orbitals
+        elif type(orbital)==str:
+            return self._orbital_dict[orbital]
+        elif isinstance(orbital,Orbital):
+            return self.orbital.index
+        else:
+            raise ValueError(f'{orbital} not str, int, or Orbital class!')
+
+    def orbital_name(self,orbital):
+        if type(orbital)==int:
+            return self.orbitals[orbital%self.n_orbitals]
+        elif type(orbital)==str:
+            return orbital
+        elif isinstance(orbital,Orbital):
+            return self.orbital.name
+        else:
+            raise ValueError(f'{orbital} not str, int, or Orbital class!')
+
+    @property
+    def orbitals(self):
+        return list(self._orbital_dict.keys())
+
+    @property
+    def n_orbitals(self):
+        return len(self._orbitals)
+
+class Crystal_lattice():
+    """Crystal lattice"""
+
+    def __init__(self,lattice_vectors=[[1,0],[0,1]],name='lattice'):
+        self.name=name
+        self._atoms=[]
+        self._atom_dict=dict()
+        self._atom_indices=[]
+        self._index=0
+        self.n_spins=2
+        self._A=np.vstack(lattice_vectors).T
+        if np.linalg.det(self._A)==0:
+            raise ValueError('Basis not independent!')
+        self._A_inv=np.linalg.inv(self._A)
+
+    def __repr__(self):
+        return "Crystal_lattice()"
+
+    def __str__(self):
+        return f"{self.name} lattice, with {self.n_atoms} atoms."
+
+    def cartesian_coordinates(self,fractional_coordinates):
+        Y = np.vstack(fractional_coordinates).T
+        return np.matmul(self._A, Y.T).T
+
+    def fractional_coordinates(self,cartesian_coordinates):
+        Y = np.vstack(cartesian_coordinates).T
+        return np.matmul(self._A_inv, Y.T).T
+
+    def add_atom(self, atom):
+        if not isinstance(atom,Atom):
+            raise ValueError(f'{atom} is not an instance of the Atom class!')
+        if atom.name in self.atoms:
+            raise SyntaxError(f'Atom name {atom.name} already used. Please use a different one.')
+        atom.index=self._index
+        self._atoms.append(atom)
+        self._atom_dict[atom.name]=self._index
+        self._atom_indices.append(self._index)
+        self._index+=1
+
+    def atom_index(self,atom):
+        if type(atom)==str:
+            return self._atom_dict[atom]
+        elif type(atom)==int:
+            if atom==0:
+                return 0
+            return atom%self.n_atoms
+        elif isinstance(atom,Atom):
+            return atom.index
+        else:
+            raise ValueError(f'{atom} not str, int, or Atom class!')
+
+    def atom_name(self,atom):
+        if type(atom)==int:
+            return self.atoms[atom%self.n_atoms]
+        elif type(atom)==str:
+            return atom
+        elif isinstance(atom,Atom):
+            return atom.name
+        else:
+            raise ValueError(f'{atom} not str, int, or Atom class!')
+
+    def atom(self,atom):
+        if isinstance(atom,Atom):
+            return atom
+        elif type(atom)==int:
+            if atom==0:
+                return self._atoms[0]
+            return self._atoms[atom%self.n_atoms]
+        elif type(atom)==str:
+            return self.atom(self.atom_index(atom))
+        else:
+            raise ValueError(f'{atom} not str, int, or Atom class!')
+
+    def index(self,atom,orbital,spin=0):
+        a=self.atom_index(atom)
+        n=self._atoms[a].n_orbitals
+        o=self._atoms[a].orbital_index(orbital)+spin*int(self.n_dof/self.n_spins)
+        if a==0:
+            return o
+        else:
+            return self.index(a-1,-1)+o+1
+    
+    @property
+    def spins(self):
+        if self.n_spins==1:
+            return None
+        elif self.n_spins==2:
+            return { 'up': 0, 'down': 1 }
+        else:
+            raise valueerror(f'{self.n_spins} is nither 1 or 2!')
+            
+    def spin(self,spin):
+        if self.n_spins==1:
+            return None
+        elif self.n_spins==2:
+            if spin==0 or spin==1:
+                return spin
+            elif type(spin)==str:
+                return self.spins[spin]
+        else:
+            raise valueerror(f'{self.n_spins} is nither 1 or 2!')
+
+    def n_orbitals(self,atom):
+        return self.atom(atom).n_orbitals
+        # return [atom.n_orbitals for atom in self._atoms]
+
+    @property
+    def atoms(self):
+        return list(self._atom_dict.keys())
+
+    @property
+    def n_dimensions(self):
+        return len(self.lattice_vectors)
+    
+    @property
+    def n_atoms(self):
+        return len(self._atoms)
+
+    @property
+    def n_dof(self):
+        return self.n_spins*np.prod([atom.n_orbitals for atom in self._atoms])
+
+###################################################################
+##################### Tightbinding model ##########################
+###################################################################
+class Onsite_tensor(Crystal_lattice):
+    """An onsite tensor, e.g. for chemical potential, impurities, spin-flip. 
+Specify either the Atom, or the Crystal_lattice. If the Atom is None, then all Atoms in the Crystal_lattice are inputted. If the Orbital is None, then all Orbitals in each Atom are inputted.
+The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips) or 2*orbital-matrix (spin-orbit) i.e. kron(spin,orbit)"""
+    def __init__(self, onsite, crystal_lattice, atom=None, orbital=None, spin=None, reduced_position=None):
+        if not isinstance(crystal_lattice,Crystal_lattice):
+            raise ValueError(f'{crystal} is not an instance of the Crystal_lattice class!')
+
+        self.n_spins=crystal_lattice.n_spins
+        self._atoms=crystal_lattice._atoms
+        self._atom_dict=crystal_lattice._atom_dict
+        self._atom_indices=crystal_lattice._atom_indices
+        self.indices=[]
+
+        if type(atom)!=type(None):
+            self._atoms=crystal_lattice.atom_index(atom)
+        else:
+            self._atoms=self._atom_indices
+        for atom in self._atoms:
+            n_orbitals=crystal_lattice.n_orbitals(atom)
+            if type(orbital)==type(None):
+                for orbital in np.arange(n_orbitals(atom)):
+                    self.indices.append(crystal_lattice.index(atom,orbital))
+            else:
+                self.indices.append(crystal_lattice.index(atom,orbital))
+
+        if np.isscalar(onsite):
+            if self.n_spins==1:
+                spin_tensor=onsite
+            if self.n_spins==2:
+                if type(spin)==type(None):
+                    spin_tensor=onsite*np.eye(2)
+
+        elif np.shape(onsite)==(2,):
+                spin_tensor=np.diag(onsite)
+
+        elif np.shape(onsite)==(2,2) and self.n_spins==2:
+                spin_tensor=onsite
+
+        so=self.n_spins*crystal_lattice.n_orbitals(0)
+        if np.array([crystal_lattice.n_orbitals(0)==crystal_lattice.n_orbitals(o) for o in range(self.n_atoms)],bool).all() and np.shape(onsite)==(so,so):
+            spin_orbit=onsite
+            atom=np.zeros(self.n_atoms)
+            atom[self.atoms]=1
+            atom=np.diag(atom)
+            self.tensor=np.kron(spin_orbit,atom)
+
+        elif np.shape(onsite)==(crystal_lattice.n_dof,crystal_lattice.n_dof):
+            self.tensor=onsite
+
+        else:
+            self.tensor=np.zeros(self.indices)
+            self.tensor=np.diag(self.tensor)
+            self.tensor=np.kron(spin_tensor,self.tensor)
+
+
+    def __repr__(self):
+        return "_Onsite_tensor()"
+
+    def __str__(self):
+        return "Onsite tensor"
+    
+    @property
+    def output(self):
+        return self.tensor
+    
+
+class _Hopping_tensor():
+    def __init__(self, hopping_amplitude, initial_atom=None, final_atom=None, initial_orbital=None, final_orbital=None, initial_spin=None, final_spin=None, lattice_vector=None):
+        pass
+
+class Tightbinding(Crystal_lattice):
+    temperature=0
+
+    hoppings=[]
+    impurities=[]
+    
+    def __init__(self,lattice_vectors,name):
+        super().__init__(lattice_vectors,name)
+
+
+
 class tight_binding():
     """Tight-binding model on a lattice defined by the tight_binding parent class
     
@@ -283,19 +639,26 @@ class tight_binding():
     ########### Hamiltonian ############
     ####################################
 
-    def _onsite(self, onsite_amplitude, spins=None, orbitals=None, axes=None, location=None):
+    def _onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
+
+        if type(orbital)!=type(None):
+            if orbital>=self.n_orbitals:
+                raise ValueError(f'Orbital index {orbital} greater than n_orbitals={self.n_orbitals}!')
 
         if np.isscalar(onsite_amplitude):
-            if type(orbitals)==type(None):
-                orbitals = np.arange(self.n_orbitals)
-            orbit_tensor=np.zeros([self.n_orbitals])
-            orbit_tensor[orbitals]=np.ones([len(orbitals)])
-            orbit_tensor=np.diag(orbit_tensor)
-            if type(spins)==type(None):
-                spins = np.arange(self.n_spins)
-            spin_tensor=np.zeros([self.n_spins])
-            spin_tensor[spins]=np.ones([len(spins)])
-            spin_tensor=np.diag(spin_tensor)
+            if type(orbital)==type(None):
+                orbitals = np.ones(self.n_orbitals)
+            else:
+                orbitals=np.zeros(self.n_orbitals)
+                orbitals[orbital]=1
+            orbit_tensor=np.diag(orbitals)
+
+            if type(spin)==type(None):
+                spins = np.ones(self.n_spins)
+            else:
+                spins=np.zeros([self.n_spins])
+                spins[spin]=1
+            spin_tensor=np.diag(spins)
             temp = onsite_amplitude*kron(spin_tensor,orbit_tensor)
 
         elif np.shape(onsite_amplitude)[0]==self.n_spins:
@@ -304,13 +667,14 @@ class tight_binding():
             elif np.shape(onsite_amplitude)==np.shape([['UpUp','UpDown'],['DownUp','DownDown']]):
                 spin_tensor = onsite_amplitude
             else:   
-                raise ValueError('onsite_amplitude must be scalar, pair, spin matrix, or spin-orbit matrix')
+                raise ValueError('onsite_amplitude must be scalar, pair or matrix (spins), or spin-orbit matrix')
 
-            if type(orbitals)==type(None):
-                orbitals = np.arange(self.n_orbitals)
-            orbit_tensor=np.zeros([self.n_orbitals])
-            orbit_tensor[orbitals]=np.ones([len(orbitals)])
-            orbit_tensor=np.diag(orbit_tensor)
+            if type(orbital)==type(None):
+                orbitals = np.ones(self.n_orbitals)
+            else:
+                orbitals=np.zeros([self.n_orbitals])
+                orbitals[orbital]=1
+            orbit_tensor=np.diag(orbitals)
             
             temp = kron(spin_tensor,orbit_tensor)
 
@@ -333,10 +697,10 @@ class tight_binding():
 
         return kron(temp, sites)
 
-    def set_onsite(self, onsite_amplitude, spins=None, orbitals=None, axes=None, location=None):
+    def set_onsite(self, onsite_amplitude, spin=None, orbital=None, axes=None, location=None):
         if type(self._hamiltonian)==type(None):
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=complex_dtype) 
-        self._hamiltonian += self._onsite(onsite_amplitude, spins, orbitals, axes, location)
+        self._hamiltonian += self._onsite(onsite_amplitude, spin, orbital, axes, location)
         
     def set_hopping(self, hopping_amplitude, orb_i=None, orb_f=None, hop_vector=None, label='', add_time_reversal=True):
 
@@ -385,7 +749,7 @@ class tight_binding():
             hopping_amplitude = hopping_amplitude*np.eye(self.n_spins)
 
         if np.shape(hopping_amplitude)[0]==self.n_spins:
-            if (np.shape(hopping_amplitude)==np.array([self.n_spins,self.n_spins])).all():
+            if (np.shape(hopping_amplitude)==np.shape(np.ones([self.n_spins,self.n_spins]))):
                 spin_tensor = hopping_amplitude
             else:
                 spin_tensor = np.diag(hopping_amplitude)
@@ -622,7 +986,7 @@ class bogoliubov_de_gennes(tight_binding):
         self.gorkov_iterations=[]
 
     def set_hartree(self,onsite_amplitude,spins=None,orbitals=None,axes=None,location=None):
-        self.hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spins=spins, orbitals=orbitals, axes=axes, location=location))
+        self.hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spin=spin, orbital=orbital, axes=axes, location=location))
 
     def set_fock(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
         self.fock += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
@@ -631,7 +995,7 @@ class bogoliubov_de_gennes(tight_binding):
         self.gorkov += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)
 
     def set_external_hartree(self,onsite_amplitude,spins=None,orbitals=None,axes=None,location=None):
-        self.external_hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spins=spins, orbitals=orbitals, axes=axes, location=location))
+        self.external_hartree += np.diag(self._onsite(onsite_amplitude=onsite_amplitude, spin=spin, orbital=orbital, axes=axes, location=location))
 
     def set_external_fock(self, amplitude, orb_i=None, orb_f=None, hop_vector=None, add_time_reversal=True):
         self.external_fock += self._hopping(hopping_amplitude=amplitude, orb_i=orb_i, orb_f=orb_f, hop_vector=hop_vector, add_time_reversal=add_time_reversal)

@@ -75,9 +75,10 @@ Help()
 
 num="" # initialise var
 pwr="init" 
-cln=false
+# cln=false
 
-while getopts :hgcn:p: flag; do
+# while getopts :hgcn:p: flag; do
+while getopts :hgn:p: flag; do
    case ${flag} in
       h) # display Help
          Help
@@ -85,7 +86,7 @@ while getopts :hgcn:p: flag; do
       g) # display License
          License
          exit;;
-      c) cln=true;;
+      # c) cln=true;;
       n) num=${OPTARG};;
       p) pwr=${OPTARG};;
      \?) echo "Error: Invalid option"
@@ -157,78 +158,70 @@ fi
 
 mkdir -p $activeFolder $inFolder $confOutFolder
 
-if [ `ls $activeFolder | wc -l` -gt 0 ] 
-then
-    echo `rm -r ${activeFolder}`
-fi
+
 if [ `ls $inFolder | wc -l` -gt 0 ] 
 then
-    echo `rm -r ${inFolder}`
-fi
-# if [ `ls $outFolder | wc -l` -gt 0 ] 
-# then
-#     echo `rm -r ${outFolder}`
-# fi
-
-mkdir -p $confFolder $dataFolder $activeFolder $inFolder 
-
-if [ `ls $confOutFolder | wc -l` -gt 0 ] 
-then
-echo -e "Configuration files found in\n${confOutFolder}"
-
-    read -p 'Delete and create new .conf files? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
-        python3 $confFolder/conf.py -s
-    fi
-    
-fi    
-
-if [ `ls $confOutFolder | wc -l` -eq 0 ] 
-then
-    echo -e "Configuration out folder empty, located at\n${confOutFolder}"
-    read -p 'Create .conf files? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Nn]$ ]]
-    then
-        echo 'No configuration files. Exiting...'
-        exit 1
-    else
-    python3 $confFolder/conf.py -s
-    fi
-fi    
-
-if [ `ls $dataFolder | wc -l` -gt 0 ] 
-then
-    echo -e "Found data (.npz files) at\n${dataFolder}"
-    read -p 'Delete? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
-        rm -r ${dataFolder}
-        mkdir $dataFolder
-        mv $confOutFolder/* $inFolder
-    else
-        if ! ${cln}
+    if [ `ls $activeFolder | wc -l` -gt 0 ]; then
+        echo -e "Detected simulation was stopped (data in \n${activeFolder})"
+        read -p 'Continue simulation? [Y/N]' -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]
         then
-            for f in ${dataFolder}/*.npz ; do
-                f="${confOutFolder}/`basename ${f%.*}.conf`"
-                mv $f $confFolder
-            done
-            if [ `ls $confOutFolder | wc -l` -gt 0 ] 
-            then
-              mv $confOutFolder/* $inFolder
-              mv $confFolder/*.conf $confOutFolder
-            fi
-        else
-            mv $confOutFolder/* $inFolder
+            mv $activeFolder/* $inFolder
         fi
-    wait
     fi
 else
-    mv $confOutFolder/* $inFolder
-fi    
+    if [ `ls $confOutFolder | wc -l` -gt 0 ] 
+    then
+    echo -e "Configuration files found in\n${confOutFolder}"
+
+        read -p 'Delete and create new .conf files? [Y/N]' -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ $REPLY =~ ^[Yy]$ ]]
+        then
+            python3 $confFolder/conf.py -s
+        else
+            if [ `ls $activeFolder | wc -l` -gt 0 ] 
+            then
+                echo `rm -r ${activeFolder}`
+            fi
+            if [ `ls $inFolder | wc -l` -gt 0 ] 
+            then
+                echo `rm -r ${inFolder}`
+            fi
+            mkdir -p $confFolder $dataFolder $activeFolder $inFolder 
+        fi
+    fi    
+
+    if [ `ls $confOutFolder | wc -l` -eq 0 ] 
+    then
+        echo -e "Configuration out folder empty, located at\n${confOutFolder}"
+        read -p 'Create .conf files? [Y/N]' -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ $REPLY =~ ^[Nn]$ ]]
+        then
+            echo 'No configuration files. Exiting...'
+            exit 1
+        else
+        python3 $confFolder/conf.py -s
+        fi
+    fi    
+
+    if [ `ls $dataFolder | wc -l` -gt 0 ] 
+    then
+        echo -e "Found data (.npz files) at\n${dataFolder}"
+        read -p 'Delete? [Y/N]' -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ $REPLY =~ ^[Yy]$ ]]
+        then
+            rm -r ${dataFolder}
+            mkdir $dataFolder
+            mv $confOutFolder/* $inFolder
+        fi
+    else
+        mv $confOutFolder/* $inFolder
+    fi    
+fi
 
 plt=false
 if [ ${pwr} = 'init' ]
@@ -258,7 +251,6 @@ function func {
         wait
         echo "Done ${model} ${grab}"
 
-        mv ${activeFolder}/${grab} ${confOutFolder}
         wait
 
         if ${plt}

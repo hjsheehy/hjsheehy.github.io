@@ -22,6 +22,7 @@ from math import log10, floor, ceil
 from tqdm import tqdm # progress bar
 from memory_profiler import memory_usage
 import _pickle as cPickle # C language pickle faster than pickle
+import random
 ##### plotting libraries #####
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle

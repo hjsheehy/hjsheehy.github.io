@@ -2,6 +2,17 @@ from conf import *
 #########################################################
 ################# Simple square model ###################
 #########################################################
+n=11
+mu=-0.57
+V=2.21
+w=0.79
+v=0
+phi=4.32
+zeta_v=4.52
+zeta_w=3.23
+Delta_v=5.92
+Delta_w=4.73
+#########################################################
 temperature=0
 max_iterations=1000
 friction=0.9
@@ -60,12 +71,10 @@ def set_mean_fields(state):
         model.set_gorkov(Delta_w*np.eye(2), orb_i=0, orb_f=0, hop_vector=[0,1])
         model.set_gorkov(Delta_w*np.eye(2), orb_i=1, orb_f=1, hop_vector=[0,1])
 
-set_mean_fields(state)
-
 ########## Clean database: redo nans #########
 repair_database=False
 if repair_database:
-    with open(confName+'.npz', 'rb') as f:
+    with open(CONFNAME+'.npz', 'rb') as f:
         data = cPickle.load(f)
     hartree=data.hartree()
     fock=data.fock()
@@ -77,7 +86,7 @@ if repair_database:
         exit()
 
 ######## Importing previous meanfields #######
-dataDir=os.listdir(os.path.join(DATA,fileName))
+dataDir=os.listdir(os.path.join(DATA,SIM_NAME))
 
 # if len(dataDir)>0:
 #     VV=np.array([float(txt.split("_")[1]) for txt in dataDir])
@@ -95,23 +104,25 @@ dataDir=os.listdir(os.path.join(DATA,fileName))
 #         i-=1
 #         if any(val in s for s in dataDir):
 #             closestFile=dataDir[i]
-#     closestFile = os.path.join(DATA,fileName,closestFile)
-txt=os.path.basename(confName).split("_") 
-i=int(txt[-1])
-j=int(txt[-2])
-if i>0:
-    friction=0.5
-    txt[-1]=f'{(i-1):03d}'
-    name=""
-    for a in txt:
-        name = name + a + '_'
-    name = name[:-1]+'.npz'
-    previousFile = os.path.join(DATA,fileName,name)
+#     closestFile = os.path.join(DATA,SIM_NAME,closestFile)
+
+if layer_no(CONFNAME)==0:
+
+    set_mean_fields(state=initial_fields_label)
+
+else:
+
+    parent_data = os.path.join(DATA,SIM_NAME,parent_filename+'.npz')
 
     if not os.path.exists(previousFile):
+        raise ValueError('No parent file!')
         exit()
+
+    parent_data = glob.glob(parent_data)
+
+    parent_filename = parent_data[0]
     
-    with open(previousFile, 'rb') as f:
+    with open(parent_filename, 'rb') as f:
         data = cPickle.load(f)
 
     hartree=data.hartree()
@@ -191,8 +202,25 @@ del(model._hubbard_u)
 
 data=processed_data(model, energy_interval, resolution, eigenvalues, eigenvectors)
 
-with open(confName+'.npz', 'wb') as f:
+oldCONFNAME=os.path.basename(CONFNAME)+'.conf'
+if layer_no(CONFNAME)==0:
+    CONFNAME=CONFNAME.split('_')
+    initial_mf=CONFNAME[-1]
+    CONFNAME=CONFNAME[:-1]
+    CONFNAME=CONFNAME+[f'_{data.free_energy[-1]}',initial_mf]
+    CONFNAME='_'.join(CONFNAME)
+else:
+    CONFNAME=CONFNAME+f'_{data.free_energy[-1]}'
+
+with open(CONFNAME+'.npz', 'wb') as f:
     cPickle.dump(data, f)
+
+CONFNAME=os.path.basename(CONFNAME)+'.conf'
+SIM_NAME=os.path.basename(SIM_NAME)
+inConf=os.path.join(MAIN,ACTIVE,SIM_NAME,oldCONFNAME)
+outConf=os.path.join(CONF,SIM_NAME,OUT,CONFNAME)
+os.rename(inConf,outConf)
+
 exit()
 ########################################################
 ########################## Plot ########################
