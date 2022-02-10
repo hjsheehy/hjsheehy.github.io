@@ -61,17 +61,19 @@ def set_mean_fields(state):
         bdg.set_gorkov(Delta_w*np.eye(2), atom_i='B', atom_f='A', hop_vector=[1,0])
 
 if config_file:
-
-    if layer_no(CONFNAME)==0:
+    
+    if layer_no(CONFNAME)==0 and parent_sim==SIM_NAME:
+        
         set_mean_fields(state=INITIAL_FIELD)
         friction=0.7
         max_iterations=1000
 
     else:
+        # i.e. if germ or if perturbation from parent_sim
         friction=0.7
         max_iterations=1000
 
-        parent_data = os.path.join(DATA,SIM_NAME,parent_filename+'.npz')
+        parent_data = os.path.join(DATA,parent_sim,parent_filename+'.npz')
         parent_data = glob.glob(parent_data)
 
         # minimum free energy:

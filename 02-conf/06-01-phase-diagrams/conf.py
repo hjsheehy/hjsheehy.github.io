@@ -17,5 +17,6 @@ ymin,ymax,dy=0.000,4.312,0.1982
 n_layers=6
 separation=7
 V=0
+parent_sim=FILENAME
 
-create_config_files(INITIAL_FIELDS=INITIAL_FIELDS, xlabel=xlabel, ylabel=ylabel, xmin=xmin, xmax=xmax, dx=dx, ymin=ymin, ymax=ymax, dy=dy, n_layers=n_layers, separation=separation, FILENAME=FILENAME, V=V)
+create_config_files(INITIAL_FIELDS=INITIAL_FIELDS, xlabel=xlabel, ylabel=ylabel, xmin=xmin, xmax=xmax, dx=dx, ymin=ymin, ymax=ymax, dy=dy, n_layers=n_layers, separation=separation, FILENAME=FILENAME, V=V, parent_sim=parent_sim)
