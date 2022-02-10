@@ -1,0 +1,246 @@
+\chapter{\label{ch:multiorbital}Models of multi-orbital superconductivity}
+\section{\label{sec:singlet_state}Model of multi-orbital spin-singlet superconductivity}
+\graphicspath{{../gfx/section03/}{../plots/chapter03/}}
+
+
+Spin-singlet pairing is defined in terms of the pairing tensor
+\begin{equation}
+\bm{\Delta}=\Delta_\mathbf{i}\,(i\sigma_y\otimes\mathbb{1}),
+\end{equation}
+where the first sector in the tensor product represents the spin channels $\sigma=\,\uparrow,\,\downarrow$ and the second sector represents the orbital channels $m\in\{+,\,-\}$. $\Delta_\mathbf{i}$ is an on-site pairing amplitude, which varies in space only in the presence of impurities.
+\subsection{Model and reproducing known results}
+\label{sec:reproducing_known_results}
+
+\section{\label{sec:singlet_state}Model of multi-orbital (non-)unitary spin-triplet superconductor with impurities}
+\graphicspath{{../gfx/section03/}{../plots/chapter03/}}
+
+\subsection{
+\label{sec:Triplet_state}
+The spin-triplet pairing is defined by the pairing potential
+\begin{equation}
+\bm{\Delta} = i \left(\mathbf{d_i}\cdot\bm{\sigma}\right)\sigma_y\otimes i\tau_y,
+\end{equation}
+where the first sector in the tensor product represents the spin channels $\sigma=\,\uparrow,\,\downarrow$ and the second sector represents the orbital channels $m\in\{+,\,-\}$. The triplet $d$ vector is $\mathbf{d_i}=\Delta_\mathbf{i}\bm{\eta}$, where $|\bm{\eta}|^2=1$. and may vary in space in the presence of impurities.
+The nonunitarity of the triplet state is characterised by a nonzero real vector $\mathbf{q}=i(\bm{\eta}\times\bm{\eta}^*)$ which in general has $|\mathbf{q}|\leqslant|\bm{\eta}|^2=1$.
+
+\subsection{Model and results}
+\label{sec:model_triplet}
+We reproduce known results in the literature (Sudeep \textit{et al.}) We then study the spectrum of various different theories of superconductivity. Importantly, we show that there exist different theories which give rise to the similar spectrum. We propose quasiparticle interference as a method to distinguish such candidate theories and provide expected results for a toy model. 
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Spectrum_spin_resolved_Sudeeps_parameters.pdf}
+    \end{center}
+    \caption{\label{fig:Spectrum_spin_resolved_Sudeeps_parameters}
+Reproducing Sudeep \textit{et al.}'s results for a two-orbital superconductor $43\times 43$ sites, $\mu/t=-2.67$, $s/t=0.05$, $\delta/t=0.075$ and non-unitary triplet order parameter $\Delta/t=1$ and triplet $d$ vector $\mathbf{d}=\Delta\mathbf{\eta}$, with $\mathbf\eta/t=\frac{1}{\sqrt{3}}[1, e^{i\pi/3},e^{4i\pi/3}]$. An impurity sits at the centre $[0,0]$ with coupling strength $V/t=1.21$. We see oscillations as a finite size effect. In the upper Figure we resolve two peaks corresponding to spin-up and spin-down channels. In the lower Figure we resolve two double peaks, corresponding to inter-band hybridisation. Our results confirm the location of the peaks described by Sudeep \textit{et al}. Note that the Lorentz width $\sigma$ equals twice the resolution of the Green's function $\sigma=2\epsilon$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Spectrum_comparison_zero_chem_pot.pdf}
+    \end{center}
+    \caption{\label{fig:Spectrum_comparison_zero_chem_pot}
+The spectrum of various states with $43\times43$ sites, chemical potential $\mu=0$, rigid orbital shift $s/t=0.05$, inter-orbital hybridisation $\delta/t=0.075$ and an impurity located at $[0,0]$ with coupling strength $V/t=1.21$. The spectrum is taken at $\mathbf{r}=[0,5]$. The spectral resolution $\epsilon$ is half the Lorentz width $\epsilon=\sigma/2$. We observe a van-Hove singularity at the Fermi surface of the normal state. The superconducting states are described by a pairing potential $\Delta/t=1$ which gives rise to a gap in the spectrum around the Fermi surface $\omega=0$. The spin-triplet order is described by a $d$-vector $\mathbf{d}=\Delta \bm\eta$, where $|\bm{\eta}|=1$ corresponds to unitary triplet states. Here we have included three, which are degenerate in their spectrum due to the rotational symmetry of the Cooper pair. The spin-triplet pairing gives rise to two peaks at each side of the gap by breaking the orbital degeneracy via rigid shift $s$ and hybridisation $\delta$.
+ The multiorbital singlet superconducting state is described by a pairing $\Delta/t=1$ with interorbital pairing shift $\varsigma/t=0.35$. The non-unitary triplet state is described by $\bm{d}=(-\varsigma,-i\Delta,0)$.  Both theories have a $\varsigma/t=0.35$ shift in the gap of the spectrum, giving rise to two sets of peaks.
+ As the broadening parameter is small $\epsilon\lesssim s$, the the orbital splitting of the peaks in the non-unitary triplet  is observable.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Spectrum_comparison_nonunitary_VS_multiorbital_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:Spectrum_comparison_nonunitary_VS_multiorbital_0.1}
+The spectrum of the non-unitary triplet state and the multiorbital singlet become indistinct with large broadening $\epsilon\gtrsim s$ due to the loss of resolution of the two-double peak structure in the triplet theory.  The model parameters are described in the previous figure.
+    }
+\end{figure}
+
+\subsection{Quasiparticle interference to distinguish multiorbital theory and non-unitary triplet theory}
+\label{sec:QPI_interference}
+In the previous subsection we demonstrated that the spectra of two theories of superconductivity may be indistinct due to thermal broadening effects. This prevented the resolution of the double peaks of a non-unitary triplet theory from the single peaks of a singlet theory with a shift of the inter-orbital pairing. In this section, we will demonstrate quasiparticle interference as a diagnostic of these candidate theories.
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_0.60_zero_chem_pot_multiorbital_VS_non-uni_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_0.60_zero_chem_pot_multiorbital_VS_non-uni_0.1}
+    Quasiparticle interference of normal and superconducting states just \textit{below} the \textit{first} peak in the spectrum, in order to diagnose the multiorbital spin-singlet theory from the non-unitary spin-triplet theory. The singlet state is gapped at this frequency. The multiorbital and non-unitary triplet theories both have a $\varsigma/t=0.35$ shift in the gap of the quasiparticle spectrum.
+    The interference patterns display a topological feature: the  multiorbital state contains density in its interior, whereas the non-unitary state does not.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_0.65_zero_chem_pot_multiorbital_VS_non-uni_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_0.65_zero_chem_pot_multiorbital_VS_non-uni_0.1}
+    Quasiparticle interference of the same states described in the previous figure \textit{at} the \textit{first} peak in the spectrum.
+    As the peak, the quasiparticle interference pattern of the multiorbital singlet state exhibits a topological transition.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_0.70_zero_chem_pot_multiorbital_VS_non-uni_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_0.70_zero_chem_pot_multiorbital_VS_non-uni_0.1}
+    Quasiparticle interference of the same states described in the previous figure just \textit{above} the \textit{first} peak in the spectrum.
+        As the other side of the peak, multiorbital singlet and non-unitary triplet states exhibit the same topological feature.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_0.60_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_0.60_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21}
+Spin-resolved quasiparticle interference for the multiorbital singlet state just \textit{below} the \textit{first} peak. Observe the $m=+$ orbital channel is gapped and the spin sectors of the $m=-$ orbital channel are degenerate.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_0.70_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_0.70_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21}
+Spin-resolved quasiparticle interference for the multiorbital singlet state just \textit{above} the \textit{first} peak. 
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_0.60_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_0.60_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21}
+Spin-resolved quasiparticle interference for the non-unitary spin-triplet state just \textit{below} the \textit{first} peak.  Observe the $\sigma=\uparrow$ spin channel is gapped and the $\sigma=\downarrow$ are affected by the rigid orbital shift and hybridisation.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_0.70_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_0.70_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21}
+Spin-resolved quasiparticle interference for the non-unitary spin-triplet state just \textit{above} the \textit{first} peak.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_1.30_zero_chem_pot_multiorbital_VS_non-uni_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_1.30_zero_chem_pot_multiorbital_VS_non-uni_0.1}
+    Quasiparticle interference of the same states described in the previous figure just \textit{below} the \textit{second} peak in the spectrum. The multiorbital and non-unitary states exhibit the same topology.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_1.35_zero_chem_pot_multiorbital_VS_non-uni_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_1.35_zero_chem_pot_multiorbital_VS_non-uni_0.1}
+    Quasiparticle interference of the same states described in the previous figure \textit{at} the \textit{first} peak in the spectrum. At the crossing of the peak, the multiorbital transitions to a topologically distinct state, exhibiting density at the interior.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_1.40_zero_chem_pot_multiorbital_VS_non-uni_0.1.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_1.40_zero_chem_pot_multiorbital_VS_non-uni_0.1}
+    Quasiparticle interference of the same states described in the previous figure just \textit{above} the \textit{second} peak in the spectrum. The multiorbital and triplet states exhibit distinct topological patterns. 
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_1.30_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_1.30_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21}
+Spin-resolved quasiparticle interference for the multiorbital singlet state just \textit{below} the \textit{second} peak. Observe the spin sectors are degenerate.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_1.40_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_1.40_Two_orbital_Singlet_43_43_0_0.05_0.075_1.00_1_0.35_1.21}
+Spin-resolved quasiparticle interference for the multiorbital singlet state just \textit{above} the \textit{second} peak. Observe the spin sectors are degenerate.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_1.30_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_1.30_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21}
+Spin-resolved quasiparticle interference for the non-unitary spin-triplet state just \textit{below} the \textit{second} peak. The lack of spin or orbital channel degeneracy distinguishes this model from the multiorbital theory. 
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_spin_orbit_1.40_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_spin_orbit_1.40_Non-unitary_triplet_43_43_0_0.05_0.075_1.00_1_-0.35_-1j_0_1.21}
+Spin-resolved quasiparticle interference for the non-unitary spin-triplet state just \textit{above} the \textit{second} peak. The lack of spin or orbital channel degeneracy distinguishes this model from the multiorbital theory. 
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(1).pdf}
+    \end{center}
+    \caption{\label{fig:QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(1)}
+    Quasiparticle interference (QPI) intensity and energy (anti)symmetrised amplitudes for a system described in Figure \ref{fig:Spectrum_comparison_zero_chem_pot}.
+    }
+\end{figure}
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(2).pdf}
+    \end{center}
+    \caption{\label{fig:QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(2)}
+    Quasiparticle interference (QPI) intensity and energy (anti)symmetrised amplitudes.
+    }
+\end{figure}
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(3).pdf}
+    \end{center}
+    \caption{\label{fig:QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(3)}
+    Quasiparticle interference (QPI) intensity and energy (anti)symmetrised amplitudes.
+    }
+\end{figure}
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(4).pdf}
+    \end{center}
+    \caption{\label{fig:QPI_large_mosaic_zero_chem_pot_multiorbital_VS_non-uni_0.1_(4)}
+    Quasiparticle interference (QPI) intensity and energy (anti)symmetrised amplitudes.
+    }
+\end{figure}
+
+\subsection{Mean-field theory}
+\label{sec:mean-field_SC}
+In this subsection we describe our results for an inhomogeneous mean-field with spin and orbit terms. Such mean-fields can be used to describe singlet or triplet mean-field pairing with inter-orbital dependency. We first describe some results for the free energy of a spin-singlet superconducting state. Then we study some self-consistent results.
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Linecut_Non_unitary_triplet_43_43_-2.67_5.00e-02_7.50e-02_1.00_8.90e-01_(-0.5+0.27j)_(0.3+0.37j)_(0.67+0j)_1.21e+00.pdf}
+    \end{center}
+    \caption{\label{fig:Linecut_Non_unitary_triplet_43_43_-2.67_5.00e-02_7.50e-02_1.00_8.90e-01_(-0.5+0.27j)_(0.3+0.37j)_(0.67+0j)_1.21e+00}
+   Linecut for non-unitary triplet state with  $V/t=1.21$, $\mu/t=-2.67$, $s/t=0.050$ and $\delta/t=0.075$. The superconducting order parameter is $\Delta=\Delta_0\bm\eta$, where $\Delta_0/t=0.89$ and $\bm\eta/t=(-0.5+0.27i, 0.3+0.37i, 0.67+0i)$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Spectrum_Non_unitary_triplet_43_43_-2.67_5.00e-02_7.50e-02_1.00_8.90e-01_(-0.5+0.27j)_(0.3+0.37j)_(0.67+0j)_1.21e+00.pdf}
+    \end{center}
+    \caption{\label{fig:Spectrum_Non_unitary_triplet_43_43_-2.67_5.00e-02_7.50e-02_1.00_8.90e-01_(-0.5+0.27j)_(0.3+0.37j)_(0.67+0j)_1.21e+00}
+    Comparison of the spectrum of the non-unitary triplet state at the impurity and five atoms away, which are the boundaries of the linecut in the previous Figure \ref{fig:Linecut_Non_unitary_triplet_43_43_-2.67_5.00e-02_7.50e-02_1.00_8.90e-01_(-0.5+0.27j)_(0.3+0.37j)_(0.67+0j)_1.21e+00}. The parameters describing this model are as in the previous, $V/t=1.21$, $\mu/t=-2.67$, $s/t=0.050$, $\delta/t=0.075$ and $\Delta=\Delta_0\bm\eta$, where $\Delta_0/t=0.89$ and $\bm\eta/t=(-0.5+0.27i, 0.3+0.37i, 0.67+0i)$.
+    }
+\end{figure}
+

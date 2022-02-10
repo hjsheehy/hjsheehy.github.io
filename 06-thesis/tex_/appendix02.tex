@@ -1,0 +1,29 @@
+\chapter{\label{ap:green}The Green's function}
+\graphicspath{{}}
+For completeness, we would like to detail the properties of the Green's function relevant to our calculations. Given a Hamiltonian $\hat H$, the Green's function is the kernel to the eigenvalue problem, formally written
+\begin{equation}
+\hat{\mathcal{G}}(z)\equiv\left(z-\hat{\mathcal{H}}\right)^{-1}
+\end{equation}
+where $z\equiv x+iy$ is a complex number. The Green's function is normalised so that $\Tr\hat{\mathcal{G}}^R\equiv1$. The kernel indicates whether the real number $x$ solves $\hat{\mathcal{H}}$. A transformation on this formal solution is required because $\hat{\mathcal{H}}$ is an operator rather than a complex scalar so that the denominator is ill-defined. This transformation is the diagonalisation procedure. In terms of its eigenvalues $E_n$ and eigenvectors $\bm{\Psi}_n$, the Green's function becomes
+\begin{equation}
+\hat{\mathcal{G}}(z)=\sum_n\frac{\bm{\Psi}_n\bm{\Psi}_n^\dagger}{z-E_n}.
+\end{equation}
+In theory, a real scalar $x$ is all we need for the kernel, blowing up when it takes on the value of the eigenvalues of the Hamiltonian. The Green's function in this case is a Dirac delta centred at $x$. However, the Dirac-delta is not a function since it is infinitely narrowly peaked. Instead, we work with a Lorentzian approximation to the Dirac delta, by regularising the Green's function with a small imaginary component to the scalar. This is known as the \textit{retarded} Green's function because it corresponds to an infinitesimal forward-time evolution, i.e. for our purposes, an electron leaving the STM tip and returning in the infinitesimal future (after having interacted with the surface of the material). The width of the Lorentzian or \textit{energy-resolution} is set by the imaginary component $y$ in the following way
+\begin{eqnarray}
+\hat{\mathcal{G}}(x+iy) &=& \frac{1}{x+iy-\hat{\mathcal{H}}}\\
+&=& \frac{x-\hat{\mathcal{H}}}{(x-\hat{\mathcal{H}})^2+y^2}-i\frac{y}{(x-\hat{\mathcal{H}})^2+y^2}
+\end{eqnarray}
+Specifically, we are interested the local density of states which is the real part of the retarded Green's function defined as follows
+\begin{equation}
+\rho(x+iy)\equiv-\frac{1}{\pi}\Im\hat{\mathcal{G}}(x+iy)=\frac{1}{\pi}\frac{y}{(x-\hat{\mathcal{H}})^2+y^2}.
+\end{equation}
+The peak occurs formally at $x_0=\hat{\mathcal{H}}$ and the maximum is given by
+\begin{equation}
+\rho(x_0+iy)=\frac{1}{\pi y}.
+\end{equation}
+To be concrete, the density of states is
+\begin{equation}
+\rho(\omega+i\epsilon; \mathbf{r})=\frac{\epsilon}{\pi}\sum_n\frac{\Psi(\mathbf{r})_n\Psi(\mathbf{r})_n^\dagger}{(\omega-E_n)^2+\epsilon^2},
+\end{equation}
+where we have denoted the imaginary part as $\epsilon$ to emphasise that it must set as the smallest energy scale in the system. We have also explicitly noted the $\mathbf{r}$-dependence of the eigenvectors. We note that we can include other indices such as spin and orbit in a similar manner and in this case the Green's function is referred to as the retarded Green's function \textit{matrix}, whose components correspond to spin, orbit, etc.
+

@@ -1,0 +1,1092 @@
+\glsdefs@newdocentry{not:a}%
+{%
+name={\ensuremath {a}},%
+sort={1000},%
+type={notation},%
+first={\protect \ensuremath  {a}},%
+firstplural={\protect \ensuremath  {a}s},%
+text={\protect \ensuremath  {a}},%
+plural={\protect \ensuremath  {a}s},%
+description={edge length of a cell},%
+descriptionplural={edge length of a cell},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:d}%
+{%
+name={\ensuremath {d}},%
+sort={1010},%
+type={notation},%
+first={\protect \ensuremath  {d}},%
+firstplural={\protect \ensuremath  {d}s},%
+text={\protect \ensuremath  {d}},%
+plural={\protect \ensuremath  {d}s},%
+description={cell-cell distance},%
+descriptionplural={cell-cell distance},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:theta}%
+{%
+name={\ensuremath {\theta }},%
+sort={1020},%
+type={notation},%
+first={\protect \ensuremath  {\theta }},%
+firstplural={\protect \ensuremath  {\theta }s},%
+text={\protect \ensuremath  {\theta }},%
+plural={\protect \ensuremath  {\theta }s},%
+description={inter-cell angle},%
+descriptionplural={inter-cell angle},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:q}%
+{%
+name={\ensuremath {q}},%
+sort={1030},%
+type={notation},%
+first={\protect \ensuremath  {q}},%
+firstplural={\protect \ensuremath  {q}s},%
+text={\protect \ensuremath  {q}},%
+plural={\protect \ensuremath  {q}s},%
+description={compensation charge},%
+descriptionplural={compensation charge},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:mu}%
+{%
+name={\ensuremath {\mu }},%
+sort={1040},%
+type={notation},%
+first={\protect \ensuremath  {\mu }},%
+firstplural={\protect \ensuremath  {\mu }s},%
+text={\protect \ensuremath  {\mu }},%
+plural={\protect \ensuremath  {\mu }s},%
+description={chemical potential},%
+descriptionplural={chemical potential},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:T}%
+{%
+name={\ensuremath {T}},%
+sort={1050},%
+type={notation},%
+first={\protect \ensuremath  {T}},%
+firstplural={\protect \ensuremath  {T}s},%
+text={\protect \ensuremath  {T}},%
+plural={\protect \ensuremath  {T}s},%
+description={temperature},%
+descriptionplural={temperature},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:t}%
+{%
+name={\ensuremath {t}},%
+sort={1060},%
+type={notation},%
+first={\protect \ensuremath  {t}},%
+firstplural={\protect \ensuremath  {t}s},%
+text={\protect \ensuremath  {t}},%
+plural={\protect \ensuremath  {t}s},%
+description={hopping parameter},%
+descriptionplural={hopping parameter},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:U}%
+{%
+name={\ensuremath {U}},%
+sort={1070},%
+type={notation},%
+first={\protect \ensuremath  {U}},%
+firstplural={\protect \ensuremath  {U}s},%
+text={\protect \ensuremath  {U}},%
+plural={\protect \ensuremath  {U}s},%
+description={on-site Coulomb repulsion},%
+descriptionplural={on-site Coulomb repulsion},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:V1}%
+{%
+name={\ensuremath {V_1}},%
+sort={1080},%
+type={notation},%
+first={\protect \ensuremath  {V_1}},%
+firstplural={\protect \ensuremath  {V_1}s},%
+text={\protect \ensuremath  {V_1}},%
+plural={\protect \ensuremath  {V_1}s},%
+description={nearest-neighbour Colomb repulsion ($V_1 = 1/a$)},%
+descriptionplural={nearest-neighbour Colomb repulsion ($V_1 = 1/a$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:V0}%
+{%
+name={\ensuremath {V_0}},%
+sort={1090},%
+type={notation},%
+first={\protect \ensuremath  {V_0}},%
+firstplural={\protect \ensuremath  {V_0}s},%
+text={\protect \ensuremath  {V_0}},%
+plural={\protect \ensuremath  {V_0}s},%
+description={next-nearest-neighbour Colomb repulsion ($V_0 = 1/\sqrt {2a^2}$)},%
+descriptionplural={next-nearest-neighbour Colomb repulsion ($V_0 = 1/\sqrt {2a^2}$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:V1crit}%
+{%
+name={\ensuremath {V_{1\mathrm {crit}}}},%
+sort={1200},%
+type={notation},%
+first={\protect \ensuremath  {V_{1\protect \mathrm  {crit}}}},%
+firstplural={\protect \ensuremath  {V_{1\protect \mathrm  {crit}}}s},%
+text={\protect \ensuremath  {V_{1\protect \mathrm  {crit}}}},%
+plural={\protect \ensuremath  {V_{1\protect \mathrm  {crit}}}s},%
+description={mean field critical $V_1$},%
+descriptionplural={mean field critical $V_1$},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:deltaES}%
+{%
+name={\ensuremath {\Delta E_\text {S}}},%
+sort={1300},%
+type={notation},%
+first={\protect \ensuremath  {\Delta E_\protect \text  {S}}},%
+firstplural={\protect \ensuremath  {\Delta E_\protect \text  {S}}s},%
+text={\protect \ensuremath  {\Delta E_\protect \text  {S}}},%
+plural={\protect \ensuremath  {\Delta E_\protect \text  {S}}s},%
+description={singlet-triplet splitting},%
+descriptionplural={singlet-triplet splitting},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:P}%
+{%
+name={\ensuremath {P_k}},%
+sort={2000},%
+type={notation},%
+first={\protect \ensuremath  {P_k}},%
+firstplural={\protect \ensuremath  {P_k}s},%
+text={\protect \ensuremath  {P_k}},%
+plural={\protect \ensuremath  {P_k}s},%
+description={cell polarization (of cell $k$)},%
+descriptionplural={cell polarization (of cell $k$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:PD}%
+{%
+name={\ensuremath {P_\text {D}}},%
+sort={2010},%
+type={notation},%
+first={\protect \ensuremath  {P_\protect \text  {D}}},%
+firstplural={\protect \ensuremath  {P_\protect \text  {D}}s},%
+text={\protect \ensuremath  {P_\protect \text  {D}}},%
+plural={\protect \ensuremath  {P_\protect \text  {D}}s},%
+description={polarization of the driver cell},%
+descriptionplural={polarization of the driver cell},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:relativeErrorIsing}%
+{%
+name={\ensuremath {\epsilon ^\text {I}_k}},%
+sort={2020},%
+type={notation},%
+first={\protect \ensuremath  {\epsilon ^\protect \text  {I}_k}},%
+firstplural={\protect \ensuremath  {\epsilon ^\protect \text  {I}_k}s},%
+text={\protect \ensuremath  {\epsilon ^\protect \text  {I}_k}},%
+plural={\protect \ensuremath  {\epsilon ^\protect \text  {I}_k}s},%
+description={relative error of the polarization of cell $k$ for the Ising model},%
+descriptionplural={relative error of the polarization of cell $k$ for the Ising model},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:relativeErrorBond}%
+{%
+name={\ensuremath {\epsilon ^\text {B}_k}},%
+sort={2030},%
+type={notation},%
+first={\protect \ensuremath  {\epsilon ^\protect \text  {B}_k}},%
+firstplural={\protect \ensuremath  {\epsilon ^\protect \text  {B}_k}s},%
+text={\protect \ensuremath  {\epsilon ^\protect \text  {B}_k}},%
+plural={\protect \ensuremath  {\epsilon ^\protect \text  {B}_k}s},%
+description={relative error of the polarization of cell $k$ for the bond model},%
+descriptionplural={relative error of the polarization of cell $k$ for the bond model},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:chikl}%
+{%
+name={\ensuremath {\chi _{kl}}},%
+sort={2040},%
+type={notation},%
+first={\protect \ensuremath  {\chi _{kl}}},%
+firstplural={\protect \ensuremath  {\chi _{kl}}s},%
+text={\protect \ensuremath  {\chi _{kl}}},%
+plural={\protect \ensuremath  {\chi _{kl}}s},%
+description={linear polarization response of cell $k$ with respect to cell $l$},%
+descriptionplural={linear polarization response of cell $k$ with respect to cell $l$},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:chi}%
+{%
+name={\ensuremath {\chi }},%
+sort={2050},%
+type={notation},%
+first={\protect \ensuremath  {\chi }},%
+firstplural={\protect \ensuremath  {\chi }s},%
+text={\protect \ensuremath  {\chi }},%
+plural={\protect \ensuremath  {\chi }s},%
+description={linear nearest-neighbour polarization response (the same for all cells)},%
+descriptionplural={linear nearest-neighbour polarization response (the same for all cells)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:chie}%
+{%
+name={\ensuremath {\chi _\text {e}}},%
+sort={2060},%
+type={notation},%
+first={\protect \ensuremath  {\chi _\protect \text  {e}}},%
+firstplural={\protect \ensuremath  {\chi _\protect \text  {e}}s},%
+text={\protect \ensuremath  {\chi _\protect \text  {e}}},%
+plural={\protect \ensuremath  {\chi _\protect \text  {e}}s},%
+description={linear polarization response of the system to an external driver cell},%
+descriptionplural={linear polarization response of the system to an external driver cell},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:Hc}%
+{%
+name={\ensuremath {H^\text {c}_k}},%
+sort={3000},%
+type={notation},%
+first={\protect \ensuremath  {H^\protect \text  {c}_k}},%
+firstplural={\protect \ensuremath  {H^\protect \text  {c}_k}s},%
+text={\protect \ensuremath  {H^\protect \text  {c}_k}},%
+plural={\protect \ensuremath  {H^\protect \text  {c}_k}s},%
+description={single-cell Hamiltonian},%
+descriptionplural={single-cell Hamiltonian},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:Hcc}%
+{%
+name={\ensuremath {H^\text {cc}_{kl}}},%
+sort={3010},%
+type={notation},%
+first={\protect \ensuremath  {H^\protect \text  {cc}_{kl}}},%
+firstplural={\protect \ensuremath  {H^\protect \text  {cc}_{kl}}s},%
+text={\protect \ensuremath  {H^\protect \text  {cc}_{kl}}},%
+plural={\protect \ensuremath  {H^\protect \text  {cc}_{kl}}s},%
+description={Coulombic cell-cell interaction (between cells $k$ and $l$)},%
+descriptionplural={Coulombic cell-cell interaction (between cells $k$ and $l$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:Sz}%
+{%
+name={\ensuremath {S^z_k}},%
+sort={4000},%
+type={notation},%
+first={\protect \ensuremath  {S^z_k}},%
+firstplural={\protect \ensuremath  {S^z_k}s},%
+text={\protect \ensuremath  {S^z_k}},%
+plural={\protect \ensuremath  {S^z_k}s},%
+description={pseudo spin (of cell $k$)},%
+descriptionplural={pseudo spin (of cell $k$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:J}%
+{%
+name={\ensuremath {J_{kl}}},%
+sort={4010},%
+type={notation},%
+first={\protect \ensuremath  {J_{kl}}},%
+firstplural={\protect \ensuremath  {J_{kl}}s},%
+text={\protect \ensuremath  {J_{kl}}},%
+plural={\protect \ensuremath  {J_{kl}}s},%
+description={Ising cell-cell interaction (between cells $k$ and $l$)},%
+descriptionplural={Ising cell-cell interaction (between cells $k$ and $l$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:Jprime}%
+{%
+name={\ensuremath {J^{\prime }_{kl}}},%
+sort={4020},%
+type={notation},%
+first={\protect \ensuremath  {J^{\prime }_{kl}}},%
+firstplural={\protect \ensuremath  {J^{\prime }_{kl}}s},%
+text={\protect \ensuremath  {J^{\prime }_{kl}}},%
+plural={\protect \ensuremath  {J^{\prime }_{kl}}s},%
+description={modified Ising cell-cell interaction (between cells $k$ and $l$)},%
+descriptionplural={modified Ising cell-cell interaction (between cells $k$ and $l$)},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{not:gamma}%
+{%
+name={\ensuremath {\gamma }},%
+sort={4030},%
+type={notation},%
+first={\protect \ensuremath  {\gamma }},%
+firstplural={\protect \ensuremath  {\gamma }s},%
+text={\protect \ensuremath  {\gamma }},%
+plural={\protect \ensuremath  {\gamma }s},%
+description={Ising transverse field / effective hopping parameter},%
+descriptionplural={Ising transverse field / effective hopping parameter},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={},%
+longplural={},%
+short={},%
+shortplural={},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{QCA}%
+{%
+name={QCA},%
+sort={QCA},%
+type={acronym},%
+first={quantum-dot cellular automata\glsspace (QCA)},%
+firstplural={quantum-dot cellular automata\acrpluralsuffix \glsspace (QCA\acrpluralsuffix )},%
+text={QCA},%
+plural={QCA\acrpluralsuffix },%
+description={quantum-dot cellular automata},%
+descriptionplural={quantum-dot cellular automata\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={quantum-dot cellular automata},%
+longplural={quantum-dot cellular automatas},%
+short={QCA},%
+shortplural={QCAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{CMOS}%
+{%
+name={CMOS},%
+sort={CMOS},%
+type={acronym},%
+first={complementary metal-oxide-semiconductor\glsspace (CMOS)},%
+firstplural={complementary metal-oxide-semiconductor\acrpluralsuffix \glsspace (CMOS\acrpluralsuffix )},%
+text={CMOS},%
+plural={CMOS\acrpluralsuffix },%
+description={complementary metal-oxide-semiconductor},%
+descriptionplural={complementary metal-oxide-semiconductor\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={complementary metal-oxide-semiconductor},%
+longplural={complementary metal-oxide-semiconductors},%
+short={CMOS},%
+shortplural={CMOSs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{NMOS}%
+{%
+name={NMOS},%
+sort={NMOS},%
+type={acronym},%
+first={n-type metal-oxide-semiconductor\glsspace (NMOS)},%
+firstplural={n-type metal-oxide-semiconductor\acrpluralsuffix \glsspace (NMOS\acrpluralsuffix )},%
+text={NMOS},%
+plural={NMOS\acrpluralsuffix },%
+description={n-type metal-oxide-semiconductor},%
+descriptionplural={n-type metal-oxide-semiconductor\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={n-type metal-oxide-semiconductor},%
+longplural={n-type metal-oxide-semiconductors},%
+short={NMOS},%
+shortplural={NMOSs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{MOSFET}%
+{%
+name={MOSFET},%
+sort={MOSFET},%
+type={acronym},%
+first={metal-oxide-semiconductor field-effect transistor\glsspace (MOSFET)},%
+firstplural={metal-oxide-semiconductor field-effect transistor\acrpluralsuffix \glsspace (MOSFET\acrpluralsuffix )},%
+text={MOSFET},%
+plural={MOSFET\acrpluralsuffix },%
+description={metal-oxide-semiconductor field-effect transistor},%
+descriptionplural={metal-oxide-semiconductor field-effect transistor\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={metal-oxide-semiconductor field-effect transistor},%
+longplural={metal-oxide-semiconductor field-effect transistors},%
+short={MOSFET},%
+shortplural={MOSFETs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{MEMS}%
+{%
+name={MEMS},%
+sort={MEMS},%
+type={acronym},%
+first={micro-electro-mechanical systems\glsspace (MEMS)},%
+firstplural={micro-electro-mechanical systems\acrpluralsuffix \glsspace (MEMS\acrpluralsuffix )},%
+text={MEMS},%
+plural={MEMS\acrpluralsuffix },%
+description={micro-electro-mechanical systems},%
+descriptionplural={micro-electro-mechanical systems\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={micro-electro-mechanical systems},%
+longplural={micro-electro-mechanical systemss},%
+short={MEMS},%
+shortplural={MEMSs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{MEM}%
+{%
+name={MEM},%
+sort={MEM},%
+type={acronym},%
+first={micro-electro-mechanical\glsspace (MEM)},%
+firstplural={micro-electro-mechanical\acrpluralsuffix \glsspace (MEM\acrpluralsuffix )},%
+text={MEM},%
+plural={MEM\acrpluralsuffix },%
+description={micro-electro-mechanical},%
+descriptionplural={micro-electro-mechanical\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={micro-electro-mechanical},%
+longplural={micro-electro-mechanicals},%
+short={MEM},%
+shortplural={MEMs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{LED}%
+{%
+name={LED},%
+sort={LED},%
+type={acronym},%
+first={light-emitting diode\glsspace (LED)},%
+firstplural={light-emitting diode\acrpluralsuffix \glsspace (LED\acrpluralsuffix )},%
+text={LED},%
+plural={LED\acrpluralsuffix },%
+description={light-emitting diode},%
+descriptionplural={light-emitting diode\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={light-emitting diode},%
+longplural={light-emitting diodes},%
+short={LED},%
+shortplural={LEDs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{CNTFET}%
+{%
+name={CNTFET},%
+sort={CNTFET},%
+type={acronym},%
+first={carbon nanotube field-effect transistor\glsspace (CNTFET)},%
+firstplural={carbon nanotube field-effect transistor\acrpluralsuffix \glsspace (CNTFET\acrpluralsuffix )},%
+text={CNTFET},%
+plural={CNTFET\acrpluralsuffix },%
+description={carbon nanotube field-effect transistor},%
+descriptionplural={carbon nanotube field-effect transistor\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={carbon nanotube field-effect transistor},%
+longplural={carbon nanotube field-effect transistors},%
+short={CNTFET},%
+shortplural={CNTFETs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{FET}%
+{%
+name={FET},%
+sort={FET},%
+type={acronym},%
+first={field-effect transistor\glsspace (FET)},%
+firstplural={field-effect transistor\acrpluralsuffix \glsspace (FET\acrpluralsuffix )},%
+text={FET},%
+plural={FET\acrpluralsuffix },%
+description={field-effect transistor},%
+descriptionplural={field-effect transistor\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={field-effect transistor},%
+longplural={field-effect transistors},%
+short={FET},%
+shortplural={FETs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{EQCA}%
+{%
+name={EQCA},%
+sort={EQCA},%
+type={acronym},%
+first={electrostatic quantum-dot cellular automata\glsspace (EQCA)},%
+firstplural={electrostatic quantum-dot cellular automata\acrpluralsuffix \glsspace (EQCA\acrpluralsuffix )},%
+text={EQCA},%
+plural={EQCA\acrpluralsuffix },%
+description={electrostatic quantum-dot cellular automata},%
+descriptionplural={electrostatic quantum-dot cellular automata\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={electrostatic quantum-dot cellular automata},%
+longplural={electrostatic quantum-dot cellular automatas},%
+short={EQCA},%
+shortplural={EQCAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{MQCA}%
+{%
+name={MQCA},%
+sort={MQCA},%
+type={acronym},%
+first={magnetic quantum-dot cellular automata\glsspace (MQCA)},%
+firstplural={magnetic quantum-dot cellular automata\acrpluralsuffix \glsspace (MQCA\acrpluralsuffix )},%
+text={MQCA},%
+plural={MQCA\acrpluralsuffix },%
+description={magnetic quantum-dot cellular automata},%
+descriptionplural={magnetic quantum-dot cellular automata\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={magnetic quantum-dot cellular automata},%
+longplural={magnetic quantum-dot cellular automatas},%
+short={MQCA},%
+shortplural={MQCAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{NML}%
+{%
+name={NML},%
+sort={NML},%
+type={acronym},%
+first={nanomagnetic logic\glsspace (NML)},%
+firstplural={nanomagnetic logic\acrpluralsuffix \glsspace (NML\acrpluralsuffix )},%
+text={NML},%
+plural={NML\acrpluralsuffix },%
+description={nanomagnetic logic},%
+descriptionplural={nanomagnetic logic\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={nanomagnetic logic},%
+longplural={nanomagnetic logics},%
+short={NML},%
+shortplural={NMLs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{ICHA}%
+{%
+name={ICHA},%
+sort={ICHA},%
+type={acronym},%
+first={intercellular Hartree approximation\glsspace (ICHA)},%
+firstplural={intercellular Hartree approximation\acrpluralsuffix \glsspace (ICHA\acrpluralsuffix )},%
+text={ICHA},%
+plural={ICHA\acrpluralsuffix },%
+description={intercellular Hartree approximation},%
+descriptionplural={intercellular Hartree approximation\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={intercellular Hartree approximation},%
+longplural={intercellular Hartree approximations},%
+short={ICHA},%
+shortplural={ICHAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{ITRS}%
+{%
+name={ITRS},%
+sort={ITRS},%
+type={acronym},%
+first={International Technology Roadmap for Semiconductors\glsspace (ITRS)},%
+firstplural={International Technology Roadmap for Semiconductors\acrpluralsuffix \glsspace (ITRS\acrpluralsuffix )},%
+text={ITRS},%
+plural={ITRS\acrpluralsuffix },%
+description={International Technology Roadmap for Semiconductors},%
+descriptionplural={International Technology Roadmap for Semiconductors\acrpluralsuffix },%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={International Technology Roadmap for Semiconductors},%
+longplural={International Technology Roadmap for Semiconductorss},%
+short={ITRS},%
+shortplural={ITRSs},%
+counter={page},%
+parent={},%
+%
+}%
+

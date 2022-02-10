@@ -1,0 +1,48 @@
+\chapter{\label{ch:laniga}Model of LaNiGa\textsubscript{2}}
+\graphicspath{{../gfx/chapter03/}{../plots/chapter03/}}
+
+
+In this section we propose a tight-binding model of LaNiGa$_2$. We model only the interactions between Nickel atoms, as a minimal model of superconductivity. The Nickel atoms form a diatomic lattice, with two orbitals per site. We model in the plane such that the atoms are spatially degenerate. Therefore, the model is described by an onsite chemical potential tensor
+\begin{equation}
+\bm{\mu}\equiv\bm{\mu}_\text{sites}\otimes\bm{\mu}_\text{spin}\otimes\bm{\mu}_\text{orbitals},
+\end{equation}
+where
+\begin{equation}
+\bm{\mu}_\text{sites}\equiv
+\begin{pmatrix}
+-\mu_a && 0 \\ 0 && -\mu_b
+\end{pmatrix},
+\end{equation}
+\begin{equation}
+\bm{\mu}_\text{spin}\equiv\mathbb{1}_2,
+\end{equation}
+\begin{equation}
+\bm{\mu}_\text{orbitals}\equiv
+\begin{pmatrix}
+1+s && \delta \\ \delta && 1-s
+\end{pmatrix},
+\end{equation}
+and where $\mu_a$ and $\mu_b$ refer to the onsite chemical potentials for the atoms \textit{above} and \textit{below} the plane. The orbitals include a rigid shift $s$ and hybridisation factor $\delta$.
+
+The intercell nearest-neighbour hopping is described by the tensor
+\begin{equation}
+\bm{T}\equiv\bm{T}_\text{sites}\otimes\bm{T}_\text{spin}\otimes\bm{T}_\text{orbitals},
+\end{equation}
+where
+\begin{equation}
+\bm{T}_\text{sites}\equiv
+\begin{pmatrix}
+-t && -t' \\ -t' && -t
+\end{pmatrix},
+\end{equation}
+\begin{equation}
+\bm{T}_\text{spin}\equiv\mathbb{1}_2,
+\end{equation}
+\begin{equation}
+\bm{T}_\text{orbitals}\equiv
+\begin{pmatrix}
+1+\alpha && 1+\beta \\ 1+\beta && 1-\alpha
+\end{pmatrix},
+\end{equation}
+and where $t>0$ refers to intrasite and $t'<t$ refers to intersite tunnelling processes. $\alpha>0$ describes intraorbital hopping ($d_{xy}-d_{xy}$, $d_{z^2}-d_{z^2}$) and $\beta>0$ describes interorbital orbital hopping ($d_{xy}-d_{z^2}$, $d_{z^2}-d_{xy}$).
+

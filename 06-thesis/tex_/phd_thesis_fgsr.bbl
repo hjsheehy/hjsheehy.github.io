@@ -1,0 +1,27 @@
+\providecommand{\href}[2]{#2}\begingroup\raggedright\begin{thebibliography}{1}
+
+\bibitem{PhysRevLett.117.027001}
+Z.~F. Weng, J.~L. Zhang, M.~Smidman, T.~Shang, J.~Quintanilla, J.~F. Annett,
+  M.~Nicklas, G.~M. Pang, L.~Jiao, W.~B. Jiang, Y.~Chen, F.~Steglich, and H.~Q.
+  Yuan, ``Two-Gap Superconductivity in ${\mathrm{LaNiGa}}_{2}$ with Nonunitary
+  Triplet Pairing and Even Parity Gap Symmetry,''
+  \href{http://dx.doi.org/10.1103/PhysRevLett.117.027001}{{\em Phys. Rev.
+  Lett.} {\bf 117} (Jul, 2016) 027001}.
+  \url{https://link.aps.org/doi/10.1103/PhysRevLett.117.027001}.
+
+\bibitem{Sprau2017}
+P.~O. Sprau, A.~Kostin, A.~Kreisel, A.~E. B\"{o}hmer, V.~Taufour, P.~C.
+  Canfield, S.~Mukherjee, P.~J. Hirschfeld, B.~M. Andersen, and J.~C.~S. Davis,
+  ``Discovery of orbital-selective Cooper pairing in {FeSe},''
+  \href{http://dx.doi.org/10.1126/science.aal1575}{{\em Science} {\bf 357}
+  (July, 2017) 75--80}. \url{https://doi.org/10.1126/science.aal1575}.
+
+\bibitem{Friedel1958}
+J.~Friedel, ``Nonunitary Triplet Pairing in the Centrosymmetric
+  {SuperconductorLaNiGa}2,'' {\em Nuevo Cimento Suppl.} {\bf 7} (1958) .
+
+\bibitem{Carr2009}
+S.~T. Carr, ``Lecture notes in Quantum Field Theory {II}: An introduction to
+  Feynman diagrams, Chapter 9,'' February, 2009.
+
+\end{thebibliography}\endgroup

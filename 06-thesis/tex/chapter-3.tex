@@ -1,0 +1,408 @@
+\chapter{\label{ch:normal_state}Model of normal metal with impurities}
+\graphicspath{{../gfx/chapter02/}{../plots/chapter02/}}
+
+In order to benchmark the general model with the known theory, we will first review the theory of Friedel oscillations in the normal metallic state. First we solve the problem of an electron at the Fermi surface, scattering off of an impurity. 
+Our results are analytical, perturbative solutions in the continuum with infinite boundary conditions.  
+This is then compared with our general model, applied to the particular. Indeed, we show qualitative agreement of the theories.
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{normal_state_band_structure.pdf}
+    \end{center}
+    \caption{\label{fig:normal_state_band_structure}
+    Energy dispersion of a two-dimensional metal described by a simple tight-binding model, such as Equation \ref{eq:normal_state_Hamiltonian} with $s=\delta=0$. The Fermi surface is projected onto the plane. Near the bottom of the band the Fermi surface is approximately quadratic. The Fermi surfaces corresponding to $\mu/t=-3.57$ and $\mu/t=-2.67$ are highlighted in white and pink, respectively. 
+It is important to note that only the inner area, $k_x,k_y\in\{-\pi/2,\pi/2\}$ (thick dashed line) is observable via quasiparticle interference (QPI).}
+\end{figure}
+
+\section{Analytical solution to an infinite, continuum model}
+\subsection{Local density of states}
+The problem of an electron at the Fermi surface, scattering off of an impurity is solved using first-order perturbation theory.
+let us write the perturbation using the Dyson equation expansion of the retarded Green's function
+\begin{equation}
+\hat{\mathcal{G}}^R(\mathbf{r},\mathbf{r}';\omega) = \hat{\mathcal{G}}^R_0(\mathbf{r},\mathbf{r}';\omega) + \int \text{d}\mathbf{r}'' \hat{\mathcal{G}}^R_0(\mathbf{r},\mathbf{r}'';\omega)V(\mathbf{r}'') \hat{\mathcal{G}}^R(\mathbf{r}'',\mathbf{r}';\omega).
+\end{equation}
+The Free Green's function is [Fiete and Heller]:
+\begin{equation}
+\hat{\mathcal{G}}^R_0(\mathbf{r},\mathbf{r}';\omega)=-i\frac{m^*}{2\hbar^2}H^{(1)}_0\left(k_\omega|\mathbf{r}-\mathbf{r}'|\right),
+\end{equation}
+where $H^{(1)}_0=J_0+iY_0$ is the Hankel function of the first-kind and $k_\omega$ is the momentum of these excitations.
+Near the bottom of the band, the dispersion relation Equation \ref{eq:normal_dispersion} becomes quadratic
+\begin{eqnarray}
+\epsilon_0(k) &=& -2t\left[2-\frac{k^2a^2}{2}+\mathcal{O}(k^4)\right]\\
+&=&
+-4t+\frac{k^2}{2m^*}+\mathcal{O}(k^4)
+\end{eqnarray}
+where the effective mass $m^*\equiv1/2ta^2$.
+This gives us an analytical expression for $k_\omega$ via the dispersion relation with applied bias $\omega$
+\begin{equation}
+-\mu +\epsilon_0(k_\omega) =\omega \implies k_\omega a = \sqrt{\frac{\omega+\mu}{t}+4}.
+\end{equation}
+For concreteness, in the normal state $\Delta=0$ at zero bias $\omega=0$, with chemical potential $\mu=-3.88$, hopping parameter $t=1$ and degenerate orbitals $s=\delta=0$, the Fermi wavelength is
+\begin{equation}
+k_\text{Fermi}a \approx 0.346
+\end{equation}
+and correspondingly, the Friedel oscillations are described by
+\begin{equation}
+\lambda_\text{Friedel}/a = \frac{2\pi}{2k_\text{Fermi}a} \approx  9.07.
+\end{equation}
+We plot the band structure for this situation in \ref{fig:normal_state_band_structure}.
+In the absence of impurities, the local density of states is
+\begin{eqnarray}
+\text{LDOS}(\mathbf{r}, \omega) &=&
+ -\frac{1}{\pi} \mathfrak{I}
+\hat{\mathcal{G}}^R_0\left(\mathbf{r}, \mathbf{r}; \omega \right)\\
+&=& \frac{m^*}{2\pi} \equiv \rho_0
+\label{eq:LDOS_zeroth}
+\end{eqnarray}
+since $J_0(x)\rightarrow1$ as $x\rightarrow0$. 
+The first-order Green's function for the electron-impurity coupling $V$ is given by solving the Dyson equation with a single recursion step. If we take the impurity to be located at the origin, the local density of states for small impurity coupling is given by
+\begin{equation}
+\text{LDOS}(\mathbf{r}, \omega) = \rho_0 + \frac{(m^*)^2}{2\pi} V J_0^{(1)}\left(k_\omega|\mathbf{r}|\right) Y_0^{(1)}\left(k_\omega|\mathbf{r}|\right).
+\label{eq:LDOS_first}
+\end{equation}
+This analytical result from first order perturbation theory is shown in Figure \ref{fig:Analytical_LDOS} and the exact numerical results in Figures. \ref{fig:LDOS_line_mosaic_normal_state_N_N_-3.46_0_0_1.00_0_0}, \ref{fig:LDOS_line_mosaic_normal_state_N_N_-3.46_0_0_1.00_0_1.00e-01}. We will now discuss our calculation for the exact numerical results.
+
+\subsection{Integrated local density of states}
+{\color{red} Carefully rederive for 2D or possibly remove this section.}
+In the absence of impurities, the surface density of states is homogeneous. Surface impurities give rise to oscillations in the quasiparticle density, with a characteristic wavelength of half the Fermi wavelength $lambda_F/2 = \pi/k_F$, known as Friedel oscillations \cite{Friedel1958}. Friedel's eponymous waves may be derived by considering the surface of a material in its normal state around a point impurity. We derive a solution to the change in the non-interacting density of states $\delta\rho({\bf x})$ due to the presence of an impurity, introduced in \cite{Carr2009}. The first-order change to the density of states is
+\begin{equation}
+\delta\rho(\mathbf{x}) = i u_0 \sum_{\mathbf{k}, \mathbf{k'}} e^{i(\mathbf{k}-\mathbf{k'})\cdot\mathbf{x}} \int_{-\infty}^{+\infty} \frac{d\omega}{2\pi} e^{i\omega0^-} G(\mathbf{k},\omega) G(\mathbf{k}',\omega)
+\end{equation}
+where $u_0$ is the interaction strength of the impurity, the summation is due to the momentum transformation of the real space scattering event, the inner integral is the frequency transformation of the real-time propagator, the exponential factor preserves causality and the Green's functions correspond to the ingoing and outgoing quasiparticles in the first-order expansion of the density of states. The inner integral gives rise to step-functions functions, or more physically, Fermi functions
+\begin{eqnarray}
+\delta\rho(\mathbf{x}) &=& 2\pi u_0 \sum_{\mathbf{k}, \mathbf{k'}} e^{i(\mathbf{k}-\mathbf{k'})\cdot\mathbf{x}} \left[ 
+\frac{n_F(\mathbf{k})}{\zeta_{\mathbf{k}'}-\zeta_\mathbf{k}} + \frac{ n_F(\mathbf{k}')}{\zeta_\mathbf{k}-\zeta_{\mathbf{k}'}}
+\right]
+\\
+&=&
+u_0 \Re\frac{(2\pi)^3}{V^2}\int_0^\infty k^2\text{d}k \int_0^\infty k'^2\text{d}k'
+\int_{-1}^1 \text{d}\cos{\theta}\int_{-1}^1 \text{d}\cos{\theta'}\dots
+\\
+& &\quad\times
+\frac{ n_F(k)}{k'^2-k^2} e^{ikr\cos{\theta}} e^{-ik'r\cos{\theta'}},
+\end{eqnarray}
+where for the purposes of carrying out the integral analytically, we have assumed the energy is quadratic, i.e. that we are near the bottom of the energy band. We then find
+\begin{eqnarray}
+\delta\rho(\mathbf{x}) &=&
+u_0 \frac{(2\pi)^3}{V^2 r^2}\Re\int_0^\infty \text{d}k \int_0^\infty \text{d}k'
+\frac{ kk'}{k'^2-k^2} n_F(k)
+\\
+& &\quad\times
+\left[e^{ikr} - e^{-ikr}\right]\left[e^{-ik'r}-e^{ik'r}\right]
+\\
+&=&
+u_0 \frac{(2\pi)^3}{V^2r^2}\Re\int_0^{k_F} \text{d}k \int_0^\infty \text{d}k'
+\frac{k}{2}\left[\frac{1}{k'-k}+\frac{1}{k'+k}\right]
+\\
+& &\quad\times
+\left[e^{ikr} - e^{-ikr}\right]\left[e^{-ik'r}-e^{ik'r}\right]
+\\
+&=&
+u_0 \frac{(2\pi)^4}{V^2r^2}\Re \int_0^{k_F} \text{d}k k
+\left[e^{ikr} - e^{-ikr}\right]
+\left[-i e^{-ikr}\right]
+\\
+&=&
+u_0 \frac{(2\pi)^4}{V^2}
+\left[
+-\frac{k_F\cos{2k_F r}}{2r^3}+\frac{\sin{2k_F r}}{4r^4}
+\right]
+\\
+&=& \sim u_0 \frac{\cos{2k_F r}}{r^3}.
+\label{eq:analytical_Friedel}
+\end{eqnarray}
+The result shows that if we have an impurity in the electron gas, then free electrons with Fermi wavelength $\lambda_F$ will scatter. Peaks in the wavefunction correspond to two peaks in the charge density, therefore the observed electronic profile has a characteristic wavelength $\lambda_F/2$. Performing the integral in $d$ dimensions, it can be shown that the envelope goes as $1/r^d$. We compare the integrated local density of states (ILDOS) with the local density of states (LDOS) in Figure \ref{fig:Bessel_Cos_LDOS}. 
+
+%\begin{figure}
+%    \begin{center}
+%        \input{Bessel_Cos_LDOS.pgf}
+%    \end{center}
+%    \caption{\label{fig:Bessel_Cos_LDOS}Oscillations in the local density of states at zero bias ($k_{\omega=0}=k_F$) have equal periodicity to the integrated local density of states. 
+%    A PGF plot from \texttt{matplotlib}.}
+%\end{figure}
+
+A quasiparticles near the bottom of the band takes on the Fermi energy $k_\omega\approx k_F$ and is the solution to the energy given by
+\begin{equation}
+-\mu +\epsilon_0(k_F) \approx 0 \implies k_Fa = \sqrt{\frac{\mu}{t}+4}.
+\end{equation}
+
+%\begin{figure}
+%    \begin{center}
+%        \input{ILDOS_line_normal_state_V_0.1_N_var_omega_0.001j.pgf}
+%    \end{center}
+%    \caption{\label{fig:ILDOS_line_normal_state_V_0.1_N_var_omega_0.001j}
+%    The integrated local density of states, similar to Figure \ref{fig:LDOS_line_normal_state_no_impurities_N_var_omega_0.001j}, but with integrated from $-\infty$ to $0$, i.e. we are measuring the integrated local density of states below the Fermi level.
+
+
+\section{Applying the general model to the particular: benchmarking the normal state}
+\label{sec:benchmarking_normal}
+We have derived the very general phenomenon of Friedel oscillations analytically in the noninteracting normal state. We will now compare these with exact results from our general model. Satisfied that our results agree, we then study results for strongly-interacting regimes, where the free electron approximation no longer holds.
+
+\subsection{Impurities modulate the local density of states (Friedel oscillations)}
+%\begin{figure}
+%    \begin{center}
+%        \includegraphics[width=\linewidth]{LDOS_line_mosaic_normal_state_no_impurity.pdf}
+%    \end{center}
+%    \caption{\label{fig:LDOS_line_mosaic_normal_state_no_impurity}
+%    The local density of states $\text{LDOS}(\mathbf{r},\omega+i\epsilon)$ along a line from $r_0=[0,0]$ to $r_\text{diag}=[(n-1)/2,0]$ and $r_\text{horiz}=[(n-1)/2,(n-1)/2]$ at zero bias ($\omega=0$) with convergence factor $\epsilon=0.1$ for square systems of various sizes, as labelled in the legend, with periodic boundary conditions. 
+%The system is the normal state ($\Delta=0$), single band ($s=\delta=0$) with chemical potential $\mu=-3.57$, normalised by the hopping parameter ($t=1.0$) and without impurities. The local density of states is plotted along a straight path from the centre of the lattice to half-way to the nearest neighbour, as a function of the distance in sites (top left) and as a function of the distance in sites normalised by the system size (top right); and similarly to half-way to the next-nearest neighbour (bottom left and right).
+%    }
+%\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{benchmarking_ns.pdf}
+    \end{center}
+    \caption{\label{fig:benchmarking_ns}
+    Top: The local density of states $\text{LDOS}(\mathbf{r},\omega+i\epsilon)$ at $r_n$ at zero bias ($\omega=0$) with convergence factor $\epsilon=0.1$ as a function of square systems of various sizes $n$ with periodic boundary conditions. 
+The system is the normal state ($\Delta=0$), single band ($s=\delta=0$) with chemical potential $\mu=-3.57$ and normalised by the hopping parameter ($t=1.0$). The local density of states are homogeneous as there are no impurities. 
+We observe the finite-size effects attenuate with increasing system size $n$.
+//
+Bottom:
+Memory stored in the matrix representation of the Hamiltonian and execution time of the simulation.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_line_mosaic_normal_state_varying_n.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_line_mosaic_normal_state_varying_n}
+    The local density of states $\text{LDOS}(\mathbf{r},\omega+i\epsilon)$ along a line from $r_0=[0,0]$ to $r_\text{diag}=[(n-1)/2,0]$ and $r_\text{horiz}=[(n-1)/2,(n-1)/2]$ at zero bias ($\omega=0$) with convergence factor $\epsilon=0.1$ for square systems of various sizes, as labelled in the legend, with periodic boundary conditions. 
+The system is the normal state ($\Delta=0$), single band ($s=\delta=0$) with chemical potential $\mu=-3.57$, normalised by the hopping parameter ($t=1.0$) and with an impurity at the centre of the lattice $r_0$ with coupling strength $V=1.21$. The local density of states is plotted along a straight path from the centre of the lattice to half-way to the nearest neighbour, as a function of the distance in sites (top left) and as a function of the distance in sites normalised by the system size (top right); and similarly to half-way to the next-nearest neighbour (bottom left and right).
+We observe Friedel oscillations, that is to say, a modulation in the local density of states due to the translational symmetry breaking.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_line_Analytical_versus_numerical.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_line_Analytical_versus_numerical}
+    The local density of states at bias $\omega=0$ and resolution $\epsilon=0.1$ along a line from $[-44,0]$ to $[44,0]$ with an impurity located at $r_0=[0,0]$ with coupling strength $V/t=1.21$ at various chemical potentials $\mu$. The model is spinless and single band, hence superconductivity does not form. The numerical model consists of 79 sites along each dimension with periodic boundary conditions. The analytical result is the first-order expansion of the continuum Dyson equation with infinite boundary conditions (Equation \ref{eq:LDOS_first}) of a free-electron with an effective mass, an approximation which holds near the bottom of the band $\mu/t\gtrapprox-4$. The constant zeroth order term deviates from the exact numerical result as we move higher up the band, whilst the first order term reproduces the Friedel oscillations quantitatively. The non-self-consistent numerical result of the density is a stationary solution, as its degeneracy with the self-consistent solutions shows. The continuum result depends on a renormalisation of the potential which has not be taken into account and the free electron approximation.	
+    }
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.8\linewidth]{LDOS_r_vs_V.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_r_vs_V}
+    The local density of states far away from the impurity does not depend strongly on the impurity coupling strength $V/t$. The model consists of $43\times 43$ sites and chemical potential $\mu/t=-3.57$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{QPI_Fermi_surface_normal_state.pdf}
+    \end{center}
+    \caption{\label{fig:QPI_Fermi_surface_normal_state}
+    Quasiparticle interference (QPI) of the spinless, bandless normal state with $n=79$ sites at zero applied bias $\omega=0$ and spectral resolution $\epsilon=0.1$ The impurity, necessary for quasiparticle interference, is placed at $r=(0,0)$ with coupling strength $V/t=1.21$. The QPI interference pattern at zero bias probes the inner area $\{-\pi/2,\pi/2\}$ of the Fermi surface.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{QPI_Fermi_surface_normal_state_multiorbital.pdf}
+    \end{center}
+    \caption{\label{fig:QPI_Fermi_surface_normal_state_multiorbital}
+    Quasiparticle interference (QPI) of a spinless, two-band normal state with $n=57$ sites (maximum size on 64Gb RAM) at zero applied bias $\omega=0$ and spectral resolution $\epsilon=0.1$. The bands have a rigid shift $s/t=0.05$ and hybridisation $\delta/t=0.075$. The impurity, necessary for quasiparticle interference, is placed at $r=(0,0)$ with coupling strength $V/t=1.21$. The QPI interference pattern at zero bias probes the inner area $\{-\pi/2,\pi/2\}$ of the Fermi surface.
+    }
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_line_normal_state_varying_mu.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_line_normal_state_varying_mu}
+    The frequency of the Friedel oscillations in the local density of states increase as we move higher up the band with increasing $\mu/t$. The number of sites along each dimension and the impurity coupling are fixed at $43$ and $V/t=1.21$, where we have normalised by the hopping. The bias and resolution are $\omega=0$ and $\epsilon=0.1$, respectively.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.8\linewidth]{Spectrum_3D_normal_state_varying_V.pdf}
+    \end{center}
+    \caption{\label{fig:Spectrum_3D_normal_state_varying_V}
+    Spectrum with resolution $\epsilon=0.1$ of the normal state to study the effect of an impurity located at the centre as a function of its coupling strength $V/t$. The model consists of $43\times 43$ sites and chemical potential $\mu/t=-2.67$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_mosaic_normal_state.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_mosaic_normal_state}
+    The local density of states in the normal state with chemical potential and coupling strengths $\mu/t=-3.57$ and $V/t=1.21$, with $43$ sites along each axis. Clockwise from top left: single central impurity; two impurities $(-3,3)$ and $(3,-3)$; random arrangement of 20 impurities; and a \textit{corral} of 15 impurities arranged in a circle with radius 14.5 sites. Top left figure, the arrow denote the two points probed in Figure \ref{fig:Spectrum_Normal_state_43_43_-2.67_0_0_1.00_0_1.21e+00}.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Spectrum_Normal_state_43_43_-2.67_0_0_1.00_0_1.21e+00.pdf}
+    \end{center}
+    \caption{\label{fig:Spectrum_Normal_state_43_43_-2.67_0_0_1.00_0_1.21e+00}
+    The spectrum in the normal state, taken at the two points given by the arrows in Figure \ref{fig:LDOS_mosaic_normal_state}, top left frame: the impurity (navy) and five atoms away (green). The impurity potential and chemical potential are set to $V/t=1.21$ and $\mu/t=-3.57$. In the next Figure \ref{fig:Linecut_Normal_state_43_43_-2.67_0_0_1.00_0_1.21e+00} we study a linecut between these two points.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Linecut_Normal_state_43_43_-2.67_0_0_1.00_0_1.21e+00.pdf}
+    \end{center}
+    \caption{\label{fig:Linecut_Normal_state_43_43_-2.67_0_0_1.00_0_1.21e+00}
+    \textit{The temples of Tamil Nadu}. A \textit{linecut} is the local density of states at several equally spaced intervals along a straight line, moving away from the impurity. We see clearly the van Hove singularity as well as a peak due to the impurity. The impurity potential and chemical potential are set to $V/t=1.21$ and $\mu/t=-3.57$. The line is shown in the top left frame of Figure \ref{fig:LDOS_mosaic_normal_state}, where the impurity (navy) and five atoms away (green) are given by the arrows.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_3D_Normal_state_corral_43_43_-3.57_0_0_1.00_0_1.21e+00.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_3D_Normal_state_corral_43_43_-3.57_0_0_1.00_0_1.21e+00}
+    The local density of states of the corral depicted three-dimensionally in order to clearly expose the standing waves in the electron density due to the ring of 15 impurities. The chemical potential is $\mu/t=-3.57$ and the coupling strength is $V/t=1.21$, with $43$ sites along each axis. The bias energy is $\omega/t=0$ with resolution $\epsilon/t=0.1$
+    }
+\end{figure}
+
+\subsection{Density functional theory of impurities}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n=5_T=varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n=5_T=varying}
+    Self-consistent results for one band without impurities, chemical potential $\mu/t=-2.67$ and $5$ sites along each axis. The critical temperature is in good agreement with the BCS conventional theory $T_c^\text{BCS} = \Delta_0/1.76$. The $\phi$-fields are degenerate and comparison less temperature dependant than the pairing potential $\Delta$, as expected in conventional BCS theory. The absolute convergence factor is $\varepsilon=10^{-3}$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n=25_T=varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n=25_T=varying}
+    Results for $n=25$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n=51_T=varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n=51_T=varying}
+    Results for $n=51$ with $\varepsilon=10^{-2}$ order of magnitude less than in the $n=5,25$ simulations.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n=5_mu=varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n=5_mu=varying}
+    Self-consistent results  for one band without impurities at zero temperature $T=0$, with $5$ sites along each axis. The $\phi$-fields are degenerate. The absolute convergence factor is $\varepsilon=10^{-3}$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n=25_mu=varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n=25_mu=varying}
+    Results for $n=25$
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n=51_mu=varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n=51_mu=varying}
+    Results for $n=51$ with $\varepsilon=10^{-2}$ order of magnitude less than in the $n=5,25$ simulations.
+    }
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_n_varying.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_n_varying}
+    Self-consistent results for one band without impurities at zero temperature $T=0$. The chemical potential is $\mu/t=-2.67$. The $\phi$-fields are degenerate. The absolute convergence factor is $\varepsilon=10^{-3}$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_singlet_single_impurity.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_singlet_single_impurity}
+    Self-consistent results for one band with no impurity (blue, crosses), a single impurity (green, pluses) and a magnetic impurity (red, dots) with $43$ sites along each axis, both with coupling strength $V/t=1.2$, all at zero temperature $T=0$ and chemical potential $\mu/t=-2.67$. The Hubbard $U/t=2.8$, the self-consistent absolute convergence factor is $\varepsilon=10^{-3}$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_multiorbital_singlet_single_impurity.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_multiorbital_singlet_single_impurity}
+    Self-consistent results for a multiorbital model with no impurity (blue, crosses), a single impurity (green, pluses) and a magnetic impurity (red, dots) with $43$ sites along each axis, both with coupling strength $V/t=1.2$, all at zero temperature $T=0$ and chemical potential $\mu/t=-2.67$. The Hubbard $U/t=2.8$, the self-consistent absolute convergence factor is $\varepsilon=10^{-3}$.
+    }
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{Self-consistent_triplet_single_impurity.pdf}
+    \end{center}
+    \caption{\label{fig:Self-consistent_triplet_single_impurity}
+    Self-consistent results for a non-unitary triplet model with no impurity (blue, crosses), a single impurity (green, pluses) and a magnetic impurity (red, dots) with $43$ sites along each axis, both with coupling strength $V/t=1.2$, all at zero temperature $T=0$ and chemical potential $\mu/t=-2.67$. The Hubbard $U/t=2.8$, the self-consistent absolute convergence factor is $\varepsilon=10^{-3}$.
+    }
+\end{figure}
+
+\subsection{Fourier transformation of the mean-field Hamiltonian}
+{\color{red} Possibly omit unnecessary section}
+Let us explicitly relate the $\mathbf{r}$-space picture to the $\mathbf{k}$-space via a discrete Fourier transform
+\begin{equation}
+\hat c_{\mathbf{k} m \sigma}^\dagger = \frac{1}{\sqrt{N}} \sum_{\mathbf{i}\in\Omega} e^{+i \mathbf{k}\cdot \mathbf{r}_\mathbf{i}}\hat c_{\mathbf{i} m \sigma}^\dagger,
+\end{equation}
+where $\mathbf{k} \in \mathcal{K}\equiv\left\{ \left( \frac{2\pi p}{N_x}, \, \frac{2\pi q}{N_y} \right)\, \middle |\, 0\leqslant p < N_x, \, 0\leqslant q < N_y \right\}$. The position vector $\mathbf{r}_\mathbf{i}$ is defined in terms of lattice spacings $a_x, a_y$ as $\mathbf{r}_i=(a_x i_x, a_y i_y)$. The Hamiltonian in $\mathbf{k}$-space is then
+\begin{multline}
+\mathcal H = \sum_{\mathbf{k}\in\mathcal{K}}\sum_{m\in\{+,-\}}\sum_{\sigma\in\{\uparrow,\downarrow\}}
+\left[
+-\mu_m \hat c_{\mathbf{k} m \sigma}^\dagger\hat c_{\mathbf{k} m \sigma} 
++ \delta\hat c_{\mathbf{k} m \sigma}^\dagger \hat c_{\mathbf{k} \bar{m} \sigma}
+\right]\\
++
+\sum_{\mathbf{k},\mathbf{q}\in\mathcal{K}}\sum_{m\in\{+,-\}}\sum_{\sigma\in\{\uparrow,\downarrow\}}
+\left[
+\tilde V(\mathbf{k}-\mathbf{q})\hat  c_{\mathbf{k} m \sigma}^\dagger\hat c_{\mathbf{q} m \sigma} 
+\right]\\
++\sum_{\mathbf{k}\in\mathcal{K}}\sum_{m,n\in\{+,-\}}\sum_{\sigma\in\{\uparrow,\downarrow\}}
+\left[
+\epsilon_0 (\mathbf{k})\hat c_{\mathbf{k} m \sigma}^\dagger \hat c_{\mathbf{k} n\sigma}
+\right]\\
++
+\sum_{\mathbf{k}\in\mathcal{K}}\sum_{m,n\in\{+,-\}}\sum_{\sigma,\tau\in\{\uparrow,\downarrow\}}\left[
+\Delta_{\mathbf{k}\sigma\tau}^{mn}\hat c_{\mathbf{k} m \sigma}^\dagger\hat c_{-\mathbf{k} n \tau}^\dagger +\text{h.c.}
+\right]
+\end{multline}
+where 
+\begin{equation}
+\epsilon_0(\mathbf{k}) = -2 t_{m,n} \left( \cos{k_x a_x} + \cos{k_y a_y}\right).
+\label{eq:normal_dispersion}
+\end{equation} 
+and 
+\begin{equation}
+\tilde V(\mathbf{k}-\mathbf{q}) = V\frac{1}{N}\sum_{i'\in\Omega'}e^{-i(\mathbf{k}-\mathbf{q})\mathbf{r}_{i'}}
+\end{equation}
+
+\subsection{Quasiparticle interference}
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{LDOS_FT_mosaic_normal_state_random_impurities_mu_-3.57.pdf}
+    \end{center}
+    \caption{\label{fig:LDOS_FT_mosaic_normal_state_random_impurities_mu_-3.57}
+    Quasiparticle interference (magnitude of the Fourier transform) of the normal state local density of states. Top left: Fourier transform of Figure \ref{fig:LDOS_mosaic_normal_state}, a single central impurity. Top right: 20 random impurities. Bottom: averaging over 8 and 100 simulations of 20 different random impurities. The chemical potential is $\mu/t=-3.57$ and the impurity coupling strength is $V/t=1.21$. This local electron density is a function of the momentum of the Friedel waves and is `double' the Fermi surface in the following sense ${\bm k}_{Fermi}=\frac{1}{2}{\bm k}_{Friedel}$. In the experimental literature, quasiparticle interference is performed by averaging over many trial experiments to remove noise from the image, as we simulate here. In our theoretical simulations however, we can use a single, central impurity to produce noiseless quasiparticle interference patterns. Such results differ only in magnitude, as we have shown here by using two different colourbars, one for the single impurity and another for the three examples of many-impurity averaging.
+    }
+\end{figure}

@@ -1,0 +1,234 @@
+\chapter{\label{ch:SSH}Two-dimensional extended Su-Schrieffer-Heeger Model with Superconductivity}
+As a first departure into the search for systems exhibiting topological 
+superconductivity, we begin with a topologically non-trivial system.
+We will explore the effects of fermion pairing terms and of external 
+magnetic fields on the system.\\
+A canonical topological system is the Su-Schrieffer-Heeger (SSH) model of a 
+spinless, one-dimensional dimer lattice of fermions with staggered hopping. 
+The model obeys a {\it chiral symmetry}, exhibiting two topological phases. 
+In the topologically non-trivial phase, a pair of edge states emerges at 
+the boundaries, characterised by a {\it winding number}. 
+In the interest of exploring two-dimensional superconductivity and the
+surface of three-dimensional superconductors, we study a two-dimensional
+extension of the SSH model. Bo-Hung extended the model in a manner which 
+gives rise to topological modes. Their idea is to stack SSH models in a 
+direct product with a one-dimensional Hamiltonian, known as a Type I 
+extension. They refer to more complicated extensions as Type II.\\
+
+\section{\label{sec:SSH} One-dimensional SSH with nearest-neighbour intraorbital hopping}
+The simplest extension of the Su-Schrieffer-Heeger model with an additional
+intraorbital pairing parameter $t$ is given by the following Hamiltonian
+\begin{multline}
+    \hat{\mathcal H}_\text{SSH} =  
+    \sum_{x=1}^{n_x} \sum_{m\in\{A,B\}} 
+    \left[
+-\mu \hat c_{x, m}^\dagger \hat c_{x, m}
+(-t \hat c_{x, m}^\dagger \hat c_{x+1, m} 
++\text{h.c.})
+\right]\\
+    +
+    \sum_{x=1}^{n_x}
+    \left[
+    -v \hat c_{x, A}^\dagger \hat c_{x, B}
+    -w \hat c_{x, B}^\dagger \hat c_{x+1, A}
+    +\text{h.c.}
+    \right]
+\label{eq:one-dimensional_SSH}
+\end{multline}
+
+We investigate the phases of the model in Figure \ref{fig:SSH-one_dim}, and note 
+that any nearest-neighbour intraorbital hopping is $t\neq0$ gives rise to 
+zero-energy states with density in the bulk. Indeed, the topological edge-states
+are a delicate situation. Mapping the SSH model onto a multiorbital model of
+superconducting, this shows that topological modes exist in a model in which
+the multiorbital-singlet term dominates over the conventional BCS singlet term,
+and in which the multiorbital-triplet term is negligible. 
+In real materials, one would reasonably expect conventional BCS singlet pairing 
+to dominate over multiorbital-singlet, and hence a mapping to the trivial
+phase of the SSH model.
+
+\createfigure{03-01-one-dimensional-ldos}{fig:ssh-one_dim}
+
+\section{\label{sec:multiorbital_chain} Multiorbital tightbinding model, breaking chiral symmetry}
+An alternative model which breaks chiral symmetry is a multiorbital tightbinding 
+chain with closed boundaries and an interorbital shift,
+\begin{multline}
+    \hat{\mathcal H}_\text{SSH} =  
+    \sum_{x=1}^{n_x} \sum_{m\in\{A,B\}} 
+    \left[
+        -(-1)^m\mu \hat c_{x, m}^\dagger \hat c_{x, m}
+\right]\\
+    +
+    \sum_{x=1}^{n_x}
+    \left[
+    -t \hat c_{x, A}^\dagger \hat c_{x, B}
+    -t \hat c_{x, B}^\dagger \hat c_{x+1, A}
+    +\text{h.c.}
+    \right]
+\label{eq:multiorbital_chain}
+\end{multline}
+
+\createfigure{03-02-multiorbital_chain}{fig:multiorbital_chain}
+
+Although similar to the SSH model, the multiorbital shift model does not exhibit 
+an entirely gapped bulk. 
+As shown in the previous section, the fully bulk-gapped phase of the 
+SSH model is extremely delicate and even the slightest intraorbital nearest-neighbour
+perturbation gives rise to density in the bulk.
+
+\section{\label{sec:spin_chain} Spin-chain in an external magnetic field}
+We now consider a spin-chain, without orbital terms. Such a model would be 
+realisable with an externally applied magnetic field, $m$. 
+We suppose there is a spin-flip term, $s$, as well as a nearest-neighbour hopping term, $t$. The model is then described by,
+\begin{multline}
+    \hat{\mathcal H}_\text{SSH} =  
+    \sum_{x=1}^{n_x} 
+    \left[
+        +m\hat c_{x, \uparrow}^\dagger \hat c_{x, \uparrow}
+        -m\hat c_{x, \downarrow}^\dagger \hat c_{x, \downarrow}
+\right]\\
+    +
+    \sum_{x=1}^{n_x}
+    \left[
+    s\hat c_{x, \uparrow}^\dagger \hat c_{x, \downarrow}
+    \right]
+    +
+    \sum_{x=1}^{n_x}
+    \sum_{\sigma\in\{\uparrow,\downarrow\}} 
+    \left[
+    -t \hat c_{x, \sigma}^\dagger \hat c_{x+1, \sigma}
+    +\text{h.c.}
+    \right]
+\label{eq:spin-chain}
+\end{multline}
+
+The advantage of this model is an obvious path to engineering: rather than orbitals, 
+a spin-chain in an external magnetic field, which is a one-to-one mapping of the model.
+
+\section{\label{sec:spin-triplet_SSH} Non-unitary spin-triplet Su-Schrieffer-Heeger model}
+The non-unitary spin-triplet extension of the Su-Schrieffer-Heeger model is given by
+\begin{multline}
+    \hat{\mathcal H}_\text{triplet SSH} =  
+    \sum_{x=1}^{n_x} \sum_{m\in\{A,B\}} \sum_{\sigma\in\{\uparrow,\downarrow\}}
+    \left[
+-\mu \hat c_{x, m, \sigma}^\dagger \hat c_{x, m, \sigma}
+(-t \hat c_{x, m, \sigma}^\dagger \hat c_{x+1, m, \sigma} 
++\text{h.c.})
+\right]\\
+    +
+    \sum_{x=1}^{n_x}\sum_{\sigma\in\{\uparrow,\downarrow\}}
+    \left[
+    -v \hat c_{x, A, \sigma}^\dagger \hat c_{x, B, \sigma}
+    -w \hat c_{x, B, \sigma}^\dagger \hat c_{x+1, A, \sigma}
+    +\text{h.c.}
+    \right]
+    +
+    \sum_{x=1}^{n_x}
+    \left[
+        -\sqrt{2}\Delta \hat c_{x, A, \uparrow}\hat c_{x, B,\uparrow}
+    +\text{h.c.}
+    \right]
+\label{eq:spin-triplet_SSH}
+\end{multline}
+
+The original SSH model is paramterised by vector
+\begin{equation}
+    \mathbf{h}(k)=(v+w\cos{(k)},w\sin{(k)},0).
+\end{equation}
+Our extended model is parameterised in the following way
+\begin{equation}
+    \hat{\mathcal H}_\text{triplet SSH} = 
+    \sigma_z\otimes\mathbb{1}_2\otimes\mathbf{h}(k)\cdot\bm{\sigma}
+    +\left(
+        \sigma_{+}\otimes i(\mathbf{d}\cdot\bm{\sigma})\sigma_y\otimes i\sigma_y
+    +\text{h.c.}\right)
+\label{eq:spin-triplet_SSH},
+\end{equation}
+where the first term in the Kronecker product refers to the particle-hole channel,
+the second corresponds to spin and the final sector is the orbital channel. 
+
+We remind the reader of the three basic symmetries of SU($4$) matrices. 
+The antiunitary symmetries are defined in terms of a complex conjugation operator $\mathbf{k}$
+(in real space, so that the $k$-term flips sgn)
+\begin{equation}
+    \mathbb{k}\hat{\mathcal H}\mathbb{k}=\hat{\mathcal H}^{*}(-k).
+\end{equation}
+Our model breaks time-reversal symmetry (TRS). The corresonding operator \mathbb{t} 
+must satisfy the following equation
+\begin{equation}
+    \mathbb{t}\hat{\mathcal H}\mathbb{t}^{-1}=-\hat{\mathcal H}^{*}(-k).
+\end{equation}
+A tensor representation of the operator is
+\begin{equation}
+    \mathbb{t}\equiv\mathbb{1}_2\otimes i\sigma_y\otimes\mathbb{1}_2\mathbb{k}
+\end{equation}
+which satisfies
+\begin{equation}
+    \mathbb{t}^{2}=-1
+\end{equation}.
+
+The chiral symmetry $\Eta_z$ must satisfy the constraint
+\begin{equation}
+    \Eta_z\hat{\mathcal H}\Eta_z^{-1}=-\hat{\mathcal H}^{*}(-k)
+\end{equation}
+for which we find
+\begin{equation}
+    \Eta_z=\mathbb{1}_2\otimes\mathbb{1}_2\otimes\sigma_z
+\end{equation}
+and
+\begin{equation}
+    \left(\Eta_z\right)^2=+1.
+\end{equation}
+Our model is a CII or DIII material in the classification of topological matter.
+In order to determine which, we must study the particle-hole symmetry operator $\mathbb{P}$, 
+in which all terms acquire a sgn flip
+\begin{equation}
+    \mathbb{P}\hat{\mathcal H}\mathbb{P}^{-1}=-\hat{\mathcal H}^{*}(-k).
+\end{equation}
+A tensor representation for the corresponding operator is 
+\begin{equation}
+    \mathbb{P}=\sigma_x\otimes\mathbb{1}_2\otimes\mathbb{1}_2\mathbb{k}
+\end{equation}
+
+\begin{equation}
+    \mathbf{t}^{2}=-1
+\end{equation}.
+Thus, our material falls into the symetry class DIII. In dimension $d=1$ or $d=2$,
+that is a $\mathbb{Z}_2$ topological number.
+
+The characteristic equation is
+\begin{equation}
+    |\mathbf{h}\dot\bm{\sigma}-\lambda|
+    |\mathbf{h}\dot\bm{\sigma}+\lambda|
+    |(\mathbf{h}\dot\bm{\sigma}-\lambda)(\mathbf{h}\dot\bm{\sigma}+\lambda)+\Delta\Delta^\dagger|
+\end{equation}
+
+\section{\label{sec:type_I} Type I extension}
+\subsection{\label{ssec:single_interchain} Single interchain hopping}
+The simplest type I extension is s direct product of an SSH model, with 
+hopping parameters v, w, with a tightbinding hamiltonian, with single
+interchain hopping parameter t, as depicted in Fig {\color{red}ref}. 
+The Hamiltonian is given by
+\begin{multline}
+    \hat{\mathcal H}_\text{SSH 2D} =  
+    \sum_{x=1}^{n_x}\sum_{y=1}^{n_y}\sum_{\sigma\in\{\uparrow,\downarrow\}} \sum_{m\in\{A,B\}} 
+    \left[
+-\mu \hat c_{x, y, \sigma, m}^\dagger \hat c_{x, y, \sigma, m}
+\right]\\
++
+    \sum_{x=1}^{n_x}\sum_{y=1}^{n_y} \sum_{\sigma\in\{\uparrow,\downarrow\}}
+    \left[
+    -v \hat c_{x, y, \sigma, A}^\dagger \hat c_{x, y, \sigma, B}
+    -w \hat c_{x, y, \sigma, B}^\dagger \hat c_{x+1, y, \sigma, A}
+    +\text{h.c.}
+\right]\\
++
+\sum_{m\in\{A,B\}}
+    \left[
+    -t \hat c_{x, y, \sigma, m}^\dagger \hat c_{x, y+1, \sigma, m}
+    +\text{h.c.}
+\right],
+\label{eq:single_type_I}
+\end{multline}
+where the $P$-boundary is taken to be closed and the $Q$-boundary is open.
+

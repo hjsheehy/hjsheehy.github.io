@@ -1,0 +1,40 @@
+\chapter{\label{ap:tor}Tor high performance computing cluster}
+\graphicspath{{}}
+
+\begin{figure}
+    \begin{center}
+        \input{Memory_usage_plot.pgf}
+    \end{center}
+    \caption{\label{fig:Memory_usage_plot}
+    The memory storage of the matrix representation of the Hamiltonian Equation \ref{eq:spin_triplet_BdG_Hamiltonian} in \texttt{Python}'s \texttt{NumPy} library. Complex matrix entries are $16$ bytes and the size of the matrix depends on the number of sites $N=N_x=N_y$ as $\left(2^3\cdot N^2\right)^2$. Typical RAM capacity ($64$gb) limits us to $N=87$ ($58.7$gb).
+    }
+\end{figure}
+
+The Tor cluster is a computing server located in the School of Physical Sciences at the University of Kent. It consists of 36 computational nodes, 32 of which provide 64 gigabytes of random-access memory (RAM). The model Hamiltonian described in Section \ref{sec:Non-unitary_spin-triplet} is represented by a matrix with $(50 \times 50 \text{ (sites)} \times 2 \text{ (orbitals)} \times 2 \text{ (spin)} \times 2 \text{ (particle-hole)})^2 = 4\times 10^8$ entries. The matrix was solved using the linear algebra Python library NumPy, which allocates 80 bytes to the Complex128 data type. Our simulations therefore require $3.2\times 10^{10} \text{ bytes} \sim 30 \text{ gigabytes}$ of RAM. Therefore we should be able to solve two model matrices simultaneously. However, due to overhead, we are only able to run one simulation at a time.
+
+First a meta configuration file is fed to a meta Python script which produces configuration files. These configuration files are then fed to a Python script which creates a matrix representation of a model Hamiltonian and returns the solutions of the associated eigenproblem. Other Python scripts are then used to plot functions of the eigensystem, such as Green's functions, topography, spectrum, etc.
+
+The meta configuration file is a .conf document written containing, for example, the following text:
+\begin{lstlisting}[language=Python]
+41,41,1 #n_sites_x min max step
+41,41,1 #n_sites_y
+2 #n_spins
+2 #n_orbitals
+True #closed_BC = False/True
+-3.99,-2.87,0.21 #mu
+0,0,1 #s
+0,0,1 #delta
+1.0,1.0,1 # t
+0,0,1 # Delta
+-4.4,4.4,1.1 # V
+1,1,1 # n_impurities
+0,0,0 #eta fixed
+\end{lstlisting}
+The meta Python script will produce configuration files from the \textit{min}imum to the \textit{max}imum values in given \textit{step} sizes.
+
+A Bash script feeds the configuration files through the Python script which creates the associated Hamiltonian matrix and returns its eigensystem as a NumPy zipped data file named in the format \textit{n\_sites\_x, n\_sites\_y, mu, s, delta, t, Delta, V, n\_impurities}, e.g. `41\_41\_-2.94\_0\_0\_1.00\_0\_0\_1.conf'. The eigensystem can be loaded into a new Python script in the following way:
+\begin{lstlisting}[language=Python]
+eigensystem = np.load(`41_41_-2.94_0_0_1.00_0_0_1.conf')
+eigenvalues = eigensystem['w']
+eigenvectors  = eigensystem['v']
+\end{lstlisting}

@@ -1,0 +1,86 @@
+\documentclass[11pt,oneside]{book}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage[letterpaper]{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{bm}
+\usepackage{setspace}
+\usepackage{ifthen}
+\usepackage{textcomp}
+\usepackage{color}
+%\usepackage{changepage}
+%\usepackage{layout}
+%\pagestyle{empty}
+% hyperref should always be the last included package
+\usepackage{hyperref}
+% glossaries comes after hyperref
+\usepackage[nopostdot,nonumberlist,nogroupskip,acronym]{glossaries}
+
+\DeclareMathOperator{\Tr}{Tr}
+\usepackage{grffile} %to prevent . in filename raising errors in graphicx
+\usepackage{subcaption} %subfigures
+\usepackage{epigraph}
+\usepackage{pgfplots}
+\makeatletter 
+\makeatother
+\usepackage{float} %to fix figures with [H]
+\newcommand\scalemath[2]{\scalebox{#1}{\mbox{\ensuremath{\displaystyle #2}}}} %scales maths
+\usepackage{enumitem}
+\usepackage{bbold}
+\usepackage{listings}
+\usepackage{layouts}
+\providecommand\print{false}
+\providecommand\fgsr{false}
+\usepackage{import}
+
+% Coloured links
+\pdfoutput=1
+
+\ifthenelse{\equal{\print}{true}}
+{ \definecolor{LinkColor}{rgb}{0,0,0} }
+{ \definecolor{LinkColor}{rgb}{0.256,0.439,0.588} }
+\definecolor{GlossaryLink}{rgb}{0,0,0}
+\hypersetup{
+   pdfauthor={Henry Sheehy},
+   pdftitle={Simulation of non-unitary spin-triplet superconductivity and magnetism with impurities},
+   colorlinks=true,
+   citecolor=LinkColor,
+   linkcolor=LinkColor,
+   urlcolor=LinkColor
+}
+
+% medium weight instead of bold fonts in the glossary
+\renewcommand*{\glsnamefont}[1]{\textmd{#1}}
+\newglossary[nlg]{notation}{not}{ntn}{Notation}
+\makeglossaries
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% custom tex commands
+\newcommand{\ket}[1]{\left|#1\right>}
+\newcommand{\bra}[1]{\left<#1\right|}
+
+% Different colours for glossary links --- basically redefine all glossary
+% commands. Is there a better way to do this?
+% \newcommand{\cgls}[1]{\hypersetup{linkcolor=GlossaryLink}\gls{#1}\hypersetup{linkcolor=LinkColor}}
+% \newcommand{\cglspl}[1]{\hypersetup{linkcolor=GlossaryLink}\glspl{#1}\hypersetup{linkcolor=LinkColor}}
+% \newcommand{\cGls}[1]{\hypersetup{linkcolor=GlossaryLink}\Gls{#1}\hypersetup{linkcolor=LinkColor}}
+% \newcommand{\cGlspl}[1]{\hypersetup{linkcolor=GlossaryLink}\Glspl{#1}\hypersetup{linkcolor=LinkColor}}
+
+\newcommand{\figurespath}{../../05-fig/}
+
+\graphicspath{\figurespath}
+
+\newcommand{\bb}[1]{\mathbb{ #1 }}
+
+\newcommand{\createfigure}[2]{
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=\linewidth]{ \figurespath#1.pdf }
+    \end{center}
+    \caption[#2]{\label{ fig:#1 }
+        \import{\figures}{ \figurespath#1.txt }
+    }
+\end{figure}
+}

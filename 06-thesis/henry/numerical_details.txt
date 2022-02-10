@@ -1,0 +1,27 @@
+The \texttt{NumPy} and \texttt{SciPy.linalg} Python packages call Fortran or 
+C linear algebra libraries such as BLAS and LAPACK. Intel provides a propriatory 
+library, MKL, which performs diagonalisation significantly faster and more 
+efficiently than openBLAS (a multithread BLAS) or LAPACK. MKL does not come 
+bundled with Numpy and must be installed seperately 
+\footnote{
+On Arch Linux, install the \texttt{intel-mkl package}. MKL Fortan and C compilers
+are also required, which were not on the Arch repository at the time of access
+(16-08-21). 
+The compilers were installed through the Intel oneAPI High-performance computing
+(HPC) Toolkit, available on the Intel website.
+}.
+As of writing (16-08-21), NumPy linear algebra libraries are configured for 
+32-bit. This limits the matrix size. For our large matrix calculations, we 
+installed a 64-bit Intel MKL library (ILP64) 
+\footnotes{
+64-bit installation instructions for Linux:\\
+Create or append to \texttt{~/.numpy-site.cfg} the following:\\
+\texttt{
+[mkl]
+library_dirs = /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64
+include_dirs = /opt/intel/compilers_and_libraries/linux/mkl/include
+mkl_libs = mkl_rt
+lapack_libs = mkl_intel_ilp64
+}
+}
+.

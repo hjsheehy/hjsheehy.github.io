@@ -1,0 +1,56 @@
+% Henry Sheehy, November, 2021 
+
+\input{stucture.tex}
+
+\begin{document}
+
+\onehalfspacing
+%\raggedbottom
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\frontmatter
+
+\ifthenelse{ \equal{\fgsr}{true} }
+{ \include{titlepage_fgsr} }
+{ \include{titlepage} }
+\setcounter{page}{2}
+\include{abstract}
+% \include{acknowledgments}
+
+\tableofcontents
+\listoftables
+\listoffigures
+%\glossarystyle{longborder}
+%\glossarystyle{long}
+\setlength{\glsdescwidth}{4.7in}
+\printglossary[style=long,type=acronym,title=Acronyms]
+\include{notation}
+\setlength{\glsdescwidth}{4.9in}
+\printglossary[style=long,type=notation]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\mainmatter
+
+\ifthenelse{\equal{\fgsr}{true}}
+{ \pagestyle{plain} }
+{}
+\include{chapter01}
+\include{chapter02}
+\include{chapter03}
+\include{chapter04}
+\include{chapter05}
+\include{chapter06}
+\include{chapter07}
+\include{chapter08}
+\include{chapter09}
+\include{conclusion}
+
+\appendix
+\include{appendix01}
+\include{appendix02}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliography{bibliography}{}
+\bibliographystyle{utcaps}
+
+\end{document}

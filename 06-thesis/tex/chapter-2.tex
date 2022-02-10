@@ -1,0 +1,519 @@
+\chapter{\label{ch:QCA_intro}Most general model of multi-orbital superconductivity with impurities}
+
+\createfigure{01-01-simple-lattice}{Simple multiorbital lattice}
+
+\label{sec:most_general_model}
+We describe a general theory of multi-orbital superconductivity with unconventional pairing on a 2D lattice with periodic boundary conditions. The lattice is doped with impurities, which may, for example, be charge or magnetic. The non-interacting part of the model is a 2D electron gas with spin channels $\sigma$, orbital channels $m$, described by an on-site tensor $\bm{\mu}$, a nearest-neighbour hopping tensor $\bm{t}$ and a tensor $\bm{V}$ to dope the lattice with impurities. We describe electron-electron interactions via an unconventional BCS mean-field theory. The interacting model is solved via a generalised \textit{Bogoliubov-de Gennes} self-consistent mean-field calculation. 
+
+Impurities in the quasipariticle sea give rise to density modulations in the local density of states (LDOS) known as Friedel oscillations. The Friedel oscillations -as observed via scanning tunnelling microscopy -characterise the dispersion relation, lifetime and pairing of quasiparticles, which give us a measure to test the theory.
+
+\section{Normal state: free electron gas}
+\label{sec:general_normal_state}
+The non-interacting part of the model is a description of the normal state, that is, a generalised tight-binding model of a metal. The most general model of nearest-neighbour interaction is given by
+\begin{multline}
+\hat{\mathcal H}_0 = \sum_{\mathbf{i}\in\Omega}\sum_{\sigma\in\{\uparrow,\downarrow\}}\sum_{m\in\{+,-\}}
+\left[
+(\bm{\mu}_{\sigma, \tau, m, n} + \bm{V}_{\mathbf{i},\sigma, \tau, m, n} ) \hat c_{\mathbf{i}, \sigma, m}^\dagger \hat c_{\mathbf{i}, \tau, n} 
+\right]\\
++\sum_{\mathbf{i}\in\Omega}\sum_{\mathbf{j}\in\{\hat{\mathbf{x}},\hat{\mathbf{y}}\}}\sum_{\sigma\in\{\uparrow,\downarrow\}}\sum_{m,n\in\{+,-\}}
+\left[
+\bm{t}_{\sigma, \tau, m, n} \hat c_{\mathbf{i}, \sigma, m}^\dagger \hat c_{\mathbf{i}+\mathbf{j}, \tau, n} +\text{h.c.}
+\right]
+\label{eq:normal_state_Hamiltonian}
+\end{multline}
+where $\Omega$ is a set of $N$ lattice points with periodic boundary conditions, labelled $\mathbf{i}=(i_x, i_y)$. Let us write the onsite tensor $\bm{\mu}$ in terms of its spin and orbital sectors
+\begin{equation}
+\bm{\mu}=\bm{\mu}_\text{spin}\otimes\bm{\mu}_\text{orbital}.
+\end{equation}
+For a general solid with a chemical potential $\mu$ and two orbitals with a rigid energy shift $s$ and hybridisation factor $\delta$, the orbital sector of the onsite tensor would be
+\begin{equation}
+\bm{\mu}_\text{spin} = -\mu\mathbb{1} - s\sigma_z + \delta \sigma_x.
+\end{equation}
+In the simplest model, the spin component would be trivial
+\begin{equation}
+\bm{\mu}_\text{orbital}=\mathbb{1}.
+\end{equation}
+The nearest-neighbour hopping tensor can be resolved into spin and orbital sectors as
+\begin{equation}
+\bm{T}=\bm{t}_\text{spin}\otimes\bm{t}_\text{orbital},
+\end{equation}
+where the spin sector is trivial in the simplest theory
+\begin{equation}
+\bm{T}_\text{spin}= \mathbb{1}.
+\end{equation} The orbital sector would also be trivial for the simplest theory
+\begin{equation}
+\bm{T}_\text{orbital}= -t \mathbb{1}.
+\end{equation}
+To include inter-orbital hopping we would include an inter-orbital hopping term $t_\text{orbital}$ into the hopping tensors as
+\begin{equation}
+\bm{T}= \mathbb{1}\otimes \left(-t\mathbb{1}-t_\text{orbital} \sigma_x\right).
+\end{equation}
+Impurities enter the model via a subset $\Omega'\subset\Omega$ of $M<N$ lattice points randomly chosen from $\Omega$
+\begin{equation}
+\bm{V}_\mathbf{i} = 
+\begin{cases}
+\bm{V} &\text{if } \mathbf{i}\in\Omega',\\
+0 &\text{otherwise},
+\end{cases}
+\end{equation}
+where for nonmagnetic impurities
+\begin{equation}
+\bm{V}=-V\mathbb{1}.
+\end{equation} 
+Magnetic impurities can be modelled with a magnetic bias $b$ which enters as
+\begin{equation}
+\bm{V}=(-V\mathbb{1}+b\sigma_z)\otimes\mathbb{1},
+\end{equation}
+where the trivial component refers to the orbital sector. A similar equation in the orbital sector models orbital-biased impurities.
+
+{\color{red}Include cartoon of model}
+
+\section{Superconducting state: electron-electron interaction}
+\label{sec:general_SC_state}
+Superconductivity arises due to electron-electron attraction. We consider the most general unconventional theory of on-site interaction. The theory is a generalisation of the BCS theory. The Hamiltonian describing this model is
+\begin{equation}
+\hat{\mathcal H}_I =  \sum_{\mathbf{i}\in\Omega}\sum_{\sigma\in\{\uparrow,\downarrow\}} \sum_{m\in\{+,-\}} \bm{U}_{\mathbf{i},\sigma,\tau}^{m,n}
+\hat c_{\mathbf{i}, \sigma, m}^\dagger \hat c_{\mathbf{i}, \tau, n}^\dagger \hat c_{\mathbf{i}, \tau, n} \hat c_{\mathbf{i}, \sigma, m}.
+\label{eq:interacting_Hamiltonian}
+\end{equation}
+In the simplest theory of homogenous, interorbital, equal-spin pairing Ref. \cite{PhysRevLett.117.027001} the interaction tensor $\bm{U}$ is given by
+\begin{equation}
+\bm{U}=-U\mathbb{1}\otimes\sigma_x
+\end{equation}
+with $U>0$ being the effective attractive interaction necessary for superconductivity\footnote{$U<0$ corresponds to an effective Coulomb repulsion strength, which may be interesting to model other phenomena  such as {\color{red}name phenomena}.}. The first sector corresponds to spin and the second to orbital. This is mathematically similar to the original BCS theory of on-site, opposite spin pairing (with only one orbital), except with the orbital indices playing the role of the of the BCS spin indices.
+\begin{equation}
+\bm{U}_\text{BCS}=-U\sigma_x\otimes\mathbb{1}
+\end{equation}
+\\
+Together, the normal state and interacting Hamiltonians form the unconventional \textit{Bogoliubov-de Gennes} Hamiltonian
+\begin{equation}
+\hat{\mathcal{H}}_\text{BdG}= \hat{\mathcal H}_0 + \hat{\mathcal H}_I.
+\end{equation}
+In order to obtain observables, the Hamiltonian must be diagonalised. The usual way to do this is via a variational mean-field theory, which involves minimising the free energy, given by
+\begin{equation}
+F\equiv\langle H \rangle - TS = -k_B T \,\text{ln}\,Z
+\end{equation}
+where $Z$ is the partition function for the system, $T$ is the temperature, $S$ is the entropy and $k_B$ is Boltzmann's constant.
+
+\section{Self-consistent mean-field solution}
+\label{sec:general_mean-field}
+The mean-field theory introduces a new Hamiltonian with variable parameters which can be solved exactly. The formal details are given in many places. Instead, we introduce mean-field theory as the \textit{art} of introducing the minimum necessary mean-fields, either by necessity in order for a model to exhibit e.g. magnetism (spin-density fields) or in order to explore a wider phase space to find a free-energy minimum. In our model we include a Gor'kov-like pairing mean-field tensor $\bm{\Delta}_{\mathbf{i}\sigma\tau}^{mn}$, whose nonzero value is required for superconductivity. We also include a Hartree-like tensor $\bm{\eta}_{\mathbf{i}\sigma}^{m}$ which describes renormalisations of charge-spin-orbital density fields. Fock-like terms are not our main-interest, but for generality we include them as $\bm{\phi}_{\mathbf{i}\sigma\tau}^{mn}$. These are all the terms expected from Wick's theorem.
+The mean-field interaction for our model is
+\begin{multline}
+\hat{\mathcal{H}}_I^\text{MF}=\sum_{\mathbf{i}\in\Omega}\sum_{\sigma\in\{\uparrow,\downarrow\}}\sum_{m\in\{+,-\}}\Big[
+\bm{\eta}_{\mathbf{i}\sigma}^{m} \hat c_{\mathbf{i}, \sigma, m}^\dagger \hat c_{\mathbf{i}, \sigma, m} 
++\bar{\bm{\eta}}_{\mathbf{i}\sigma}^{m} \hat c_{\mathbf{i}, \sigma, m} \hat c_{\mathbf{i}, \sigma, m}^\dagger \Big] \\
++\sum_{\mathbf{i}\in\Omega}\sum_{\sigma,\tau\in\{\uparrow,\downarrow\}}\sum_{m,n\in\{+,-\}}\Big[
+\bm{\phi}_{\mathbf{i}\sigma\tau}^{mn} \hat c_{\mathbf{i}, \sigma, m}^\dagger \hat c_{\mathbf{i}, \tau, n}
++\bar{\bm{\phi}}_{\mathbf{i}\sigma\tau}^{mn} \hat c_{\mathbf{i}, \tau,n} \hat c_{\mathbf{i}, \sigma,m}^\dagger\\
++\bm{\Delta}_{\mathbf{i}\sigma\tau}^{mn} \hat c_{\mathbf{i}, \sigma, m}^\dagger \hat c_{\mathbf{i}, \tau, n}^\dagger 
++\bar{\bm{\Delta}}_{\mathbf{i}\sigma\tau}^{mn} \hat c_{\mathbf{i}, \tau, n} \hat c_{\mathbf{i}, \sigma, m}
+\Big]
+\end{multline}
+The most general self-consistency equations which minimise\footnote{To be precise, these are stationary values not necessarily the minimum.} the free energy are formally given by
+\begin{eqnarray}
+\bm{\eta}_{\mathbf{i}\sigma}^{m} &=& -\bm{U}_{\mathbf{i},\sigma,\tau}^{m,n} \langle \hat c_{\mathbf{i},\tau,n}^\dagger \hat c_{\mathbf{i}, \tau, n} \rangle \\
+\bar{\bm{\eta}}_{\mathbf{i}\sigma}^{m} &=& -\bm{U}_{\mathbf{i},\sigma,\tau}^{m,n} \langle c_{\mathbf{i},\tau,n} \hat c_{\mathbf{i}, \tau, n}^\dagger \rangle \\
+\bm{\phi}_{\mathbf{i}\sigma\tau}^{mn} &=& +\bm{U}_{\mathbf{i},\sigma,\tau}^{m,n} \langle\hat c_{\mathbf{i},\tau,n}^\dagger \hat c_{\mathbf{i}, \sigma, m} \rangle \\
+\bar{\bm{\phi}}_{\mathbf{i}\sigma\tau}^{mn} &=& -\bm{U}_{\mathbf{i},\sigma,\tau}^{m,n} \langle\hat c_{\mathbf{i},\sigma,m}^\dagger\hat c_{\mathbf{i}, \tau, n} \rangle \\
+\bm{\Delta}_{\mathbf{i}\sigma\tau}^{mn} &=& -\bm{U}_{\mathbf{i},\sigma,\tau}^{m,n} \langle \hat c_{\mathbf{i}, \tau, n} \hat c_{\mathbf{i},\sigma,m}\rangle\\
+\bar{\bm{\Delta}}_{\mathbf{i}\sigma\tau}^{mn} &=& -\bm{U}_{\mathbf{i},\sigma,\tau}^{m,n} \langle \hat c_{\mathbf{i}, \sigma, m}^\dagger c_{\mathbf{i},\tau,n}^\dagger\rangle 
+\end{eqnarray}
+In general, $\bar{\bm{\eta}}$, $\bar{\bm{\phi}}$, $\bar{\bm{\Delta}}$ may be arbitrary. However, symmetry forces $\bar{\bm{\eta}}=-\bm{\eta}$, $\bar{\bm{\phi}}=-\bm{\phi}^*$ and $\bar{\bm{\Delta}}=-\bm{\Delta}^*$.
+
+The mean-field theory of low energy excitations is then given by the following Bogoliubov-de Gennes (BdG) effective Hamiltonian
+\begin{equation}
+\hat{\mathcal{H}}_\text{BdG}^\text{MF} = \hat{\mathcal{H}}_\text{0} + \hat{\mathcal{H}}_{I}^\text{MF} + \mathcal{E}_\text{gs},
+\label{eq:general_BdG}
+\end{equation}
+where $\mathcal{E}_\text{gs}$ is {\color{red} calculate this}.
+Solutions of the BdG mean-field Hamiltonian are given by
+\begin{eqnarray}
+\hat{\mathcal{H}}_\text{BdG}^\text{MF}
+\Psi_n
+&=&
+\mathcal{E}_n
+\Psi_n.
+\end{eqnarray}
+Let us note that the particle-hole symmetry of the Bogoliubov-de Gennes Hamiltonian on its solutions.
+If we write a spinor $\Psi_n$ with eigenvalue $\mathcal{E}_n>0$ as
+$\Psi_n=\left((u_{im\sigma})_n,(v_{im\sigma})_n\right)$, then by the particle-hole symmetry, the solution $\bar\Psi_n$ with $\mathcal{E}_n<0$ is $\bar\Psi_n = ((-v^*_{\mathbf{i}m\sigma})_n, (u^*_{\mathbf{i}m\sigma})_n)$.
+
+Write the diagonalised Hamiltonian as
+\begin{equation}
+\hat{\mathcal{H}}_\text{BdG}^\text{MF}
+=
+\mathcal{E}_\text{gs}
++
+\sum_{n}\mathcal{E}_n \hat\gamma_n^\dagger \hat\gamma_n-\mathcal{E}_n \hat\gamma_n \hat\gamma_n^\dagger,
+\end{equation}
+then
+
+\section{Density functional theory via Green's functions}
+\label{sec:general_DFT_Greens}
+{\color{red} Read https://www.nobelprize.org/uploads/2018/06/kohn-lecture.pdf}
+Let the solutions to the \textit{Bogoliubov de-Gennes} Hamiltonian be written as $(\bm{v}_{\mathbf{i}, \sigma, m})_n$ with energy $E_n$, where the indices label the sites $\mathbf{i}=(i_x,i_y)$, spin $s$ and orbital $m$ numbers. The solutions are related by particle-hole symmetry. Indeed, write the non-unitary time-reversal operator as
+\begin{equation}
+\hat{\mathcal{T}}\equiv \hat{\mathcal{C}}\left(-i\sigma_{y}\right),
+\end{equation}
+where $\hat{\mathcal{C}}$ is the complex conjugation operator. 
+Then for every solution $\bm{\Psi}_n$ with energy $\mathcal{E}_n>0$, there exists a solution $\bar{\bm{\Psi}}=\hat{\mathcal{T}}\bm{\Psi}_n$ with energy $-\mathcal{E}_n$. 
+The \textit{Nambu-Gor'kov Green}'s function $\hat{\bm{\mathcal{G}}}$ is the kernel to the \textit{Bogoliubov-de Gennes} Hamiltonian $\hat{\mathcal{H}}$, formally written
+\begin{equation}
+\hat{\bm{\mathcal{G}}}(z)\equiv\left(z-\hat{\mathcal{H}}\right)^{-1},
+\end{equation}
+where $z\in\mathbb{C}$.
+In the eigenbasis $\bm{\Psi}_n$, $\mathcal{E}_n$ of the Hamiltonian, the Green's function becomes
+\begin{equation}
+\bm{\mathcal{G}}(z)=\sum_n\frac{\bm{\Psi}_n\bm{\Psi}_n^\dagger}{z-\mathcal{E}_n}+\frac{\bar{\bm{\Psi}}_n\bar{\bm{\Psi}}_n^\dagger}{z+\mathcal{E}_n}.
+\end{equation}
+We will now study some properties of this Green's function. Given a positive solution $\bm{\Psi}_n=\left(u_{\mathbf{i},\sigma,m})_n, (v_{\mathbf{i},\sigma,m})_n\right)$, its corresponding negative energy solution is $\bar{\bm{\Psi}}_n=\left(-v^*_{\mathbf{i},\sigma,m})_n, (u^*_{\mathbf{i},\sigma,m})_n\right)$.
+Then using this particle-hole symmetry, the Green's function can be written as
+\begin{multline}
+\bm{\mathcal{G}}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)
+=
+\sum_n
+\begin{pmatrix}
+(u_{\mathbf{i}',\sigma',m'})_n\\
+(v_{\mathbf{i}',\sigma','m'})_n
+\end{pmatrix}
+\frac{1}{z-\mathcal{E}_n}
+\begin{pmatrix}
+(u^*_{\mathbf{i},\sigma,m})_n&
+(v^*_{\mathbf{i},\sigma,m})_n
+\end{pmatrix}
+\\+
+\sum_n
+\begin{pmatrix}
+(-v^*_{\mathbf{i}',\sigma',m'})_n\\
+(u^*_{\mathbf{i}',\sigma',m'})_n
+\end{pmatrix}
+\frac{1}{z+\mathcal{E}_n}
+\begin{pmatrix}
+(-v_{\mathbf{i},\sigma,m})_n&
+(u_{\mathbf{i},\sigma,m})_n
+\end{pmatrix},
+\label{eq:Nambu-Gorkov_Green_function}
+\end{multline}
+where we have used ${\mathbf r}$ and ${\mathbf i}$ interchangeably since they are in one-to-one correspondence.
+This Green's function has can be split into normal and anomalous components
+\begin{equation}
+\bm{\mathcal{G}}\left(z \right) 
+=
+\begin{pmatrix}
+\mathcal{G}\left(z \right) &&
+\mathcal{F}\left(z \right)  \\
+\bar{\mathcal{F}}\left(z \right) 
+&&
+\bar{\mathcal{G}}\left(z \right) 
+\end{pmatrix}.
+\end{equation}
+Then the noninteracting electron-electron Green's function matrix $\mathcal{G}$ can be read from this equation as
+\begin{equation}
+\mathcal{G}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)
+=
+\sum_n
+\left[
+\frac{
+(u_{\mathbf{i}',\sigma',m'})_n
+(u^*_{\mathbf{i},\sigma,m})_n
+}{z-\mathcal{E}_n}
++
+\frac{
+(v^*_{\mathbf{i}',\sigma',m'})_n
+(v_{\mathbf{i},\sigma,m})_n
+}{z+\mathcal{E}_n}
+\right].
+\end{equation}
+The hole-hole component is
+\begin{equation}
+\bar{\mathcal{G}}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)
+=
+\sum_n
+\left[
+\frac{
+(v_{\mathbf{i}',\sigma',m'})_n
+(v^*_{\mathbf{i},\sigma,m})_n
+}{z-\mathcal{E}_n}
++
+\frac{
+(u^*_{\mathbf{i}',\sigma',m'})_n
+(u_{\mathbf{i},\sigma,m})_n
+}{z+\mathcal{E}_n}
+\right].
+\end{equation}
+Similar expressions exist for the anomalous Green's functions
+\begin{equation}
+\mathcal{F}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)
+=
+\sum_n
+\left[
+\frac{
+(u_{\mathbf{i}',\sigma',m'})_n
+(v^*_{\mathbf{i},\sigma,m})_n
+}{z-\mathcal{E}_n}
++
+\frac{
+(-v^*_{\mathbf{i}',\sigma',m'})_n
+(u_{\mathbf{i},\sigma,m})_n
+}{z+\mathcal{E}_n}
+\right]
+\end{equation}
+and
+\begin{equation}
+\bar{\mathcal{F}}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)
+=
+\sum_n
+\left[
+\frac{
+(v_{\mathbf{i}',\sigma',m'})_n
+(u^*_{\mathbf{i},\sigma,m})_n
+}{z-\mathcal{E}_n}
++
+\frac{
+(-u^*_{\mathbf{i}',\sigma',m'})_n
+(v_{\mathbf{i},\sigma,m})_n
+}{z+\mathcal{E}_n}
+\right]
+\end{equation}
+The kernels are normalised so that they trace to unity $\Tr \equiv1$.
+It is useful to note the algebraic relations
+\begin{equation}
+\left(\frac{1}{z}\right)^*=\frac{1}{z^*}, \quad\left(wz\right)^*=z^*w^*
+\end{equation}
+for any complex numbers $w,z$. Denote the transpose operation on the Green's function as
+\begin{equation}
+\left[\mathcal{G}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)\right]^\text{T}
+\equiv
+\mathcal{G}_{\sigma',\sigma}^{m',m}\left(z;\mathbf{r}',\mathbf{r}\right).
+\end{equation}
+Then we note some properties of the generalised Nambu-Gor'kov Green's function which follow. Let $\mathcal{G}\left(z\right)\equiv\mathcal{G}_{\sigma,\sigma'}^{m,m'}\left(z;\mathbf{r},\mathbf{r}'\right)$. Then
+\begin{equation}
+\mathcal{G}\left(z\right)
+=
+\left[\mathcal{G}\left(z^*\right)\right]^\dagger
+=
+-\left[\bar{\mathcal{G}}\left(-z\right)\right]^\text{T}
+=
+-\left[\bar{\mathcal{G}}\left(-z^*\right)\right]^*
+\end{equation}
+and
+\begin{equation}
+\mathcal{F}\left(z\right)
+=
+\left[\mathcal{F}\left(-z\right)\right]^\text{T}
+=
+\left[\bar{\mathcal{F}}\left(z^*\right)\right]^\dagger.
+\end{equation}
+The Green's function matrix then becomes
+\begin{equation}
+\bm{\mathcal{G}}\left(z \right) 
+=
+\begin{pmatrix}
+\mathcal{G}\left(z \right) &&
+\mathcal{F}\left(z \right)  \\
+\left[{\mathcal{F}}\left(z^*\right)\right]^\dagger 
+&&
+-\left[{\mathcal{G}}\left(-z\right)\right]^\text{T}
+\end{pmatrix}.
+\end{equation}
+A useful spectral property of Green's functions is that
+\begin{equation}
+\Im\bm{\mathcal{G}}(z^*)=-\Im\bm{\mathcal{G}}(z), \quad
+\Im\bm{\mathcal{G}}^R(\omega)=-\Im\bm{\mathcal{G}}^A(\omega),
+\end{equation}
+where $\bm{\mathcal{G}}^R(\omega)$ and $\bm{\mathcal{G}}^A(\omega)$ are the \textit{retarded} and \textit{advanced} Green's functions, defined by a convergence factor $\epsilon>0$ and $\epsilon<0$, respectively. 
+We define the electron density of states as
+\begin{equation}
+\text{DOS}_{\sigma,\tau}^{m,n}\left(\omega,\mathbf{r}\right)
+\equiv
+ -\frac{1}{\pi}
+ \Im{\mathcal{G}}_{\sigma,\tau}^{R\,m,n}\left(\omega; \mathbf{r}, \mathbf{r}\right),
+\end{equation}
+Similarly, the anomalous density of states is
+\begin{equation}
+\text{ADOS}_{\sigma,\tau}^{m,n}\left(\omega,\mathbf{r}\right)
+\equiv
+ -\frac{1}{\pi}\Im{\mathcal{F}}_{\sigma,\tau}^{R\,m,n}\left(\omega; \mathbf{r}, \mathbf{r}\right),
+\end{equation}
+
+In order to carry out the self-consistent calculation, we must obtain the normal and anomalous densities. These are
+\begin{eqnarray}
+\rho_{\sigma,\sigma'}^{m,m'}\left(\mathbf{r}\right)
+&\equiv&    
+\int^{\omega_F}_{\omega_B}\text{d}\omega
+\left[
+ \Im{\mathcal{G}}_{\sigma,\sigma'}^{R\,m,m'}\left(\omega; \mathbf{r}, \mathbf{r}\right)f(\omega)
+ +
+  \Im{\bar{\mathcal{G}}}_{\sigma,\sigma'}^{R\,m,m'}\left(\omega; \mathbf{r}, \mathbf{r}\right)f(-\omega)
+  \right]\\
+&=&
+\sum_n
+\left[
+(u_{\mathbf{i}',\sigma',m'})_n
+(u^*_{\mathbf{i},\sigma,m})_n
+f_n
++
+(v^*_{\mathbf{i}',\sigma',m'})_n
+(v_{\mathbf{i},\sigma,m})_n
+(1-f_n)
+\right].
+\end{eqnarray}
+and
+\begin{eqnarray}
+\chi_{\sigma,\sigma'}^{m,m'}\left(\mathbf{r}\right)
+&\equiv&
+\frac{1}{2}
+\int^{\omega_F}_{\omega_B}\text{d}\omega
+\left[
+ \Im{\mathcal{F}}_{\sigma,\sigma'}^{R\,m,m'}\left(\omega; \mathbf{r}, \mathbf{r}\right)(1-2f(\omega))
+ +
+  \Im{\bar{\mathcal{F}}}_{\sigma,\sigma'}^{R\,m,m'}\left(\omega; \mathbf{r}, \mathbf{r}\right)(1-2f(\omega))
+  \right]\\
+&=&
+\frac{1}{2}
+\sum_n
+\left[
+(u_{\mathbf{i}',\sigma',m'})_n
+(v^*_{\mathbf{i},\sigma,m})_n
+(1-2f_n)
++
+(-v^*_{\mathbf{i}',\sigma',m'})_n
+(u_{\mathbf{i},\sigma,m})_n
+(2f_n-1)
+\right],
+\end{eqnarray}
+where $\omega_B$ is the bottom of the band and $f$ is the Fermi function. Using the above properties of the Green's functions, at zero temperature $T\rightarrow0$ these become
+\begin{eqnarray}
+\rho_{\sigma,\sigma'}^{m,m'}\left(\mathbf{r}\right)
+&=&
+-\frac{1}{\pi}\int^{\omega_F}_{\omega_B}\text{d}\omega
+ \Im{\mathcal{G}}_{\sigma,\sigma'}^{R\,m,m'}\left(\omega; \mathbf{r}, \mathbf{r}\right)
+\\
+&=&
+\sum_n
+\left[
+(u_{\mathbf{i}',\sigma',m'})_n
+(u^*_{\mathbf{i},\sigma,m})_n
+f_n
+\right]
+\end{eqnarray}
+and
+\begin{eqnarray}
+\chi_{\sigma,\sigma'}^{m,m'}\left(\mathbf{r}\right)
+&=&
+-\frac{1}{2\pi}\int^{\omega_F}_{\omega_B}\text{d}\omega
+\Im
+\left[
+ \mathcal{F}_{\sigma,\sigma'}^{R\,m,m'}\left(\omega; \mathbf{r}, \mathbf{r}\right)
+ +
+  \left[\mathcal{F}_{\sigma,\sigma'}^{A\,m,m'}\left(-\omega; \mathbf{r}, \mathbf{r}\right)\right]^\text{T}
+  \right]
+\\
+&=&
+\frac{1}{2}
+\sum_n
+\left[
+(u_{\mathbf{i}',\sigma',m'})_n
+(v^*_{\mathbf{i},\sigma,m})_n
+-
+(-v^*_{\mathbf{i}',\sigma',m'})_n
+(u_{\mathbf{i},\sigma,m})_n
+\right].
+\end{eqnarray}
+
+\section{Experimental observables}
+\label{sec:general_observables}
+We have laid out our general theory of multiorbital, two-dimensional superconductivity with impurity doping. Indeed, it is due to these impurities that interference patterns emerge, allowing us to visualise quantum matter at the atomic scale.
+Let us review the experimental observables of the theory, as probed via \textit{scanning tunnelling microscopy} (STM). 
+
+\subsection{Density of states}
+Even without impurities, the spectral function is always available to us. Experimentally, the spectrum is given by probing the differential conductance of the sample at a point. That is, electrons tunnel from the sample to the tip of the STM device, modulated by an applied bias voltage $V$
+\begin{equation}
+\frac{\text{d}I}{\text{d}V}\propto \text{DOS}(eV;\mathbf{r}),
+\end{equation}
+where the \textit{density of states} at $\mathbf{r}_0$ is defined as
+\begin{equation}
+\text{DOS}(\omega) \equiv  -\frac{1}{\pi}
+ \Im{\mathcal{G}}^{R}\left(\omega; \mathbf{r}, \mathbf{r}\right)\Big|_{\mathbf{r}=\mathbf{r}_0},
+\end{equation}
+where we define the shorthand for the trace of the Green's function as
+\begin{equation}
+ \mathcal{G}^{R}\left(\omega; \mathbf{r}, \mathbf{r}\right)
+\equiv
+ \sum_{\sigma,m}
+ \mathcal{G}_{\sigma,\sigma}^{R\,m,m}\left(\omega; \mathbf{r}, \mathbf{r}\right).
+\end{equation}
+
+\subsection{Linecut}
+In order to facilitate the study of inhomogeneous samples, we would like to compare the spectrum at several points. Indeed, we can take the spectrum at different points and compare directly. Another possibility is the \textit{linecut} which is the density of states, mapped as the stylus maps along a line e.g. radially outwards from an impurity.
+
+\subsection{Topography}
+In order to capture the \textit{integrated density of states}, a \textit{topography} may be performed, which consists of adjusting the tip height to maintain a constant current at constant bias voltage
+\begin{equation}
+\text{IDOS}(\mathbf{r}, -eV)
+\equiv
+\int^{\omega_F}_{-eV}\text{d}\omega
+\left[
+ \Im{\mathcal{G}}^{R}\left(\omega; \mathbf{r}, \mathbf{r}\right)f(\omega)
+ +
+  \Im{\bar{\mathcal{G}}}^{R}\left(\omega; \mathbf{r}, \mathbf{r}\right)f(-\omega)
+  \right].
+\end{equation}
+
+\subsection{Density of states map}
+The \textit{density of states map} (DOS map) consists of scanning the surface of the sample, obtaining a map of the DOS at each point. This is also known as the \textit{local density of states}
+\begin{equation}
+\text{LDOS}\left({\mathbf r}, \omega\right)
+\equiv
+ \lim_{\epsilon\rightarrow0}\left[
+ -\frac{1}{\pi}\Im
+\hat{\mathcal{G}}^R\left(\mathbf{r}, \mathbf{r}; \omega+i\epsilon \right)
+\right].
+\end{equation}
+
+\subsection{Bogoliubov quasiparticle interference}
+The tunnelling conductance in momentum space $\text{g}(\mathbf{q}, \omega)$ can also be probed. This is known as \textit{Bogoliubov scattering interference amplitude} and is the Fourier transform of the local density of states
+\begin{equation}
+\text{g}(\mathbf{q}, \omega)
+\equiv 
+\text{FT}\left(
+\text{LDOS}(\omega)
+\right).
+\end{equation}
+The intensity of this quantity is known as \textit{Fourier-transform scanning tunnelling spectroscopy} (FT-STS) or \textit{quasiparticle interference} and is defined by
+\begin{equation}
+\text{FT-STS}(\mathbf{q}, \omega)
+\equiv
+|\text{g}(\mathbf{q}, \omega)|.
+\end{equation}
+Impurities in a sample give rise to oscillations in the local density of states. Such \textit{Friedel oscillations} have a characteristic wavelength of half the Fermi wavelength $\lambda_\text{Friedel}=\frac{1}{2}\lambda_\text{Fermi}$, due to the scattering of the quasiparticles at the Fermi surface\footnote{Friedel oscillations are defined at zero applied bias $\omega$. Pedantically, at nonzero bias the oscillations are technically not Friedel oscillations as we are probing quasiparticles away from the Fermi surface.}.
+The quasiparticle interference intensity pattern therefore characterises the Fermi surface. Importantly, it is only a probe of the inner region of the Fermi surface, between $k_x, k_y\in\{-\pi/2,\pi/2\}$. {\color{red}Perhaps add figure explanation}
+
+The particle-hole symmetry of of interband scattering interference patterns depends on the relative sign of the energy gap on those bands. The energy (anti)symmetrised $\rho_\pm(\mathbf{q},\omega)$ phase-resolved Bogoliubov scattering interference amplitudes \cite{Sprau2017} are defined as
+\begin{equation}
+\rho_\pm(\mathbf{q}, \omega) 
+\equiv
+ \Re\left[\text{g}(\mathbf{q}, +\omega)
+\pm 
+\text{g}(\mathbf{q}, -\omega)\right],
+\end{equation}
+which at the $\mathbf{q}$ for interband scattering, have distinct properties depending on the relative sign of the two gaps.
+
+\subsection{Scanned Josephson Tunnelling Microscopy}
+\textit{Cooper pair tunnelling} is observable via \textit{Josephson scanning tunnelling microscopy} (JSTM). In our model, it is defined as the \textit{anomalous density of states}
+\begin{equation}
+\text{ADOS}\left({\mathbf r}, \omega\right)
+\equiv
+ \lim_{\epsilon\rightarrow0}\left[
+ -\frac{1}{\pi}\Im
+\hat{\mathcal{F}}^R\left(\mathbf{r}, \mathbf{r}; \omega+i\epsilon \right)
+\right].
+\end{equation}
+
+\subsection{Gap map}
+Analogously with the normal density of states, we can of course obtain results for the \textit{Cooper pair map} or \textit{gap map} from the \textit{Cooper pair tunnelling} conductance.
+
+\subsection{Cooper pair interference}
+From the gap map, we can of course Fourier transform to the \textit{Cooper pair interference} and obtain the momentum-dependence of the gap. 
+

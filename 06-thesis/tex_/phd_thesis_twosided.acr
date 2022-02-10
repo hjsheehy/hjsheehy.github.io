@@ -1,0 +1,39 @@
+\glossarysection[\glossarytoctitle]{\glossarytitle}\glossarypreamble
+\begin{theglossary}\glossaryheader
+\glsgroupheading{C}\relax \glsresetentrylist %
+\glossentry{CMOS}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\glossentry{CNTFET}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{E}\relax \glsresetentrylist %
+\glossentry{EQCA}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{F}\relax \glsresetentrylist %
+\glossentry{FET}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{I}\relax \glsresetentrylist %
+\glossentry{ICHA}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\glossentry{ITRS}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{L}\relax \glsresetentrylist %
+\glossentry{LED}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{M}\relax \glsresetentrylist %
+\glossentry{MEM}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\glossentry{MEMS}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\glossentry{MOSFET}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\glossentry{MQCA}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{N}\relax \glsresetentrylist %
+\glossentry{NML}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\glossentry{NMOS}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}\glsgroupskip
+\glsgroupheading{Q}\relax \glsresetentrylist %
+\glossentry{QCA}{\glossaryentrynumbers{\relax 
+		\setentrycounter[]{page}\glsnumberformat{xvi}}}%
+\end{theglossary}\glossarypostamble
