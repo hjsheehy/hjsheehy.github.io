@@ -1,0 +1,11 @@
+#PBS -S /bin/bash
+#PBS -l nodes=1:ppn=8
+#PBS -l walltime=00:05:00
+#PBS -l mem=63gb
+
+MAIN=multiorbital-superconductivity/01-main/
+
+cd $MAIN
+
+module load python3
+python3 06-SC-SSH.py active//06-01-phase-diagrams/000_004_1.602_0.000.conf

@@ -235,7 +235,7 @@ class Orbital():
     def __str__(self):
         return "{self.name} orbital"
     
-    def set_effective_nuclear_charge(self,Z:int|float)->float|int:
+    def set_effective_nuclear_charge(self,Z:float)->float:
         self.Z=Z
 
     def _rho(self,r:float)->float:
@@ -252,8 +252,8 @@ class Orbital():
 ###################################################################
 class Atom():
     """An atom, instantiated with a Cartesian position, a name and an empty list of orbitals"""
-    Vectors=list[list[float]]
-    def __init__(self, position:Vectors,name:str):
+#     Vectors=list[list[float]]
+    def __init__(self, position,name:str):
         self.position=position
         self.name=name
         self._index=None
@@ -268,7 +268,7 @@ class Atom():
     def __str__(self):
         return f"{self.name} atom, located at {self.position} with {self.n_orbitals} orbitals: {self.orbitals}"
     
-    def add_orbital(self, orbital:str|type(Orbital)):
+    def add_orbital(self, orbital):
         if type(orbital)==str:
             orbital=Orbital(orbital)
         orbital._index=self._counter
@@ -1631,7 +1631,8 @@ class BogoliubovdeGennes(Tightbinding):
 
         iteration = iter(self)
         
-        for i in tqdm(range(self.max_iterations)):
+#         for i in tqdm(range(self.max_iterations)):
+        for i in range(self.max_iterations):
             
             self.iterations+=1
 

@@ -30,6 +30,8 @@ bdg.add_impurities(V,[0,0],label='V')
 #########################################################
 temperature=0
 absolute_convergence_factor=0.00001
+friction=0.7
+max_iterations=1000
 
 bdg.set_temperature(temperature)
 
@@ -65,13 +67,8 @@ if config_file:
     if layer_no(CONFNAME)==0 and parent_sim==SIM_NAME:
         
         set_mean_fields(state=INITIAL_FIELD)
-        friction=0.7
-        max_iterations=1000
-
     else:
         # i.e. if germ or if perturbation from parent_sim
-        friction=0.7
-        max_iterations=1000
 
         parent_data = os.path.join(DATA,parent_sim,parent_filename+'.npz')
         parent_data = glob.glob(parent_data)

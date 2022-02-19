@@ -63,22 +63,24 @@ Help()
    # Display Help
    echo "Add description of the script functions here."
    echo
-   echo "Syntax: scriptTemplate [-g|h|n|p]"
+   echo "Syntax: scriptTemplate [-g|h|s|n|c|p]"
    echo "options:"
    echo "g     Print the GPL license notification."
    echo "h     Print this Help."
-   echo "n     Select simulation number (format: ##-##)"
+   echo "s     Select simulation number (format: ##-##)"
+   echo "n     Select number of parallel simulations to run. (If c=true, then each simulation is run on a seperate node on the cluster.)"
+   echo "c     supercomputing cluster (PBS)?" 
+   echo "      options: [true|false]"
    echo "p     Optional power option after programme ended."
    echo "      options: [shutdown|sleep]"
    echo
 }
 
+clr=false
 num="" # initialise var
 pwr="init" 
-# cln=false
 
-# while getopts :hgcn:p: flag; do
-while getopts :hgn:p: flag; do
+while getopts :hgs:n:c:p: flag; do
    case ${flag} in
       h) # display Help
          Help
@@ -86,16 +88,234 @@ while getopts :hgn:p: flag; do
       g) # display License
          License
          exit;;
-      # c) cln=true;;
-      n) num=${OPTARG};;
+      s) num=${OPTARG};;
+      n) nodes=${OPTARG};;
+      c) clr=${OPTARG};;
       p) pwr=${OPTARG};;
      \?) echo "Error: Invalid option"
          exit;;
     esac
 done
-####################################################################
-# Main                                                             #
-####################################################################
+
+if $clr; then
+    module load python3
+fi
+
+function Main {
+
+	if [ "$num" = "" ]
+	then
+	    echo "Please supply simulation number (format: -n ##-##) or call -h for help."
+	    exit 2
+	fi
+	modelConf="${num:0:5}"
+	model="${num:0:2}"
+	model=($model*.py)
+	#########################################################
+	#################### power options ######################
+	#########################################################
+	sdn=false
+	slp=false
+
+	if [ $pwr = "sleep" ]; then
+	    echo "Sleeping after completion."
+	    slp=true
+	fi
+
+	if [ $pwr = "shutdown" ]; then
+	    echo "Shutting down after completion."
+	    sdn=true
+	fi
+	##########################################################
+	###################### architecture ######################
+	##########################################################
+	filename=$(basename $confFolder$num*)
+
+	confFolder=$confFolder/$filename
+	confOutFolder=$confFolder/$outFolder
+	dataFolder=$dataFolder/$filename
+	plotFolder=$plotFolder$modelConf
+	figFolder=$figFolder$modelConf
+	activeFolder=$activeFolder/$filename
+	inFolder=$inFolder/$filename
+	# outFolder=$outFolder/$filename
+
+	echo 'Simulation: '$filename
+	read -p 'Continue? [Y/N]' -n 1 -r
+	if [[ $REPLY =~ ^[Nn]$ ]]
+	then
+	    exit 1
+	fi
+
+	mkdir -p $activeFolder $inFolder $confFolder $dataFolder 
+	mkdir -p $confOutFolder 
+
+
+	if [ `ls $inFolder | wc -l` -gt 0 ] 
+	then
+	    if [ `ls $activeFolder | wc -l` -gt 0 ]; then
+		echo -e "Detected simulation was stopped (data in \n${activeFolder})"
+		read -p 'Continue simulation? [Y/N]' -n 1 -r
+		echo
+		if [[ $REPLY =~ ^[Yy]$ ]]
+		then
+		    mv $activeFolder/* $inFolder
+		else
+		    echo `rm -r ${activeFolder}/*`
+		    echo `rm -r ${inFolder}/*`
+		fi
+	    fi
+	fi
+
+	if [ `ls $confOutFolder | wc -l` -gt 0 ] 
+	then
+	echo -e "Configuration files found in\n${confOutFolder}"
+
+	    read -p 'Delete and create new .conf files? [Y/N]' -n 1 -r
+	    echo    # (optional) move to a new line
+	    if [[ $REPLY =~ ^[Yy]$ ]]
+	    then
+		${python} $confFolder/conf.py -s
+	    else
+		if [ `ls $activeFolder | wc -l` -gt 0 ] 
+		then
+		    echo `rm -r ${activeFolder}`
+		fi
+		if [ `ls $inFolder | wc -l` -gt 0 ] 
+		then
+		    echo `rm -r ${inFolder}`
+		fi
+		mkdir -p $confFolder $dataFolder $activeFolder $inFolder 
+	    fi
+	fi    
+
+	if [ `ls $confOutFolder | wc -l` -eq 0 ] 
+	then
+	    echo -e "Configuration out folder empty, located at\n${confOutFolder}"
+	    read -p 'Create .conf files? [Y/N]' -n 1 -r
+	    echo    # (optional) move to a new line
+	    if [[ $REPLY =~ ^[Nn]$ ]]
+	    then
+		echo 'No configuration files. Exiting...'
+		exit 1
+	    else
+	        ${python} $confFolder/conf.py -s
+	    fi
+	fi    
+
+	if [ `ls $dataFolder | wc -l` -gt 0 ] 
+	then
+	    echo -e "Found data (.npz files) at\n${dataFolder}"
+	    read -p 'Delete? [Y/N]' -n 1 -r
+	    echo    # (optional) move to a new line
+	    if [[ $REPLY =~ ^[Yy]$ ]]
+	    then
+		echo `rm -r ${dataFolder}/*`
+	    fi
+	fi
+
+	for fullfile in ${dataFolder}/*.npz
+	do
+	    filename=$(basename -- "$fullfile")
+	    filename="${filename%_*}"
+	    file=${confOutFolder}/$filename*
+	    if [ -f $file ] ; then
+		rm $file
+	    fi
+	done
+	mv $confOutFolder/* $inFolder
+
+	plt=false
+	if [ ${pwr} = 'init' ]
+	then
+	    read -p 'Plot output? [Y/N]' -n 1 -r
+	    echo    # (optional) move to a new line
+	    if [[ $REPLY =~ ^[Yy]$ ]]
+	    then
+		plt=true
+	    fi
+	fi
+
+	########################################################
+	##################### scripting ########################
+	########################################################
+	echo 'Execution beginning...'
+	open_figure=${plt}
+
+	function func {
+	    while [ `ls $inFolder | wc -l` -gt 0 ] ; do
+		grab_name=`ls ${inFolder}/*.conf | head -n 1`
+		grab=`basename ${grab_name}`
+		mv ${inFolder}/${grab} ${activeFolder}/${grab}
+		wait
+		echo "Running ${model} ${grab}"
+
+		if $clr; then
+		    bash qsub_python.sh ${python} ${model} ${activeFolder}/${grab}
+		    while [ -f "${activeFolder}/${grab}" ] ; do
+			sleep 1s
+		    done
+		    
+		else
+		    ${python} ${model} ${activeFolder}/${grab}
+		    wait
+		fi
+
+		echo "Done ${model} ${grab}"
+
+		wait
+
+		if ${plt}
+		then
+		    for plot_script in ${plotFolder}*.py; do
+			${python} $plot_script -s > /dev/null 2>&1 &
+			if ${open_figure}; then
+			    open_figure=false
+			    (echo `xdg-open $figFolder*.pdf` &) &
+			    echo $open_figure &
+			fi
+		    done
+		fi
+	    done
+	}
+	  
+	    for ((i=0 ; i<${nodes} ; i++)); do
+		func &
+		sleep 0.1s
+	    done
+	    wait
+	    rm -r $inFolder $activeFolder
+	    echo "Execution finished"
+	    notify-send "Execution finished"
+
+	    if ! ${plt}
+	    then
+		for plot_script in ${plotFolder}*.py; do
+		    ${python} $plot_script -s > /dev/null 2>&1 &
+		done
+	    fi
+
+	    if ${slp}
+	    then
+		echo "Sleeping in 30 seconds..."
+		echo "[ctrl+c] to cancel."
+		notify-send "Sleeping in 30 seconds..."
+		sleep 30s
+		echo `systemctl suspend`
+	    fi
+
+	    if ${sdn}
+	    then
+		echo "Shuting down in 30 seconds..."
+		echo "[ctrl+c] to cancel."
+		notify-send "Shuting down in 30 seconds..."
+		sleep 30s
+		echo `systemctl poweroff`
+	    fi
+}
+#######################################################
+####################### Main ##########################
+#######################################################
 confFolder=../02-conf/
 dataFolder=../03-data/
 plotFolder=../04-plot/
@@ -103,217 +323,6 @@ figFolder=../05-fig/
 activeFolder=active/
 inFolder=in/
 outFolder=out/
+python=python3
 
-# while getopts n:p flag
-# do
-#     case "${flag}" in
-#         n) num=${OPTARG};;
-#         p) pwr=${OPTARG};;
-#     esac
-# done
-
-if [ "$num" = "" ]
-then
-    echo "Please supply simulation number (format: -n ##-##) or call -h for help."
-    exit 2
-fi
-modelConf="${num:0:5}"
-model="${num:0:2}"
-model=($model*.py)
-#########################################################
-#################### power options ######################
-#########################################################
-sdn=false
-slp=false
-
-if [ $pwr = "sleep" ]; then
-    echo "Sleeping after completion."
-    slp=true
-fi
-
-if [ $pwr = "shutdown" ]; then
-    echo "Shutting down after completion."
-    sdn=true
-fi
-##########################################################
-###################### architecture ######################
-##########################################################
-filename=$(basename $confFolder$num*)
-
-confFolder=$confFolder/$filename
-confOutFolder=$confFolder/$outFolder
-dataFolder=$dataFolder/$filename
-plotFolder=$plotFolder$modelConf
-figFolder=$figFolder$modelConf
-activeFolder=$activeFolder/$filename
-inFolder=$inFolder/$filename
-# outFolder=$outFolder/$filename
-
-echo 'Simulation: '$filename
-read -p 'Continue? [Y/N]' -n 1 -r
-if [[ $REPLY =~ ^[Nn]$ ]]
-then
-    exit 1
-fi
-
-mkdir -p $activeFolder $inFolder $confOutFolder
-
-
-if [ `ls $inFolder | wc -l` -gt 0 ] 
-then
-    if [ `ls $activeFolder | wc -l` -gt 0 ]; then
-        echo -e "Detected simulation was stopped (data in \n${activeFolder})"
-        read -p 'Continue simulation? [Y/N]' -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]
-        then
-            mv $activeFolder/* $inFolder
-        else
-            echo `rm -r ${activeFolder}/*`
-            echo `rm -r ${inFolder}/*`
-        fi
-    fi
-fi
-
-if [ `ls $confOutFolder | wc -l` -gt 0 ] 
-then
-echo -e "Configuration files found in\n${confOutFolder}"
-
-    read -p 'Delete and create new .conf files? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
-        python3 $confFolder/conf.py -s
-    else
-        if [ `ls $activeFolder | wc -l` -gt 0 ] 
-        then
-            echo `rm -r ${activeFolder}`
-        fi
-        if [ `ls $inFolder | wc -l` -gt 0 ] 
-        then
-            echo `rm -r ${inFolder}`
-        fi
-        mkdir -p $confFolder $dataFolder $activeFolder $inFolder 
-    fi
-fi    
-
-if [ `ls $confOutFolder | wc -l` -eq 0 ] 
-then
-    echo -e "Configuration out folder empty, located at\n${confOutFolder}"
-    read -p 'Create .conf files? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Nn]$ ]]
-    then
-        echo 'No configuration files. Exiting...'
-        exit 1
-    else
-    python3 $confFolder/conf.py -s
-    fi
-fi    
-
-if [ `ls $dataFolder | wc -l` -gt 0 ] 
-then
-    echo -e "Found data (.npz files) at\n${dataFolder}"
-    read -p 'Delete? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
-        echo `rm -r ${dataFolder}/*`
-    fi
-fi
-
-for fullfile in ${dataFolder}/*.npz
-do
-    filename=$(basename -- "$fullfile")
-    filename="${filename%_*}"
-    file=${confOutFolder}/$filename*
-    if [ -f $file ] ; then
-        rm $file
-    fi
-done
-mv $confOutFolder/* $inFolder
-
-plt=false
-if [ ${pwr} = 'init' ]
-then
-    read -p 'Plot output? [Y/N]' -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
-        plt=true
-    fi
-fi
-
-########################################################
-##################### scripting ########################
-########################################################
-echo 'Execution beginning...'
-open_figure=${plt}
-
-function func {
-    while [ `ls $inFolder | wc -l` -gt 0 ] ; do
-        grab_name=`ls ${inFolder}/*.conf | head -n 1`
-        grab=`basename ${grab_name}`
-        mv ${inFolder}/${grab} ${activeFolder}/${grab}
-        wait
-        echo "Running ${model} ${grab}"
-        python3 ${model} ${activeFolder}/${grab}
-        wait
-        echo "Done ${model} ${grab}"
-
-        wait
-
-        if ${plt}
-        then
-            for plot_script in ${plotFolder}*.py; do
-                python3 $plot_script -s > /dev/null 2>&1 &
-                if ${open_figure}; then
-                    open_figure=false
-                    (echo `xdg-open $figFolder*.pdf` &) &
-                    echo $open_figure &
-                fi
-            done
-        fi
-    done
-}
-  
-function main {
-    for ((i=0 ; i<$n_parallel ; i++)); do
-        func &
-    done
-    wait
-    rm -r $inFolder $activeFolder
-    echo "Execution finished"
-    notify-send "Execution finished"
-
-    if ! ${plt}
-    then
-        for plot_script in ${plotFolder}*.py; do
-            python3 $plot_script -s > /dev/null 2>&1 &
-        done
-    fi
-
-    if ${slp}
-    then
-        echo "Sleeping in 30 seconds..."
-        echo "[ctrl+c] to cancel."
-        notify-send "Sleeping in 30 seconds..."
-        sleep 30s
-        echo `systemctl suspend`
-    fi
-
-    if ${sdn}
-    then
-        echo "Shuting down in 30 seconds..."
-        echo "[ctrl+c] to cancel."
-        notify-send "Shuting down in 30 seconds..."
-        sleep 30s
-        echo `systemctl poweroff`
-    fi
-}
-
-#######################################################
-####################### Main ##########################
-#######################################################
-n_parallel=1
-main
+Main
