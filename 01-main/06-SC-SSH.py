@@ -64,7 +64,7 @@ def set_mean_fields(state):
 
 if config_file:
     
-    if layer_no(CONFNAME)==0 and parent_sim==SIM_NAME:
+    if layer_no(CONFNAME)==0:
         
         set_mean_fields(state=INITIAL_FIELD)
     else:

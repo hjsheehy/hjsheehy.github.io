@@ -79,6 +79,7 @@ Help()
 clr=false
 num="" # initialise var
 pwr="init" 
+nodes=1
 
 while getopts :hgs:n:c:p: flag; do
    case ${flag} in

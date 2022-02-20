@@ -19,4 +19,4 @@ separation=7
 V=1.213
 parent_sim='06-01*'
 
-create_config_files(INITIAL_FIELDS=INITIAL_FIELDS, xlabel=xlabel, ylabel=ylabel, xmin=xmin, xmax=xmax, dx=dx, ymin=ymin, ymax=ymax, dy=dy, n_layers=n_layers, separation=separation, FILENAME=FILENAME, V=V, parent_sim=parent_sim)
+create_config_files(xlabel=xlabel, ylabel=ylabel, xmin=xmin, xmax=xmax, dx=dx, ymin=ymin, ymax=ymax, dy=dy, n_layers=n_layers, separation=separation, FILENAME=FILENAME, INITIAL_FIELDS=INITIAL_FIELDS, V=V, parent_sim=parent_sim)
