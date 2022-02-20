@@ -1,22 +1,27 @@
 from plt_lib import *
 
 FILENAMES=matrix_filenames()
-xlabel=r'$U_v$'
-ylabel=r'$U_w$'
-interpolation='none'
 
-def plot_phase_diagram():
-    energy=0
+def main():
+
+    xlabel=r'$U_v$'
+    ylabel=r'$U_w$'
+    interpolation='none'
+
     data_dict={
             'Free energy': 0,
             'Magnetism': 1,
-            r'$\overline{|\Delta_T^{\uparrow\uparrow}|}$': 2,
-            r'$\overline{|\Delta_R^{\uparrow\uparrow}|}$': 3,
-            r'Staggered density': 4,
-            r'IPR': 5,
+            r'$\overline{|\Delta_v^{\uparrow\uparrow}|}$': 2,
+            r'$\overline{|\Delta_w^{\uparrow\uparrow}|}$': 3,
+            r'$\overline{|\Delta_v^{\downarrow\downarrow}|}$': 4,
+            r'$\overline{|\Delta_w^{\downarrow\downarrow}|}$': 5,
+            r'Staggered density': 6,
+            r'IPR': 7,
             }
     cmap=['plasma',
             'bwr',
+            'gnuplot',
+            'Greens',
             'gnuplot',
             'Greens',
             'Reds',
@@ -28,7 +33,7 @@ def plot_phase_diagram():
     minmax_x=[]
     minmax_y=[]
 
-    fig, axs = plt.subplots(3, 2, sharex='all', sharey='all')
+    fig, axs = plt.subplots(4, 2, sharex='all', sharey='all')
     
     for i,row in enumerate(FILENAMES):
         for j,filename in enumerate(row):
@@ -43,13 +48,16 @@ def plot_phase_diagram():
 
             data[i,j,0]=model.free_energy[-1]
             data[i,j,1]=model.mean_magnetism(energy=energy)
-            data[i,j,2]=np.mean(model.gorkov(atom_i='A', atom_f='B', orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None))
-            data[i,j,3]=np.mean(model.gorkov(atom_i='B', atom_f='A', orbital_i=None, orbital_f=None, hop_vector=[1,0], spin_i='down', spin_f='up'))
-            data[i,j,4]=model.mean_staggered_density(atom_i='A',atom_f='B',energy=energy)
-            data[i,j,5]=model.IPR_staggered_density(atom_i='A',atom_f='B',energy=energy)
+            data[i,j,2]=np.mean(model.gorkov(atom_i='A', atom_f='B', orbital_i=None, orbital_f=None, hop_vector=None, spin_i='up', spin_f='up'))
+            data[i,j,3]=np.mean(model.gorkov(atom_i='B', atom_f='A', orbital_i=None, orbital_f=None, hop_vector=[1,0], spin_i='up', spin_f='up'))
+            data[i,j,4]=np.mean(model.gorkov(atom_i='A', atom_f='B', orbital_i=None, orbital_f=None, hop_vector=None, spin_i='dn', spin_f='dn'))
+            data[i,j,5]=np.mean(model.gorkov(atom_i='B', atom_f='A', orbital_i=None, orbital_f=None, hop_vector=[1,0], spin_i='dn', spin_f='dn'))
+            data[i,j,6]=model.mean_staggered_density(atom_i='A',atom_f='B',energy=energy)
+            data[i,j,7]=model.IPR_staggered_density(atom_i='A',atom_f='B',energy=energy)
             # data[i,j,5]=model.converged
             if not model.converged:
                 convergence.append([U_v,U_w])
+
     min_x=min(minmax_x)
     max_x=max(minmax_x)
     min_y=min(minmax_y)
@@ -57,18 +65,17 @@ def plot_phase_diagram():
     extent=[min_x,max_x,min_y,max_y]
 
     k=0
-    for i in range(3):
+    for i in range(4):
         for j in range(2):
             im = axs[i,j].imshow(data[...,k].T, interpolation=interpolation, cmap=cmap[k], origin='lower', extent=extent)
-            if i==0:
-                axs[i,j].set(xlabel=xlabel)
-            if j==2:
-                axs[i,j].set(ylabel=ylabel)
             axs[i,j].set(title=list(data_dict)[k])
             divider = make_axes_locatable(axs[i,j])
             cax = divider.append_axes("right", size="5%", pad=0.05)
-
-            x,y=list(np.transpose(convergence))
+            
+            if convergence==[]:
+                x,y=[],[]
+            else:
+                x,y=list(np.transpose(convergence))
             axs[i,j].scatter(x=x, y=y, c='w', marker='s', s=10)
             axs[i,j].set_xlim([min_x,max_x])
             axs[i,j].set_ylim([min_y,max_y])
@@ -76,46 +83,26 @@ def plot_phase_diagram():
 
             k+=1
 
+    # axes labels:
+    fig.add_subplot(111, frameon=False)
+    # hide tick and tick label of the big axis
+    plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
 
-    fig.set_size_inches(w=LATEX_WIDTH, h=5) 
-    plt.savefig(OUTPUT+'SSH-triplet_with_impurity.pdf', bbox_inches = "tight")
+    fig.set_size_inches(w=LATEX_WIDTH, h=6) 
+    plt.savefig(title+'.pdf', bbox_inches = "tight")
 
-def plot_perculation():
-    energy=0
-    data_dict={
-            'Seed': 0,
-            'Layer': 1,
-            }
+def caption():
+    label=[]
+    label.append(r'The phase diagrams for an SSH model with multiorbital, equal-spin superconductivity interaction and no impurity. Two initial pairing fields are given to the self-consistent loop: non-unitary triplet and equal-spin triplet. The solution with the lowest free energy is selected. We observe that the mean-field spin-sectors are equal $\overline{\Delta_{v/w}^{\uparrow\uparrow}}=\overline{\Delta_{v/w}^{\downarrow\downarrow}}$, hence the equal-spin triplet theory is favoured.')
+    text=' '.join(label)
+    with open(title+'.txt', 'w') as f:
+        f.write(text)
 
-    (nx,ny)=np.shape(FILENAMES)
-    nz=len(data_dict)
-    data=np.zeros([nx,ny,nz])
-    for i,row in enumerate(FILENAMES):
-        for j,filename in enumerate(row):
-            globals().update(conf_file(filename))
+title=OUTPUT+'-no_impurity'
+# applied bias for e.g. ldos, staggeed density and IPR
+energy=0
 
-            import _pickle as cPickle
-            with open(filename, 'rb') as f:
-                model = cPickle.load(f)
-
-            data[i,j,0]=filename_seed(filename)
-            data[i,j,1]=filename_layer(filename)
-
-    for i in range(2):
-        fig = plt.figure()
-        axs = fig.add_subplot(111)
-        im = axs.imshow(data[...,i],interpolation=interpolation)
-        axs.set(xlabel=xlabel, ylabel=ylabel)
-        # axs.set(title=list(data_dict)[i])
-        values = np.unique(data[...,i].ravel()).astype(int)
-        colors = [ im.cmap(im.norm(value)) for value in values]
-        # create a patch (proxy artist) for every color 
-        patches = [ mpatches.Patch(color=colors[j], label=f"{list(data_dict)[i]} {values[j]}") for j in range(len(values)) ]
-        # put those patched as legend-handles into the legend
-        plt.legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
-        plt.show()
-        plt.close()
-
-plot_phase_diagram()
-
-# plot_perculation()
+caption()
+main()
