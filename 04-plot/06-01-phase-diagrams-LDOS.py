@@ -17,7 +17,7 @@ def main():
     minmax_x=[]
     minmax_y=[]
 
-    fig, axs = plt.subplots(1, 1, sharex='all', sharey='all')
+    fig, axs = plt.subplots(2, 1, sharex='all', sharey='all')
     
     for filename in np.array(FILENAMES).flatten():
         globals().update(conf_file(filename))
@@ -30,8 +30,10 @@ def main():
         if magnetism>0.05:
             break
 
-    # fig, axs = model.plot_lattice(fig, axs, atoms=None, plot_ldos=False, plot_magnetism=True, scale_factor=100)
-    fig, axs = model.plot_lattice(fig, axs, atoms=None, plot_ldos=True, plot_magnetism=False, scale_factor=10)
+    fig, axs[0] = model.plot_lattice(fig, axs[0], energy=0, atoms=None, plot_ldos=True, plot_magnetism=False, s=8)
+    fig, axs[1] = model.plot_lattice(fig, axs[1], energy=0, atoms=None, plot_ldos=False, plot_magnetism=True, s=8)
+    
+    fig.suptitle(r'SSH with multiorbital triplet pairing')
 
     i=j=k=0
     # im = axs[i,j].imshow(data[k].T, interpolation=interpolation, cmap=cmap[k], origin='lower', extent=extent)
@@ -41,7 +43,14 @@ def main():
     
     # plt.colorbar(im, cax=cax)
 
-    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/10) 
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
+    xlabel=r'$\hat{x}$'
+    ylabel=r'$\hat{y}$'
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
 
 def caption():
     label=[]
@@ -56,5 +65,4 @@ energy=0
 
 # caption()
 main()
-# plt.savefig(title+'.pdf', bbox_inches = "tight")
-plt.show()
+plt.savefig(title+'.pdf', bbox_inches = "tight")

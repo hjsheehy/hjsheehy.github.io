@@ -388,7 +388,7 @@ class CrystalLattice():
             atom=int(atom)
         if type(atom)==str:
             return self._atom_dict[atom]
-        elif type(atom)==int:
+        elif type(atom)==int or isinstance(atom,np.int64):
             if atom==0:
                 return 0
             return atom%self.n_atoms
@@ -887,7 +887,7 @@ If spin!=None: spin polarised"""
         if type(spin)==type(None):
             temp = np.sum(temp,-2)
         else:
-            temp = temp[...,spin,:,:]
+            temp = temp[...,self.spin(spin),:,:]
         if type(energy)==type(None):
             temp = np.sum(temp,-1)
         else:
@@ -1057,14 +1057,58 @@ If spin!=None: spin polarised"""
         
         return fig,ax
 
-    def plot_lattice(self, fig, ax, atoms=None):
-        
+    def plot_lattice(self, fig, ax, energy=None, atoms=None, plot_ldos=False, plot_magnetism=False, s=1):
+
         if type(atoms)==type(None):
             atoms=np.arange(self.n_atoms)
+
+        cmax=[0]
+        cmin=[0]
         
-        for atom in atoms:
-            x,y=self.lattice(atom)
-            ax.scatter(x,y)
+        if plot_magnetism:
+            cmap=cm.seismic
+            label=r'$\langle\hat{\text{M}}\rangle$'
+            cmax=1
+            cmin=-1
+
+        elif plot_ldos:
+            cmap=cm.YlOrRd
+            label=rf'$\hat{{\mathcal{{G}}}}(\omega={energy},\mathbf{{r}})$'
+            cmax=1
+            cmin=0
+            
+        if plot_magnetism:
+            for atom in atoms:
+                x,y=self.lattice(atom)
+                ldos_up = self.local_density_of_states(energy=energy, atom=atom, orbital=None, spin='up')
+                ldos_dn = self.local_density_of_states(energy=energy, atom=atom, orbital=None, spin='dn')
+                ldos=ldos_up-ldos_dn
+                sc = ax.scatter(x,y,s=s, c=ldos, cmap=cmap, vmin=cmin, vmax=cmax)
+
+        elif plot_ldos:
+            for atom in atoms:
+                x,y=self.lattice(atom)
+                ldos = self.local_density_of_states(energy=energy, atom=atom, orbital=None, spin=None)
+                sc = ax.scatter(x,y,s=s, c=ldos, cmap=cmap, vmin=cmin, vmax=cmax)
+
+        else:
+            for atom in atoms:
+                x,y=self.lattice(atom)
+                sc = ax.scatter(x,y,s=s)
+
+        x=np.max(np.abs(self.lattice_vectors[:,0]))
+        y=np.max(np.abs(self.lattice_vectors[:,1]))
+        ax.set_xlim(-0.5*x,x*(self._pieces[0]+0.5))
+        ax.set_ylim(-0.5*y,y*(self._pieces[1]+0.5))
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='2%', pad=0.05)
+        cbar=fig.colorbar(sc,cax=cax)
+
+        ax.annotate(label,
+                    xy=(1, 1), xycoords='axes fraction',
+                    xytext=(-2, -2), textcoords='offset pixels',
+                    horizontalalignment='right',
+                    verticalalignment='top')
 
         # hoppings
         for x in range(self._pieces[0]):
@@ -1202,6 +1246,7 @@ If spin!=None: spin polarised"""
 #                        orb_1=orb_1[:2]
 #                        self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
 #                        self.ax.annotate(text=label, xytext=0.5*(orb_0+orb_1)+(0,0.01), xy=orb_0)
+
 
 
 

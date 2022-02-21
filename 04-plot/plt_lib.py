@@ -4,6 +4,8 @@
 import sys
 import os
 FILENAME=os.path.splitext(os.path.basename(sys.argv[0]))[0]
+FILENAME=FILENAME.split('-')[0:2]
+FILENAME=str('-'.join(FILENAME))
 
 ROOT_DIR = os.path.dirname(
              os.path.dirname(os.path.abspath(__file__)))
@@ -13,10 +15,12 @@ from lib import *
 
 silent=sys.argv[-1]
 
-conf = os.path.join(ROOT_DIR,CONF,FILENAME,OUT)
+conf = os.path.join(ROOT_DIR,CONF,FILENAME+'*',OUT)
+conf = glob.glob(conf)[0]
 
 def conf_file(FILENAME):
-    FILENAME_ = os.path.basename(FILENAME).split('.npz')[0]
+    FILENAME_ = os.path.basename(FILENAME+'*')
+    FILENAME_ = FILENAME_.split('.npz')[0]
     confname = os.path.join(conf,FILENAME_)+'.conf'
     config_module = import_path(os.path.join(MAIN,confname))
     module_dict, to_import = import_all(config_module)
@@ -27,7 +31,7 @@ def conf_file(FILENAME):
 ########################################################
 OUTPUT = os.path.join(ROOT_DIR,FIG,FILENAME)
 
-FILENAMES = glob.glob(DATA+FILENAME+'/*')
+FILENAMES = glob.glob(DATA+FILENAME+'*/*')
 
 def show_then_save(main, caption):
     fig=main()
@@ -102,11 +106,11 @@ def matrix_filenames(filenames=FILENAMES):
         row=[]
         for y in yy:
             filename=f'*_{x:.3f}_{y:.3f}_*'
-            coincident = glob.glob(os.path.join(DATA,FILENAME,filename))
+            coincident = glob.glob(os.path.join(DATA,FILENAME+'*',filename))
             z=minimum_z(coincident)
             filename=f'*{x:.3f}_{y:.3f}_{z}*'
 
-            filename = glob.glob(os.path.join(DATA,FILENAME,filename))[0]
+            filename = glob.glob(os.path.join(DATA,FILENAME+'*',filename))[0]
             row.append(filename)
         col.append(row)
     filenames=col
