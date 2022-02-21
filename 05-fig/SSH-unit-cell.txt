@@ -1,0 +1,1 @@
+The dimer unit cell of the SSH model is depicted, together with hopping parameters $w$ and $v$, as well as the lattice basis $b_0$ and $b_1$. Atoms $A$ and $B$ are colored in blue and orange, respectively.

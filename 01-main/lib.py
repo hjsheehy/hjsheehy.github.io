@@ -916,8 +916,8 @@ If spin!=None: spin polarised"""
         return temp
 
     def staggered_density(self, atom_i, atom_f, energy=None):
-        A=self.local_density_of_states(energy=0, atom=atom_i, orbital=None, spin=None)
-        B=self.local_density_of_states(energy=0, atom=atom_f, orbital=None, spin=None)
+        A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
+        B=self.local_density_of_states(energy=energy, atom=atom_f, orbital=None, spin=None)
         return A-B
 
     def mean_staggered_density(self, atom_i, atom_f, energy=None):
@@ -931,7 +931,6 @@ If spin!=None: spin polarised"""
         stag_density=self.staggered_density(atom_i=atom_i,atom_f=atom_f,energy=energy)
         ipr=np.sum(stag_density)**2/np.sum(np.square(stag_density))
         return ipr
-
 
     def magnetism(self, energy=None, atom=None, orbital=None):
         up=self.local_density_of_states(energy, atom, orbital, spin=self.spin('up'))
@@ -1027,7 +1026,7 @@ If spin!=None: spin polarised"""
         lattice=lattice+self.atom(atom).position
         return lattice.T
 
-    def plot_unit_cell(self, fig, ax, atoms=None):
+    def plot_unit_cell(self, fig, ax, atoms=None, s=1):
         
         if type(atoms)==type(None):
             atoms=np.arange(self.n_atoms)
@@ -1037,7 +1036,7 @@ If spin!=None: spin polarised"""
 
         for atom in atoms:
             x,y=self.lattice(atom,dimensions=dimensions)
-            ax.scatter(x,y)
+            ax.scatter(x,y,s=s)
 
         # basis vectors:
         for i in range(self.n_dimensions): # Two basis vectors are plotted in the plane
@@ -1054,6 +1053,9 @@ If spin!=None: spin polarised"""
             else:
                 ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<-', 'ls': 'dashed'})
             ax.annotate(text=self.hopping_labels[i], xytext=0.5*(B+A)+[0.05,0.05],xy=[0,0])
+
+        ax.set_xlabel(r'x')
+        ax.set_ylabel(r'y')
         
         return fig,ax
 
@@ -1083,12 +1085,14 @@ If spin!=None: spin polarised"""
                 ldos_up = self.local_density_of_states(energy=energy, atom=atom, orbital=None, spin='up')
                 ldos_dn = self.local_density_of_states(energy=energy, atom=atom, orbital=None, spin='dn')
                 ldos=ldos_up-ldos_dn
+                ldos=np.fft.fftshift(ldos,0)
                 sc = ax.scatter(x,y,s=s, c=ldos, cmap=cmap, vmin=cmin, vmax=cmax)
 
         elif plot_ldos:
             for atom in atoms:
                 x,y=self.lattice(atom)
                 ldos = self.local_density_of_states(energy=energy, atom=atom, orbital=None, spin=None)
+                ldos=np.fft.fftshift(ldos,0)
                 sc = ax.scatter(x,y,s=s, c=ldos, cmap=cmap, vmin=cmin, vmax=cmax)
 
         else:
