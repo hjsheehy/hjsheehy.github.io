@@ -53,3 +53,31 @@ The non-unitary spin-triplet extension of the Su-Schrieffer-Heeger model is give
 \end{equation}
 where $U_v$ is the spin-triplet interaction and $U_w$ is a Coulomb repulsion.
 
+The mean-field solution is
+\begin{multline}
+    \hat{\mathcal H}_\text{SSH-triplet}^\text{mf} =  
+    \hat{\mathcal H}_\text{SSH} +
+    \sum_{x=1}^{n_x} \sum_{\sigma\in\{\uparrow,\downarrow\}}
+    \Bigg[
+    \sum_{m\in\{A,B\}}\left[
+    \phi_{x,\sigma, m} \hat c_{x, \sigma, m}^\dagger \hat c_{x, \sigma, m} \right]\\
+    +\Phi_{x,\sigma}^v \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}
+    +\Phi_{x,\sigma}^w \hat c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}
+    +\Delta_{x,\sigma}^v \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}^\dagger 
+    +\Delta_{x,\sigma}^{v\dagger} \hat c_{x, \sigma, B} \hat c_{x, \sigma, A}\\
+    +\Delta_{x,\sigma}^w \hat c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}^\dagger 
+    +\Delta_{x,\sigma}^{w\dagger}
+    \hat c_{x+1, \sigma, A} \hat c_{x, \sigma, B}
+\Bigg],
+\label{eq:one-dimensional_SSH}
+\end{multline}
+where the Hartree, Fock and Gorkov fields are defined as
+\begin{eqnarray}
+\phi_{x,\sigma, m}&=& (U_v-U_w)\hat c_{x, \sigma, m}^\dagger \hat c_{x, \sigma, m}\\
+\Phi_{x,\sigma}^v&=& -U_v \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}\\
+\Phi_{x,\sigma}^w&=&\hat U_w c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}\\
+\Delta_{x,\sigma}^{v}&=& -U_v \hat c_{x, \sigma, B} \hat c_{x, \sigma, A}\\
+\Delta_{x,\sigma}^{v\dagger}&=& U_w \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}^\dagger \\
+\Delta_{x,\sigma}^{v}&=& -U_v \hat c_{x+1, \sigma, A} \hat c_{x, \sigma, B} \\
+\Delta_{x,\sigma}^{w\dagger}&=& U_w \hat c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}^\dagger 
+\end{eqnarray}
