@@ -17,8 +17,6 @@
 \usepackage{hyperref}
 % glossaries comes after hyperref
 \usepackage[nopostdot,nonumberlist,nogroupskip,acronym]{glossaries}
-
-\DeclareMathOperator{\Tr}{Tr}
 \usepackage{grffile} %to prevent . in filename raising errors in graphicx
 \usepackage{subcaption} %subfigures
 \usepackage{epigraph}
@@ -26,14 +24,16 @@
 \makeatletter 
 \makeatother
 \usepackage{float} %to fix figures with [H]
-\newcommand\scalemath[2]{\scalebox{#1}{\mbox{\ensuremath{\displaystyle #2}}}} %scales maths
 \usepackage{enumitem}
 \usepackage{bbold}
 \usepackage{listings}
 \usepackage{layouts}
+\usepackage{import}
+
 \providecommand\print{false}
 \providecommand\fgsr{false}
-\usepackage{import}
+\newcommand\scalemath[2]{\scalebox{#1}{\mbox{\ensuremath{\displaystyle #2}}}} %scales maths
+\DeclareMathOperator{\Tr}{Tr}
 
 % Coloured links
 \pdfoutput=1
@@ -77,10 +77,10 @@
 \newcommand{\createfigure}[2]{
 \begin{figure}
     \begin{center}
-        \includegraphics[width=\linewidth]{ \figurespath#1.pdf }
+        \includegraphics[width=\linewidth]{\figurespath#1.pdf}
     \end{center}
     \caption[#2]{\label{ fig:#1 }
-        \import{\figures}{ \figurespath#1.txt }
+        \import{\figurespath}{#1.txt}
     }
 \end{figure}
 }

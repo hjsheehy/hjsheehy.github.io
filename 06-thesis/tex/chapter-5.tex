@@ -10,22 +10,22 @@ We will consider the effect of a spin-triplet, multiorbital attractive interacti
 
 \section{\label{sec:SSH} Su-Schrieffer-Heeger model}
 The Su-Schrieffer-Heeger model is given by the following Hamiltonian
-\begin{equation}
+\begin{multline}
     \hat{\mathcal H}_\text{SSH} =  
-    \sum_{x=1}^{n_x} \sum_{m\in\{A,B\}} 
+    \sum_{x=1}^{n_x} \sum_{\sigma\in\{\uparrow\downarrow\}} \sum_{m\in\{A,B\}} 
     \left[
--\mu \hat c_{x, m}^\dagger \hat c_{x, m}
+-\mu \hat c_{x, \sigma, m}^\dagger \hat c_{x, \sigma, m}
 \right]
-+V \hat c_{0, m}^\dagger \hat c_{0, m}
-    +
-    \sum_{x=1}^{n_x}
++\sum_{\sigma\in\{\uparrow\downarrow\}} \left[V \hat c_{0, \sigma, m}^\dagger \hat c_{0, \sigma, m}\right]
+    \\+
+    \sum_{x=1}^{n_x} \sum_{\sigma\in\{\uparrow\downarrow\}}
     \left[
-    -v \hat c_{x, A}^\dagger \hat c_{x, B}
-    -w \hat c_{x, B}^\dagger \hat c_{x+1, A}
+    -v \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}
+    -w \hat c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}
     +\text{h.c.}
     \right],
 \label{eq:one-dimensional_SSH}
-\end{equation}
+\end{multline}
 where $\mu$ is the chemical potential, $v$ is the intracell, interorbital hopping parameter, $w$ is the intercell, interorbital hopping and $V$ is an impurity coupling strength. The model boundary conditions are periodic, and therefore, in the topological state, we expect edge modes to arise around the impurity.
 
 We investigate the phases of the model in Figure \ref{fig:SSH-phase-diagram}.
@@ -39,10 +39,10 @@ The non-unitary spin-triplet extension of the Su-Schrieffer-Heeger model is give
 \begin{equation}
     \hat{\mathcal H}_\text{SSH-triplet} =  
     \hat{\mathcal H}_\text{SSH} +
-    \sum_{x=1}^{n_x}
+    \sum_{x=1}^{n_x} \sum_{\sigma\in\{\uparrow,\downarrow\}}
     \left[
-    -U_v \hat c_{x, A}^\dagger \hat c_{x, B}^\dagger \hat c_{x, B} \hat c_{x, A}
-    +U_w \hat c_{x, B}^\dagger \hat c_{x+1, A}^\dagger \hat c_{x+1, A} \hat c_{x, B}
+    -U_v \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}^\dagger \hat c_{x, \sigma, B} \hat c_{x, \sigma, A}
+    +U_w \hat c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}^\dagger \hat c_{x+1, \sigma, A} \hat c_{x, \sigma, B}
 \right],
 \label{eq:one-dimensional_SSH}
 \end{equation}

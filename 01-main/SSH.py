@@ -7,6 +7,7 @@ xmin,xmax,ymin,ymax=min(vv),max(vv),-4,4
 le,lv=401,len(vv)
 mat=np.zeros([lv,le])
 for i,v in enumerate(vv):
+    v=1.41
     #########################################################
     ################# Simple square tb ###################
     #########################################################
@@ -44,6 +45,15 @@ for i,v in enumerate(vv):
 
         mat[i,j]=edge_state
 
+    ##################################################
+
+    fig, axs = plt.subplots(2, 1, sharex='all', sharey='all')
+
+    fig, axs[0] = model.plot_lattice(fig, axs[0], energy=0, atoms=None, plot_ldos=True, plot_magnetism=False, s=100)
+    fig, axs[1] = model.plot_lattice(fig, axs[1], energy=0, atoms=None, plot_ldos=False, plot_magnetism=True, s=100)
+    plt.show()
+    exit()
+
 
 fig, axs = plt.subplots(1, 1, sharex='all', sharey='all')
 
@@ -57,7 +67,7 @@ fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH)
 title=r'normal-SSH-phase-diagram'
 title=os.path.join(FIG,title)
 plt.savefig(title+'.pdf', bbox_inches = "tight")
-text=rf'Phase diagram of the SSH model in the normal state with $\mu/w={mu}$. The mean value of the local density of states in plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$.'
+text=rf'Phase diagram of the SSH model in the normal state with $\mu/w={mu}$. The mean value of the local density of states in plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. The effect of the chemical potential is to shift the phase boundary vertically. The impurity shifts the phase boundary on a single site.'
 with open(title+'.txt', 'w') as f:
     f.write(text)
 
