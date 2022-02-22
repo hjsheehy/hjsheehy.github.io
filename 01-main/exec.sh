@@ -254,7 +254,7 @@ function Main {
 		if $clr; then
 		    bash qsub_python.sh ${python} ${model} ${activeFolder}/${grab}
 		    while [ -f "${activeFolder}/${grab}" ] ; do
-			sleep 1s
+			sleep .$[ ( $RANDOM % 4 ) + 1 ]s
 		    done
 		    
 		else
@@ -282,7 +282,7 @@ function Main {
 	  
 	    for ((i=0 ; i<${nodes} ; i++)); do
 		func &
-		sleep 0.1s
+		sleep 2s
 	    done
 	    wait
 	    rm -r $inFolder $activeFolder
