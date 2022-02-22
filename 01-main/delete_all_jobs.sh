@@ -1,3 +1,3 @@
 #!/bin/bash
 
-select -u hjs40 | xargs qdel
+qselect -u hjs40 | xargs qdel

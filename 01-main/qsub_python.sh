@@ -7,11 +7,10 @@ echo '#PBS -S /bin/bash
 #PBS -l walltime=00:05:00
 #PBS -l mem=63gb
 
-MAIN=multiorbital-superconductivity/01-main/
-
-cd $MAIN
-
 module load python3
+
+cd multiorbital-superconductivity/01-main/
+
 '$@>qsub_python.pbs
 
 exec qsub qsub_python.pbs
