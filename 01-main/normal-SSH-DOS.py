@@ -48,18 +48,18 @@ for i,v in enumerate(vv):
 fig, axs = plt.subplots(1, 1, sharex='all', sharey='all')
 
 im=axs.imshow(mat.T,extent=[xmin,xmax,ymin,ymax], origin='lower')
-plt.title(r'Normal SSH')
+plt.title(rf'Normal SSH $\overline{{\hat{{\mathcal{{G}}}}(\omega)}}$')
 divider = make_axes_locatable(axs)
 cax = divider.append_axes('right', size='5%', pad=0.05)
 cbar=fig.colorbar(im,cax=cax)
 axs.set_xlabel(r'$v/w$')
-axs.set_ylabel(rf'$\overline{{\hat{{\mathcal{{G}}}}(\omega)}}$')
+axs.set_ylabel(rf'$\omega$')
 
 fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
 title=r'normal-SSH-phase-diagram'
 title=os.path.join(FIG,title)
 plt.savefig(title+'.pdf', bbox_inches = "tight")
-text=rf'Phase diagram of the SSH model in the normal state with $\mu/w={mu}$. The density of states are plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. The topological transition occurs at $v/w=1$. The effect of the chemical potential is to shift the phase boundary, whereas the impurity shifts the phase boundary on a single site, which we observe as a faint line in the density of states, shifted by $V={V}$.'
+text=rf'Phase diagram of the SSH model in the normal state with $\mu/w={mu}$. The density of states are plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. The topological transition occurs at $v/w=1$ and notice the faint density at $\omega=0$ below the transition point, due to the edge states. The effect of the chemical potential is to shift the phase boundary, whereas a small impurity shifts the phase boundary on a single site, a large impurity coupling $V={V}$ gaps out any modes on the middle site.'
 with open(title+'.txt', 'w') as f:
     f.write(text)
 
