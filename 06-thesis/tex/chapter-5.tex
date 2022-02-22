@@ -9,7 +9,7 @@ the boundaries, characterised by a {\it winding number}.
 We will consider the effect of a spin-triplet, multiorbital attractive interaction within the unit cell, and a Coulomb repulsion to nearest-neighbours outside of the unit cell.
 
 \section{\label{sec:SSH} Su-Schrieffer-Heeger model}
-The Su-Schrieffer-Heeger model is given by the following Hamiltonian
+The Su-Schrieffer-Heeger model with additional spin degrees of freedom is given by the following Hamiltonian
 \begin{multline}
     \hat{\mathcal H}_\text{SSH} =  
     \sum_{x=1}^{n_x} \sum_{\sigma\in\{\uparrow\downarrow\}} \sum_{m\in\{A,B\}} 
@@ -27,12 +27,17 @@ The Su-Schrieffer-Heeger model is given by the following Hamiltonian
 \label{eq:one-dimensional_SSH}
 \end{multline}
 where $\mu$ is the chemical potential, $v$ is the intracell, interorbital hopping parameter, $w$ is the intercell, interorbital hopping and $V$ is an impurity coupling strength. The model boundary conditions are periodic, and therefore, in the topological state, we expect edge modes to arise around the impurity.
+In the trivial state, with $v>w$, the unit cell has the strucure displayed in Figure \ref{fig:SSH-unit-cell}.
 
-We investigate the phases of the model in Figure \ref{fig:SSH-phase-diagram}.
+We investigate the phases of the model in Figure \ref{fig:normal-SSH-phase-diagram}.
 
-\createfigure{SSH-unit-cell}{fig:SSH-unit-cell}
+\createfigure{SSH-unit-cell}{SSH unit cell}
 
-\createfigure{normal-SSH-phase-diagram}{fig:normal-SSH-phase-diagram}
+\createfigure{normal-SSH-phase-diagram}{Normal SSH phase diagram}
+
+\createfigure{normal-SSH-LDOS-zero}{Normal SSH LDOS}
+
+\createfigure{normal-SSH-LDOS-nonzero}{Normal SSH LDOS}
 
 \section{\label{sec:spin-triplet_SSH} Non-unitary spin-triplet Su-Schrieffer-Heeger model}
 The non-unitary spin-triplet extension of the Su-Schrieffer-Heeger model is given by
@@ -47,3 +52,4 @@ The non-unitary spin-triplet extension of the Su-Schrieffer-Heeger model is give
 \label{eq:one-dimensional_SSH}
 \end{equation}
 where $U_v$ is the spin-triplet interaction and $U_w$ is a Coulomb repulsion.
+

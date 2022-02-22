@@ -1,13 +1,11 @@
 from lib import *
-V=1.28
+V=10.28
 w=1
 vv=np.arange(0,4,0.02)
-# vv=np.arange(0,4,2.1)
-xmin,xmax,ymin,ymax=min(vv),max(vv),-4,4
+xmin,xmax,ymin,ymax=min(vv),max(vv),-2,2
 le,lv=401,len(vv)
 mat=np.zeros([lv,le])
 for i,v in enumerate(vv):
-    v=1.41
     #########################################################
     ################# Simple square tb ###################
     #########################################################
@@ -20,7 +18,7 @@ for i,v in enumerate(vv):
     tb.add_atom(A)
     tb.add_atom(B)
     tb.n_spins=2
-    mu=-0.57
+    mu=0
 
     n_cells=43
 
@@ -33,33 +31,27 @@ for i,v in enumerate(vv):
 
     tb.solve()
 
-    energy_interval=np.linspace(xmin,xmax,le)
+    energy_interval=np.linspace(ymin,ymax,le)
     resolution=0.1
     tb.calculate_greens_function(energy_interval,resolution)
 
     model=tb
     
     for j,energy in enumerate(energy_interval):
-        edge_state=tb.local_density_of_states(energy=energy, atom=None, orbital=None)
-        edge_state=np.mean(edge_state)
+        ldos=tb.local_density_of_states(energy=energy, atom=None, orbital=None)
+        dos=np.mean(ldos)
 
-        mat[i,j]=edge_state
+        mat[i,j]=dos
 
     ##################################################
-
-    fig, axs = plt.subplots(2, 1, sharex='all', sharey='all')
-
-    fig, axs[0] = model.plot_lattice(fig, axs[0], energy=0, atoms=None, plot_ldos=True, plot_magnetism=False, s=100)
-    fig, axs[1] = model.plot_lattice(fig, axs[1], energy=0, atoms=None, plot_ldos=False, plot_magnetism=True, s=100)
-    plt.show()
-    exit()
-
 
 fig, axs = plt.subplots(1, 1, sharex='all', sharey='all')
 
 im=axs.imshow(mat.T,extent=[xmin,xmax,ymin,ymax], origin='lower')
-cbar = fig.colorbar(im)
 plt.title(r'Normal SSH')
+divider = make_axes_locatable(axs)
+cax = divider.append_axes('right', size='5%', pad=0.05)
+cbar=fig.colorbar(im,cax=cax)
 axs.set_xlabel(r'$v/w$')
 axs.set_ylabel(rf'$\overline{{\hat{{\mathcal{{G}}}}(\omega)}}$')
 
@@ -67,7 +59,7 @@ fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH)
 title=r'normal-SSH-phase-diagram'
 title=os.path.join(FIG,title)
 plt.savefig(title+'.pdf', bbox_inches = "tight")
-text=rf'Phase diagram of the SSH model in the normal state with $\mu/w={mu}$. The mean value of the local density of states in plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. The effect of the chemical potential is to shift the phase boundary vertically. The impurity shifts the phase boundary on a single site.'
+text=rf'Phase diagram of the SSH model in the normal state with $\mu/w={mu}$. The density of states are plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. The topological transition occurs at $v/w=1$. The effect of the chemical potential is to shift the phase boundary, whereas the impurity shifts the phase boundary on a single site, which we observe as a faint line in the density of states, shifted by $V={V}$.'
 with open(title+'.txt', 'w') as f:
     f.write(text)
 

@@ -1054,8 +1054,8 @@ If spin!=None: spin polarised"""
                 ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<-', 'ls': 'dashed'})
             ax.annotate(text=self.hopping_labels[i], xytext=0.5*(B+A)+[0.05,0.05],xy=[0,0])
 
-        ax.set_xlabel(r'x')
-        ax.set_ylabel(r'y')
+        ax.set_xlabel(r'$\hat{x}$')
+        ax.set_ylabel(r'$\hat{y}$')
         
         return fig,ax
 
