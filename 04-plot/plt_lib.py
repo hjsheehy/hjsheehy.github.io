@@ -1,19 +1,4 @@
 
-##### plotting libraries #####
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-from matplotlib.ticker import MaxNLocator
-import matplotlib.cm as cm
-import matplotlib.lines as mlines
-import matplotlib.ticker as mtick
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
-plt.rcParams['text.latex.preamble']=r"\usepackage{amsmath}"
-from matplotlib.offsetbox import AnchoredText
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import matplotlib.patches as mpatches
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 ########################################################
 ######################### Import #######################
 ########################################################
