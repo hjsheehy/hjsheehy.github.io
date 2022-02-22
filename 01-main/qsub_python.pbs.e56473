@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "06-SC-SSH.py", line 115, in <module>
+    save_data(bdg_model=bdg, CONFNAME=CONFNAME, SIM_NAME=SIM_NAME)
+  File "/home/hjs40/multiorbital-superconductivity/01-main/phase_diagram.py", line 20, in save_data
+    os.rename(inConf,outConf)
+FileNotFoundError: [Errno 2] No such file or directory: '01-main/active/06-02-phase-diagram-impurity/001_002_0.000_2.577.conf' -> '02-conf/06-02-phase-diagram-impurity/out/001_002_0.000_2.577_-1.4168000332144803.conf'
