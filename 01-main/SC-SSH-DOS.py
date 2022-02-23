@@ -3,7 +3,7 @@ Uvs=[0, 2,   2.5, 3.8, 1.2, 1.2]
 Uws=[0, 1.1, 1.1, 1.1, 0.4, 2.1]
 V=20.28
 w=1
-vv=np.arange(0,4,0.5)
+vv=np.arange(0,4,0.02)
 xmin,xmax,ymin,ymax=min(vv),max(vv),-2,2
 le,lv=401,len(vv)
 mat=np.zeros([4,6,lv,le])
@@ -45,7 +45,7 @@ for kk in range(6):
         #########################################################
         temperature=0
         absolute_convergence_factor=0.00001
-        friction=0.9
+        friction=0.7
         max_iterations=1000
 
         bdg.set_temperature(temperature)

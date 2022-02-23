@@ -7,4 +7,4 @@ module load python3
 
 cd multiorbital-superconductivity/01-main/
 
-python3 06-SC-SSH.py active//06-02-phase-diagram-impurity/005_015_4.605_3.171.conf
+python3 06-SC-SSH.py active//06-01-phase-diagrams/002_017_0.502_1.976.conf

@@ -12,10 +12,10 @@ from phase_diagram import *
 INITIAL_FIELDS=['INT','unitary']
 xlabel='U_v'
 ylabel='U_w'
-xmin,xmax,dx=0.000,4.423,0.2002
-ymin,ymax,dy=0.000,4.312,0.1982
+xmin,xmax,dx=0.000,4.423,0.0502
+ymin,ymax,dy=0.000,4.312,0.0482
 n_layers=6
-separation=7
+separation=8
 V=0
 parent_sim=FILENAME
 
