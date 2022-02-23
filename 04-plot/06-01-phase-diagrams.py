@@ -47,13 +47,13 @@ def main():
             minmax_y.append(U_w)
 
             data[i,j,0]=model.free_energy[-1]
-            data[i,j,1]=model.mean_magnetism(energy=energy)
+            data[i,j,1]=model.mean_abs_magnetism(energy=energy)
             data[i,j,2]=np.mean(model.gorkov(atom_i='A', atom_f='B', orbital_i=None, orbital_f=None, hop_vector=None, spin_i='up', spin_f='up'))
             data[i,j,3]=np.mean(model.gorkov(atom_i='B', atom_f='A', orbital_i=None, orbital_f=None, hop_vector=[1,0], spin_i='up', spin_f='up'))
             data[i,j,4]=np.mean(model.gorkov(atom_i='A', atom_f='B', orbital_i=None, orbital_f=None, hop_vector=None, spin_i='dn', spin_f='dn'))
             data[i,j,5]=np.mean(model.gorkov(atom_i='B', atom_f='A', orbital_i=None, orbital_f=None, hop_vector=[1,0], spin_i='dn', spin_f='dn'))
-            data[i,j,6]=model.mean_staggered_density(atom_i='A',atom_f='B',energy=energy)
-            data[i,j,7]=model.IPR_staggered_density(atom_i='A',atom_f='B',energy=energy)
+            data[i,j,6]=model.mean_abs_staggered_density(atom_i='A',atom_f='B',energy=energy)
+            data[i,j,7]=model.IPR_abs_staggered_density(atom_i='A',atom_f='B',energy=energy)
             # data[i,j,5]=model.converged
             if not model.converged:
                 convergence.append([U_v,U_w])
@@ -100,7 +100,7 @@ def caption():
     with open(title+'.txt', 'w') as f:
         f.write(text)
 
-title=OUTPUT+'-no_impurity'
+title=OUTPUT+'-phase-diagram-no_impurity'
 # applied bias for e.g. ldos, staggered density and IPR
 energy=0
 
