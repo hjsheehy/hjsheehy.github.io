@@ -78,7 +78,7 @@ def create_layer_coords(seed_coord, layer_index, xmin, xmax, dx, ymin, ymax, dy,
         return []
     coords=np.multiply(coords,[dx,dy])
     coords=coords+np.array(seed_coord)
-    coords = np.array([coord for coord in coords if (xmin-dx<coord[0]<xmax+dx and ymin-dy<coord[1]<ymax+dy)])
+    coords = np.array([coord for coord in coords if (xmin+dx<coord[0]<xmax-dx and ymin+dy<coord[1]<ymax-dy)])
     return coords
 
 def create_seed(seed_index, seed_coord, INITIAL_FIELD, xlabel, ylabel, output_folder, V, parent_sim):
