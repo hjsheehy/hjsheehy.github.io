@@ -1,0 +1,1 @@
+Mean value of the local density of states. Phase diagram of the SSH model in the superconducting state with $\mu/w=0$. The density of states are plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. A large impurity coupling $V=20.28$ breaks the periodic boundary conditions.

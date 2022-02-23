@@ -920,16 +920,17 @@ If spin!=None: spin polarised"""
         B=self.local_density_of_states(energy=energy, atom=atom_f, orbital=None, spin=None)
         return A-B
 
-    def mean_staggered_density(self, atom_i, atom_f, energy=None):
+    def mean_abs_staggered_density(self, atom_i, atom_f, energy=None):
         den=self.staggered_density(atom_i,atom_f,energy)
+        den=np.abs(den)
         for i in range(self.n_dimensions):
             den=np.sum(den,axis=0)
         den=den/self.n_cells
         return den
 
-    def IPR_staggered_density(self, atom_i, atom_f, energy=None):
+    def IPR_abs_staggered_density(self, atom_i, atom_f, energy=None):
         stag_density=self.staggered_density(atom_i=atom_i,atom_f=atom_f,energy=energy)
-        ipr=np.sum(stag_density)**2/np.sum(np.square(stag_density))
+        ipr=np.sum(np.abs(stag_density))**2/np.sum(np.square(stag_density))
         return ipr
 
     def magnetism(self, energy=None, atom=None, orbital=None):
@@ -937,8 +938,9 @@ If spin!=None: spin polarised"""
         dn=self.local_density_of_states(energy, atom, orbital, spin=self.spin('down'))
         return up-dn
 
-    def mean_magnetism(self, energy=None, atom=None, orbital=None):
+    def mean_abs_magnetism(self, energy=None, atom=None, orbital=None):
         magnetism=self.magnetism(energy, atom, orbital)
+        magnetism=np.abs(magnetism)
         for i in range(self.n_dimensions):
             magnetism=np.sum(magnetism,axis=0)
         magnetism=magnetism/self.n_cells

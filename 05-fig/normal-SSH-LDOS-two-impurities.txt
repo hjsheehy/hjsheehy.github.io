@@ -1,0 +1,1 @@
+The local density of states and magnetism of the SSH model in the normal state with two impurites with strong coupling strengths $V=20.28$ at $x=\pm11$. Curiously, a kink forms in the middle $x=0$, where there is no impurity.

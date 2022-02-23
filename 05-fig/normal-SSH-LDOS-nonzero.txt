@@ -1,1 +1,1 @@
-The local density of states and magnetism of the SSH model in the normal state with chemical potential $\mu=-0.57$ and strong impurity coupling strength $V=10.28$ on the middle site. Away from zero chemical potential, we observe a charge density wave in the topological phase.
+The local density of states and magnetism of the SSH model in the normal state with chemical potential $\mu=-0.57$ and strong impurity coupling strength $V=20.28$ on the middle site. Away from zero chemical potential, we observe a charge density wave in the topological phase.

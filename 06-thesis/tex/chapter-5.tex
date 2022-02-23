@@ -8,7 +8,7 @@ In the topologically non-trivial phase, a pair of edge states emerges at
 the boundaries, characterised by a {\it winding number}. 
 We will consider the effect of a spin-triplet, multiorbital attractive interaction within the unit cell, and a Coulomb repulsion to nearest-neighbours outside of the unit cell.
 
-\section{\label{sec:SSH} Su-Schrieffer-Heeger model}
+\section{\label{sec:SSH} Su-Schrieffer-Heeger model with spin}
 The Su-Schrieffer-Heeger model with additional spin degrees of freedom is given by the following Hamiltonian
 \begin{multline}
     \hat{\mathcal H}_\text{SSH} =  
@@ -29,15 +29,17 @@ The Su-Schrieffer-Heeger model with additional spin degrees of freedom is given 
 where $\mu$ is the chemical potential, $v$ is the intracell, interorbital hopping parameter, $w$ is the intercell, interorbital hopping and $V$ is an impurity coupling strength. The model boundary conditions are periodic, and therefore, in the topological state, we expect edge modes to arise around the impurity.
 In the trivial state, with $v>w$, the unit cell has the strucure displayed in Figure \ref{fig:SSH-unit-cell}.
 
-We investigate the phases of the model in Figure \ref{fig:normal-SSH-phase-diagram}.
+We investigate the phases of the model in Figure \ref{fig:normal-SSH-phase-diagram}. Importantly, we may have naivly expected the addition of a spin quantum number to the SSH to be trivial i.e. simply doubling the degrees of freedom of the original SSH model. Performing the calculation, however, reveals nontrivial magnetic effects at $\mu=0$.
 
 \createfigure{SSH-unit-cell}{SSH unit cell}
 
-\createfigure{normal-SSH-phase-diagram}{Normal SSH phase diagram}
+\createfigure{normal-SSH-phase-diagram}{Normal SSH phase diagram with magnetism, staggered density and IPR.}
 
 \createfigure{normal-SSH-LDOS-zero}{Normal SSH LDOS}
 
 \createfigure{normal-SSH-LDOS-nonzero}{Normal SSH LDOS}
+
+\createfigure{normal-SSH-LDOS-two-impurities}{Normal SSH LDOS two impurities}
 
 \section{\label{sec:spin-triplet_SSH} Non-unitary spin-triplet Su-Schrieffer-Heeger model}
 The non-unitary spin-triplet extension of the Su-Schrieffer-Heeger model is given by
@@ -73,7 +75,7 @@ The mean-field solution is
 \end{multline}
 where the Hartree, Fock and Gorkov fields are defined as
 \begin{eqnarray}
-\phi_{x,\sigma, m}&=& (U_v-U_w)\hat c_{x, \sigma, m}^\dagger \hat c_{x, \sigma, m}\\
+\phi_{x,\sigma, m}&=& (U_w-U_v)\hat c_{x, \sigma, m}^\dagger \hat c_{x, \sigma, m}\\
 \Phi_{x,\sigma}^v&=& -U_v \hat c_{x, \sigma, A}^\dagger \hat c_{x, \sigma, B}\\
 \Phi_{x,\sigma}^w&=&\hat U_w c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}\\
 \Delta_{x,\sigma}^{v}&=& -U_v \hat c_{x, \sigma, B} \hat c_{x, \sigma, A}\\
@@ -81,3 +83,8 @@ where the Hartree, Fock and Gorkov fields are defined as
 \Delta_{x,\sigma}^{v}&=& -U_v \hat c_{x+1, \sigma, A} \hat c_{x, \sigma, B} \\
 \Delta_{x,\sigma}^{w\dagger}&=& U_w \hat c_{x, \sigma, B}^\dagger \hat c_{x+1, \sigma, A}^\dagger 
 \end{eqnarray}
+
+\createfigure{Spin-triplet-SSH-LDOS}{Spin-triplet SSH LDOS}
+\createfigure{Spin-triplet-SSH-magnetism}{Spin-triplet SSH magnetism}
+\createfigure{Spin-triplet-SSH-staggered}{Spin-triplet SSH staggered density}
+\createfigure{Spin-triplet-SSH-IPR}{Spin-triplet SSH IPR}

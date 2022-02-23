@@ -1,5 +1,5 @@
 from lib import *
-V=10.28
+V=20.28
 w=1
 vv=np.arange(0,4,0.02)
 # vv=np.arange(0,4,2.1)
@@ -41,10 +41,8 @@ for j,mu in enumerate(muu):
         resolution=0.1
         tb.calculate_greens_function(energy_interval,resolution)
 
-        model=tb
-
-        fig, axs[0+2*i] = model.plot_lattice(fig, axs[0+2*i], energy=0, atoms=None, plot_ldos=True, plot_magnetism=False, s=10)
-        fig, axs[1+2*i] = model.plot_lattice(fig, axs[1+2*i], energy=0, atoms=None, plot_ldos=False, plot_magnetism=True, s=10)
+        fig, axs[0+2*i] = tb.plot_lattice(fig, axs[0+2*i], energy=0, atoms=None, plot_ldos=True, plot_magnetism=False, s=10)
+        fig, axs[1+2*i] = tb.plot_lattice(fig, axs[1+2*i], energy=0, atoms=None, plot_ldos=False, plot_magnetism=True, s=10)
         label=phase[i]+': '+rf'$v/w={vv[i]}$'   
         axs[2*i].annotate(label,
                     xy=(0, 1), xycoords='axes fraction',
