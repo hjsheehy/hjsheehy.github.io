@@ -3,7 +3,7 @@ Uvs=[0, 2,   2.5, 3.8, 1.2, 1.2]
 Uws=[0, 1.1, 1.1, 1.1, 0.4, 2.1]
 V=20.28
 w=1
-vv=np.arange(0,4,0.02)
+vv=np.arange(0,4,0.2)
 xmin,xmax,ymin,ymax=min(vv),max(vv),-2,2
 le,lv=401,len(vv)
 mat=np.zeros([4,6,lv,le])
@@ -14,6 +14,7 @@ save_title=[r'Spin-triplet-SSH-LDOS',r'Spin-triplet-SSH-magnetism',r'Spin-triple
 cmap=['Blues','Reds','Greens','RdPu']
 
 for kk in range(6):
+    print(kk)
     U_v=Uvs[kk]
     U_w=Uws[kk]
     INITIAL_FIELD='unitary'
@@ -108,9 +109,8 @@ for kk in range(6):
             mat[3,kk,i,j]=mag
     ##################################################
 
-
 for k in range(4):
-    fig, axs = plt.subplots(2, 2, sharex='all', sharey='all')
+    fig, axs = plt.subplots(2, 3, sharex='all', sharey='all')
     vmin=np.min(mat[k])
     vmax=np.max(mat[k])
     for ix in range(2):
@@ -140,5 +140,3 @@ for k in range(4):
     text=TITLES[k]+rf'Phase diagram of the SSH model in the superconducting state with $\mu/w={mu}$. A large impurity coupling $V={V}$ breaks the periodic boundary conditions.'
     with open(TITLE+'.txt', 'w') as f:
         f.write(text)
-
-
