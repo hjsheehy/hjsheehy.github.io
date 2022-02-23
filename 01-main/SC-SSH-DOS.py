@@ -9,7 +9,7 @@ le,lv=401,len(vv)
 mat=np.zeros([4,6,lv,le])
 
 title=[rf'$\overline{{\hat{{\mathcal{{G}}}}(\omega)}}$',r'$\overline{\langle|\hat{M}|\rangle}$',r'$\overline{|\text{Staggered density}|}$',r'$\text{IPR}(|\text{Staggered density}|)$']
-TITLES=[r'Mean value of the local density of states. The density of states are plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. ', r'Mean absolute value of magnetism. We make the observation that the triplet and Coulomb interactions have the effect of shifting the topological states away from zero-energy, but, importantly, do not shift the transition point away from $v=w$.', r'Mean staggered density. ', r'Inverse participation ratio of the staggered density, as a measure of correlation distance of the charge density wave. ']
+TITLES=[r'Density of states plotted as a function of the applied bias energy $\omega$ and intracell, interorbital hopping parameter $v/w$. ', r'Mean absolute value of magnetism. We make the observation that the triplet and Coulomb interactions have the effect of shifting the topological states away from zero-energy, but, importantly, do not shift the transition point away from $v=w$.', r'Mean staggered density. ', r'Inverse participation ratio of the staggered density, as a measure of correlation distance of the charge density wave. ']
 save_title=[r'Spin-triplet-SSH-LDOS',r'Spin-triplet-SSH-magnetism',r'Spin-triplet-SSH-staggered',r'Spin-triplet-SSH-IPR']
 cmap=['Blues','Reds','Greens','RdPu']
 

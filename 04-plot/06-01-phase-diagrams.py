@@ -10,22 +10,22 @@ def main():
 
     data_dict={
             'Free energy': 0,
-            'Magnetism': 1,
-            r'$\overline{|\Delta_v^{\uparrow\uparrow}|}$': 2,
-            r'$\overline{|\Delta_w^{\uparrow\uparrow}|}$': 3,
-            r'$\overline{|\Delta_v^{\downarrow\downarrow}|}$': 4,
-            r'$\overline{|\Delta_w^{\downarrow\downarrow}|}$': 5,
-            r'Staggered density': 6,
-            r'IPR': 7,
+            r'$\overline{|\hat{\text{M}}|}$': 1,
+            r'$\overline{|\Delta^v_{\uparrow}|}$': 2,
+            r'$\overline{|\Delta^w_{\uparrow}|}$': 3,
+            r'$\overline{|\Delta^v_{\downarrow}|}$': 4,
+            r'$\overline{|\Delta^w_{\downarrow}|}$': 5,
+            r'$\overline{|\text{Staggered density}|}$': 6,
+            r'IPR$(|\text{Staggered density}|)$': 7,
             }
     cmap=['plasma',
-            'bwr',
-            'gnuplot',
-            'Greens',
-            'gnuplot',
-            'Greens',
             'Reds',
-            'Blues']
+            'tab20b',
+            'tab20b',
+            'tab20b',
+            'tab20b',
+            'Greens',
+            'RdPu']
     (nx,ny)=np.shape(FILENAMES)
     nz=len(data_dict)
     data=np.zeros([nx,ny,nz])
@@ -95,12 +95,12 @@ def main():
 
 def caption():
     label=[]
-    label.append(r'The phase diagrams for an SSH model with multiorbital, equal-spin superconductivity interaction and no impurity. Two initial pairing fields are given to the self-consistent loop: non-unitary triplet and equal-spin triplet. The solution with the lowest free energy is selected. We observe that the mean-field spin-sectors are equal $\overline{\Delta_{v/w}^{\uparrow\uparrow}}=\overline{\Delta_{v/w}^{\downarrow\downarrow}}$, hence the equal-spin triplet theory is favoured.')
+    label.append(r'The phase diagrams for an SSH model with multiorbital, equal-spin superconductivity interaction and no impurity. Two initial pairing fields are given to the self-consistent loop: non-unitary triplet and equal-spin triplet. The solution with the lowest free energy is selected. We observe that the mean-field spin-sectors are equal $\overline{\Delta_{v/w}^{\uparrow\uparrow}}=\overline{\Delta_{v/w}^{\downarrow\downarrow}}$, hence the equal-spin triplet theory is favoured. We also observe spontaneous formation of charge density waves, localised in space.')
     text=' '.join(label)
     with open(title+'.txt', 'w') as f:
         f.write(text)
 
-title=OUTPUT+'-phase-diagram-no_impurity'
+title=OUTPUT+'-phase-diagram-no-impurity'
 # applied bias for e.g. ldos, staggered density and IPR
 energy=0
 
