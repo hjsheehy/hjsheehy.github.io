@@ -523,7 +523,10 @@ class StatisticalMechanics():
 
     @property
     def density_matrix(self):
-        return np.einsum('in,in->in',self.eigenvectors[:self.n_dof],np.conj(self.eigenvectors[:self.n_dof]),optimize=True)
+        if type(self.kpts)==type(None):
+            return np.einsum('in,in->in',self.eigenvectors[:self.n_dof],np.conj(self.eigenvectors[:self.n_dof]),optimize=True)
+        else:
+            return np.einsum('kin,kin->kin',self.eigenvectors[:,:self.n_dof],np.conj(self.eigenvectors[:,:self.n_dof]),optimize=True)
 
     @property
     def thermal_density_matrix(self):
@@ -586,6 +589,8 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
 
         self._model='tb'
         self.k_space = k_space
+
+        self.kpts = None
 
         self.temperature=0
 
@@ -712,19 +717,13 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             temp[x,y]+=1
         return temp
 
-    def _bulk_hopping(self, k, hop_vector):
-        if np.array_equal(hop_vector, np.zeros([self.n_dimensions])):
-                return 1
-        else:
-            return 2*np.cos(np.dot(k,hop_vector))
-
-
     def _hopping_tensor(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None, add_time_reversal=True):
         """If TR(hopping)==+\-hopping, then TR not added."""
         if type(k)==type(None):
             temp=self._cutout_hopping(hop_vector)
         else:
-            raise ValueError('k-functionality not yet implemented')
+            temp=[1]
+            hopping_amplitude = hopping_amplitude(k)
         if isinstance(hopping_amplitude, (int, float)):
             # scalar->spin pair
             hopping_amplitude=np.array([hopping_amplitude,hopping_amplitude])
@@ -760,8 +759,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 A=np.zeros(self.n_atoms_orbitals_spins)
                 A=np.diag(A)
                 a=self.atom(atom_i)
-                ai=a.index
-                ao=ai+a.n_orbitals
+                ai=a._index
+                ao=ai+a.n_orbitals+self.n_spins
                 A[ai:ao,ai:ao]=hopping_amplitude
                 hopping_amplitude=A
 
@@ -778,19 +777,37 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if add_time_reversal and not onsite:
             # temp+=dagger(temp)
             temp+=TRS
-
         return temp
+
+    def _bulk_hopping(self, k, hop_vector):
+        if np.array_equal(hop_vector, np.zeros([self.n_dimensions])):
+                return 2
+        else:
+            return 2*np.cos(np.dot(k,hop_vector))
+
+#     def _bulk_momentum(self, k, func_k, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True):
+#         hopping_amplitude = func_k(k)
+#         hop_vector = None
+#         return self._hopping_tensor(hopping_amplitude, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+        
 
     def set_onsite(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None):
         if type(self._hamiltonian)==type(None):
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
         self._hamiltonian += self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
         
-    def set_hopping(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
-
-        if type(self._hamiltonian)==type(None):
-            self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
-        self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+    def set_hopping(self, hopping_amplitude, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
+        
+        if type(self.kpts)==type(None):
+            if type(self._hamiltonian)==type(None):
+                self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
+            self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=None, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+        else:
+            if type(self._hamiltonian)==type(None):
+                self._hamiltonian = np.zeros([len(self.kpts),self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins])
+            for i,k in enumerate(self.kpts):
+                tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+                self._hamiltonian[i] = tmp
         
         # if type(orbital_i)==type(None):
         #     orbital_i=self.atom(atom_i).orbitals
@@ -830,8 +847,18 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def solve(self):
         t = time.time()
-        self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
-        #from scipy.sparse.linalg import eigsh
+        if type(self.kpts)==type(None):
+            self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
+        else:
+            self.eigenvalues, self.eigenvectors = [], []
+            for i in range(len(self.kpts)):
+                eigenvalues, eigenvectors = la.eigh(self._hamiltonian[i], overwrite_a=True)
+                self.eigenvalues.append(eigenvalues)
+                self.eigenvectors.append(eigenvectors)
+            self.eigenvalues,self.eigenvectors = np.array(self.eigenvalues), np.array(self.eigenvectors)
+
+        # For k lowest eigenvalues
+        # from scipy.sparse.linalg import eigsh
         # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
         # if self.k_space:
         #     v=self.inv_fourier_transform_psi(v)
@@ -846,16 +873,23 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def _greens_function(self, omega, density_matrix):
         '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
-        return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
+        if type(self.kpts)==type(None):
+            return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
+        else:
+            return np.einsum('ke,kie->ki', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
     
     def _density_of_states(self,density_matrix):
         '''8-dimensional data set: [x, y, z, orbital, orbital, spin, spin, omega]'''
         omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
         green = np.array([self._greens_function(omega,density_matrix) for omega in omegas])
         dos = -(1/np.pi)*np.imag(green)
-        dos = np.moveaxis(dos,0,-1)
         dos = np.real_if_close(dos)
-        dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
+        if type(self.kpts)==type(None):
+            dos = np.moveaxis(dos,0,-1)
+            dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
+        else:
+            dos = np.moveaxis(dos,1,-1)
+            dos = np.reshape(dos, np.append([len(self.kpts),self.n_atoms_orbitals,self.n_spins,],[self.n_energy]), 'F')
         return dos
     
     def _calculate_dos(self):
@@ -863,6 +897,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if self._del_eigsys:
             del self.eigenvalues
             del self.eigenvectors
+        return self._dos
     
     def _query_dos(self):
         if type(self._dos)==type(None):
@@ -876,6 +911,49 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         self.n_energy=len(self.energy_interval)
         if type(self._dos)==type(None):
             return self._calculate_dos()
+
+    def density_of_states(self, site=None, atom=None, orbital=None, spin=None):
+        """If site=None: integrated over all sites 
+If atom=None: sums over all atoms
+If orbital=None: sums over all orbitals in atoms
+If spin!=None: spin polarised"""
+        self._query_dos()
+        temp = self._dos
+        if type(spin)==type(None):
+            temp = np.sum(temp,-2)
+        else:
+            temp = temp[...,self.spin(spin),:,:]
+        if type(atom)==type(None) and type(orbital)==type(None):
+            temp = np.sum(temp,-2)
+        elif type(atom)==type(None):
+            indices=[]
+            for atom in self._atom_indices:
+                indices.append(self.index(atom,orbital))
+            temp = temp[..., indices]
+            temp = np.sum(temp,-2)
+            temp = np.sum(temp,-2)
+        elif type(orbital)==type(None):
+            indices=[]
+            for orbital in self.atom(atom)._orbital_indices:
+                indices.append(self.index(atom,orbital))
+            temp = temp[..., indices]
+            temp = np.sum(temp,-2)
+            temp = np.sum(temp,-2)
+        else:
+            index=(self.index(atom,orbital))
+            temp = temp[..., index]
+            temp = np.sum(temp,-2)
+        if type(site)==type(None):
+            for i in range(self.n_dimensions):
+                temp = np.sum(temp,0)
+        else:
+            for i in site:
+                temp = temp[i]
+        return temp
+
+    def integrated_density_of_states(self, site=None, atom=None, orbital=None, spin=None):
+        dos = self.density_of_states(site=site, atom=atom, orbital=orbital, spin=spin)
+        return np.sum(dos,-1)
 
     def local_density_of_states(self, energy=None, atom=None, orbital=None, spin=None):
         """If energy=None: integrated located density of states
@@ -1130,6 +1208,35 @@ If spin!=None: spin polarised"""
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '-'})
         
         return fig,ax
+
+
+    def band_structure(self, fig, ax, atom=None, oribital=None, spins=None):
+
+       self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
+       self.interpolation = 'none'
+
+       self.xlabel=['$x/a_x$','$y/a_y$']
+       self.ylabel='$\omega$'
+        
+       dos = self.data.density_of_states
+       # dos = np.sum(dos,axis=self._extended_dimensions)
+
+       x=np.shape(dos)[0]
+       y=np.real(self.energy_interval)
+
+       self._extent = [-x/2,x/2,y[0],y[-1]]
+
+       x=dos
+       x=np.fft.fftshift(x,0)
+       self.im = self.ax.imshow(
+               x.T, extent=self._extent, origin='lower',
+               interpolation=self.interpolation,
+               #vmin=self.vmin, vmax=self.vmax,
+               cmap=self.cmap)
+
+       self.ax.set(xlabel=self.xlabel, ylabel=self.ylabel)
+
+       return fig, ax
 
         # for lattice_vector in self.lattice_vectors:
 
@@ -2041,36 +2148,6 @@ class BogoliubovdeGennes(Tightbinding):
 
 #        return self.fig,self.ax
 
-#    def band_structure(self, dimension, oribital=0, spins=None):
-
-#        self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
-#        self.interpolation = 'none'
-
-#        self.xlabel=['$x/a_x$','$y/a_y$','$z/a_z$'][dimension]
-
-#        self.ylabel='$\omega$'
-        
-#        dos = self.data.density_of_states
-#        self._extended_dimensions=np.arange(len(np.shape(dos))-1)
-#        self._extended_dimensions=tuple(np.delete(self._extended_dimensions,dimension))
-#        dos=np.sum(dos,axis=self._extended_dimensions)
-
-#        x=np.shape(dos)[0]
-#        y=np.real(self.energy_interval)
-
-#        self._extent = [-x/2,x/2,y[0],y[-1]]
-
-#        x=dos
-#        x=np.fft.fftshift(x,0)
-#        self.im = self.ax.imshow(
-#                x.T, extent=self._extent, origin='lower',
-#                interpolation=self.interpolation,
-#                #vmin=self.vmin, vmax=self.vmax,
-#                cmap=self.cmap)
-
-#        self.ax.set(xlabel=self.xlabel, ylabel=self.ylabel)
-
-#        return self.fig, self.ax
 
 #    def set_text_box(self):
 #        text_box = AnchoredText(self.text, loc=2, pad=0.3, borderpad=0)
