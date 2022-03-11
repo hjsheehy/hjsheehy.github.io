@@ -444,15 +444,12 @@ class CrystalLattice():
             raise ValueError(f'{self.n_spins} is nither 1 or 2!')
             
     def spin(self,spin):
-        if self.n_spins==1:
-            return None
-        elif self.n_spins==2:
-            if spin==0 or spin==1:
-                return spin
-            elif type(spin)==str:
-                return self.spins[spin]
+        if type(self.n_spins)==int:
+            return spin
+        elif type(spin)==str:
+            return self.spins[spin]
         else:
-            raise ValueError(f'{self.n_spins} is nither 1 or 2!')
+            raise ValueError(f'{self.n_spins} is neither 1 or 2!')
 
     def n_orbitals(self,atom):
         return self.atom(atom).n_orbitals
@@ -603,7 +600,23 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
         self._dos = None
         self._del_eigsys = True
 
+        self._flattened_kpts = None
+
         super().__init__(lattice_vectors,name)
+
+    @property
+    def n_kpts(self):
+        return list(np.shape(self.kpts[0]))
+
+    @property
+    def n_total_kpts(self):
+        return np.prod(self.n_kpts)
+
+    @property
+    def flattened_kpts(self):
+        if type(self._flattened_kpts)==type(None):
+            self._flattened_kpts = np.reshape(self.kpts,[self.n_dimensions,self.n_total_kpts])
+        return self._flattened_kpts
 
     def set_temperature(self,temperature):
         self.temperature=temperature
@@ -724,7 +737,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         else:
             temp=[1]
             hopping_amplitude = hopping_amplitude(k)
-        if isinstance(hopping_amplitude, (int, float)):
+        if isinstance(hopping_amplitude, (int, float)) and self.n_spins==2:
             # scalar->spin pair
             hopping_amplitude=np.array([hopping_amplitude,hopping_amplitude])
         if np.shape(hopping_amplitude)==(self.n_spins) or np.shape(hopping_amplitude)==(self.n_spins,):
@@ -768,7 +781,6 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             # unit cell matrix
             pass
         temp=kron(hopping_amplitude,temp)
-
         # onsite = bool(atom_i==atom_f and (np.array_equal(hop_vector, np.zeros([self.n_dimensions])) or (type(k) is not type(None))))
         TRS=dagger(temp)
         onsite=False
@@ -804,11 +816,13 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=None, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
         else:
             if type(self._hamiltonian)==type(None):
-                self._hamiltonian = np.zeros([len(self.kpts),self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins])
-            for i,k in enumerate(self.kpts):
+                dimensions = [self.n_total_kpts,self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins]
+                self._hamiltonian = np.zeros(dimensions)
+            for i in range(self.n_total_kpts):
+                k=self.flattened_kpts[:,i]
                 tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
                 self._hamiltonian[i] = tmp
-        
+
         # if type(orbital_i)==type(None):
         #     orbital_i=self.atom(atom_i).orbitals
         # if type(orbital_f)==type(None):
@@ -848,14 +862,14 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     def solve(self):
         t = time.time()
         if type(self.kpts)==type(None):
+            print(np.shape(self._hamiltonian))
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         else:
-            self.eigenvalues, self.eigenvectors = [], []
-            for i in range(len(self.kpts)):
-                eigenvalues, eigenvectors = la.eigh(self._hamiltonian[i], overwrite_a=True)
-                self.eigenvalues.append(eigenvalues)
-                self.eigenvectors.append(eigenvectors)
-            self.eigenvalues,self.eigenvectors = np.array(self.eigenvalues), np.array(self.eigenvectors)
+            dim = self.n_atoms_orbitals_spins
+            self.eigenvalues, self.eigenvectors = np.zeros([self.n_total_kpts,dim]), np.zeros([self.n_total_kpts,dim,dim])
+            for dim in range(self.n_dimensions):
+                for i in range(self.n_total_kpts):
+                    self.eigenvalues[i], self.eigenvectors[i] = la.eigh(self._hamiltonian[i], overwrite_a=True)
 
         # For k lowest eigenvalues
         # from scipy.sparse.linalg import eigsh
@@ -888,8 +902,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             dos = np.moveaxis(dos,0,-1)
             dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
         else:
-            dos = np.moveaxis(dos,1,-1)
-            dos = np.reshape(dos, np.append([len(self.kpts),self.n_atoms_orbitals,self.n_spins,],[self.n_energy]), 'F')
+            dos = np.moveaxis(dos,0,-1)
+            dos = np.reshape(dos,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,self.n_energy], 'F')
         return dos
     
     def _calculate_dos(self):
@@ -907,91 +921,76 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def calculate_greens_function(self,energy_interval,resolution):
         self.energy_interval=energy_interval
+        self.emax=np.max(energy_interval)
+        self.emin=np.min(energy_interval)
         self.resolution=resolution
         self.n_energy=len(self.energy_interval)
         if type(self._dos)==type(None):
             return self._calculate_dos()
 
-    def density_of_states(self, site=None, atom=None, orbital=None, spin=None):
-        """If site=None: integrated over all sites 
-If atom=None: sums over all atoms
-If orbital=None: sums over all orbitals in atoms
-If spin!=None: spin polarised"""
+    def density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', energy='resolved'):
+        """If site=None: trace sites, else local density of states
+If atom=None: trace atoms, else atom resolved
+If orbital=None: trace orbitals, else orbital resolved
+If spin=None: trace spin, else spin polarised"""
         self._query_dos()
         temp = self._dos
-        if type(spin)==type(None):
+        dim=self.n_dimensions
+        if spin=='integrated':
             temp = np.sum(temp,-2)
+        elif spin=='resolved':
+            pass
         else:
             temp = temp[...,self.spin(spin),:,:]
-        if type(atom)==type(None) and type(orbital)==type(None):
-            temp = np.sum(temp,-2)
-        elif type(atom)==type(None):
+        if atom=='integrated' and orbital=='integrated':
+            temp = np.sum(temp,dim)
+        elif atom=='resolved' and orbital=='resolved':
+            pass
+        elif atom=='integrated':
             indices=[]
             for atom in self._atom_indices:
                 indices.append(self.index(atom,orbital))
             temp = temp[..., indices]
-            temp = np.sum(temp,-2)
-            temp = np.sum(temp,-2)
-        elif type(orbital)==type(None):
+            temp = np.sum(temp,dim)
+            temp = np.sum(temp,dim)
+        elif orbital=='integrated':
             indices=[]
             for orbital in self.atom(atom)._orbital_indices:
                 indices.append(self.index(atom,orbital))
             temp = temp[..., indices]
-            temp = np.sum(temp,-2)
-            temp = np.sum(temp,-2)
+            temp = np.sum(temp,dim)
+            temp = np.sum(temp,dim)
         else:
             index=(self.index(atom,orbital))
-            temp = temp[..., index]
-            temp = np.sum(temp,-2)
-        if type(site)==type(None):
+            temp = temp[..., index,:]
+        if sites=='resolved':
+            pass
+        elif sites=='integrated':
             for i in range(self.n_dimensions):
                 temp = np.sum(temp,0)
         else:
-            for i in site:
-                temp = temp[i]
-        return temp
-
-    def integrated_density_of_states(self, site=None, atom=None, orbital=None, spin=None):
-        dos = self.density_of_states(site=site, atom=atom, orbital=orbital, spin=spin)
-        return np.sum(dos,-1)
-
-    def local_density_of_states(self, energy=None, atom=None, orbital=None, spin=None):
-        """If energy=None: integrated located density of states
-If atom=None: sums over all atoms
-If orbital=None: sums over all orbitals in atoms
-If spin!=None: spin polarised"""
-        self._query_dos()
-        temp = self._dos
-        if type(spin)==type(None):
-            temp = np.sum(temp,-2)
-        else:
-            temp = temp[...,self.spin(spin),:,:]
-        if type(energy)==type(None):
+            tmp=[]
+            for site in sites:
+                for coord in site:
+                    tmp.append(temp[coord])
+            temp=np.sum(tmp,0)
+        if energy=='integrated':
             temp = np.sum(temp,-1)
+        elif energy=='resolved':
+            pass
         else:
             index = FindNearestValueOfArray(self.energy_interval,energy)
             temp = temp[..., index]
-        if type(atom)==type(None) and type(orbital)==type(None):
-            temp = np.sum(temp,-1)
-        elif type(atom)==type(None):
-            indices=[]
-            for atom in self._atom_indices:
-                indices.append(self.index(atom,orbital))
-            temp = temp[..., indices]
-            temp = np.sum(temp,-1)
-            temp = np.sum(temp,-1)
-        elif type(orbital)==type(None):
-            indices=[]
-            for orbital in self.atom(atom)._orbital_indices:
-                indices.append(self.index(atom,orbital))
-            temp = temp[..., indices]
-            temp = np.sum(temp,-1)
-            temp = np.sum(temp,-1)
-        else:
-            index=(self.index(atom,orbital))
-            temp = temp[..., index]
-            temp = np.sum(temp,-1)
         return temp
+
+    def integrated_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated'):
+        return density_of_states(self, sites=sites, atom=atom, orbital=orbital, spin=spin, energy='integrated')
+
+    def local_density_of_states(self, sites='resolved', atom='integrated', energy='resolved'):
+        return density_of_states(self, sites=sites, atom=atom, orbital='integrated', spin='integrated', energy=energy)
+
+    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved'):
+        return density_of_states(self, sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy)
 
     def staggered_density(self, atom_i, atom_f, energy=None):
         A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
@@ -1209,6 +1208,25 @@ If spin!=None: spin polarised"""
         
         return fig,ax
 
+    def plot_band_structure_path(self, fig, ax, dos):
+        xmin,xmax=np.min(self.kpts),np.max(self.kpts)
+        ymin,ymax=self.emin,self.emax
+        im=ax.imshow(dos.T,extent=[xmin,xmax,ymin,ymax], origin='lower', cmap='Blues')
+        ax.set_title(r'Tightbinding model $\overline{{\hat{{\mathcal{{G}}}}(\omega-\mu, \mathbf{{k}})}}$')
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        cbar=fig.colorbar(im,cax=cax)
+        return fig, ax
+
+    def plot_band_structure_2D(self, fig, ax, dos):
+        xmin,xmax=np.min(self.kpts[0]),np.max(self.kpts[0])
+        ymin,ymax=np.min(self.kpts[1]),np.max(self.kpts[1])
+        im=ax.imshow(dos.T,extent=[xmin,xmax,ymin,ymax], origin='lower', cmap='Blues')
+        ax.set_title(r'Tightbinding model $\overline{{\hat{{\mathcal{{G}}}}(\omega-\mu, \mathbf{{k}})}}$')
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        cbar=fig.colorbar(im,cax=cax)
+        return fig, ax
 
     def band_structure(self, fig, ax, atom=None, oribital=None, spins=None):
 
