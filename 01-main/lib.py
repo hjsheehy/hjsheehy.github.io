@@ -376,7 +376,7 @@ class CrystalLattice():
         if atom.name in self.atoms:
             raise SyntaxError(f'Atom name {atom.name} already used. Please use a different one.')
         if len(atom.position)<self.n_dimensions:
-            raise ValueError(f'Position of atom {atom} not {self.n_dim}-dimensional!')
+            raise ValueError(f'Position of atom {atom} not {self.n_dimensions}-dimensional!')
         atom._index=self._counter
         self._atoms.append(atom)
         self._atom_dict[atom.name]=self._counter
@@ -816,7 +816,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=None, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
         else:
             if type(self._hamiltonian)==type(None):
-                dimensions = [self.n_total_kpts,self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins]
+                dimensions = [self.n_total_kpts,self.n_dof,self.n_dof]
                 self._hamiltonian = np.zeros(dimensions)
             for i in range(self.n_total_kpts):
                 k=self.flattened_kpts[:,i]
@@ -865,7 +865,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             print(np.shape(self._hamiltonian))
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         else:
-            dim = self.n_atoms_orbitals_spins
+            dim = self.n_dof
             self.eigenvalues, self.eigenvectors = np.zeros([self.n_total_kpts,dim]), np.zeros([self.n_total_kpts,dim,dim])
             for dim in range(self.n_dimensions):
                 for i in range(self.n_total_kpts):
@@ -1226,6 +1226,63 @@ If spin=None: trace spin, else spin polarised"""
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.05)
         cbar=fig.colorbar(im,cax=cax)
+        return fig, ax
+
+    def plot_band_structure_3D(self, fig, ax, dos):
+
+        import plotly.graph_objects as go
+
+        X,Y,Z=self.kpts
+        values=dos
+
+        fig = go.Figure(data=go.Volume(
+            x=X.flatten(),
+            y=Y.flatten(),
+            z=Z.flatten(),
+            value=values.flatten(),
+            isomin=0.1,
+            isomax=0.8,
+            opacity=0.1, # needs to be small to see through all surfaces
+            surface_count=17, # needs to be a large number for good volume rendering
+            ))
+        fig.show()
+        exit()
+        return fig, ax
+    
+
+        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, spin)
+        
+        # ft:
+        #x=int(self.dimensions[0]/2)
+        #y=int(self.dimensions[1]/2)
+        #z=int(self.dimensions[2]/2)
+        #X, Y, Z = np.mgrid[-x:x+1, -y:y+1, -z:z+1]
+        #values = np.fft.fftshift(self.ldos)
+        ##values=self.ldos
+        #minv=np.min(values)
+        #maxv=np.max(values)
+
+        fig = go.Figure(data=go.Volume(
+           x=X.flatten(),
+           y=Y.flatten(),
+           z=Z.flatten(),
+           value=values.flatten(),
+           isomin=maxv/2,
+           isomax=maxv,
+           opacity=1, # needs to be small to see through all surfaces
+           opacityscale='extremes',
+           surface_count=10, # needs to be a large number for good volume rendering
+           caps= dict(x_show=False, y_show=False, z_show=False), # no caps
+           ))
+
+        fig.update_layout(
+           scene = dict(
+               xaxis = dict(nticks=3, tickvals=[-x,0,x],),
+               yaxis = dict(nticks=3, tickvals=[-y,0,y],),
+               zaxis = dict(nticks=3, tickvals=[-z,0,z],),))
+           #width=700,
+           #margin=dict(r=20, l=10, b=10, t=10))
+
         return fig, ax
 
     def band_structure(self, fig, ax, atom=None, oribital=None, spins=None):
