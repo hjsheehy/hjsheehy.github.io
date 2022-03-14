@@ -329,6 +329,7 @@ class CrystalLattice():
         self._counter=0
         self.n_spins=2
         n_dimensions=len(self.lattice_vectors)
+        self.bulk_calculation=False
         # if np.sum(np.abs(self.lattice_vectors))==0:
         #     self.lattice_vectors=np.array([])
         # if list(self.lattice_vectors)==list([]):
@@ -485,7 +486,7 @@ class CrystalLattice():
 
     @property
     def _extended_dimensions(self):
-        return np.append(self._pieces, [self.n_atoms_orbitals,self.n_spins,])
+        return self._pieces+[self.n_atoms_orbitals,self.n_spins]
 
     @property
     def centre(self):
@@ -520,10 +521,10 @@ class StatisticalMechanics():
 
     @property
     def density_matrix(self):
-        if type(self.kpts)==type(None):
-            return np.einsum('in,in->in',self.eigenvectors[:self.n_dof],np.conj(self.eigenvectors[:self.n_dof]),optimize=True)
-        else:
+        if self.bulk_calculation:
             return np.einsum('kin,kin->kin',self.eigenvectors[:,:self.n_dof],np.conj(self.eigenvectors[:,:self.n_dof]),optimize=True)
+        else:
+            return np.einsum('in,in->in',self.eigenvectors[:self.n_dof],np.conj(self.eigenvectors[:self.n_dof]),optimize=True)
 
     @property
     def thermal_density_matrix(self):
@@ -698,7 +699,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         else:
             raise ValueError(f'{position_coordinates} not an integer-valued coordinate list or list of coordinates!')
 
-        return kron(so_tensor, sites)
+        return kron(sites,so_tensor)
 
     def _cutout_hopping(self, hop_vector=None):
 
@@ -780,7 +781,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if np.shape(hopping_amplitude)==(self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins):
             # unit cell matrix
             pass
-        temp=kron(hopping_amplitude,temp)
+        temp=kron(temp,hopping_amplitude)
         # onsite = bool(atom_i==atom_f and (np.array_equal(hop_vector, np.zeros([self.n_dimensions])) or (type(k) is not type(None))))
         TRS=dagger(temp)
         onsite=False
@@ -808,7 +809,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
         self._hamiltonian += self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
         
-    def set_hopping(self, hopping_amplitude, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
+    def set_hopping(self, hopping_amplitude, hop_vector=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
         
         if type(self.kpts)==type(None):
             if type(self._hamiltonian)==type(None):
@@ -816,12 +817,12 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=None, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
         else:
             if type(self._hamiltonian)==type(None):
-                dimensions = [self.n_total_kpts,self.n_dof,self.n_dof]
+                dimensions = [self.n_total_kpts,self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins]
                 self._hamiltonian = np.zeros(dimensions)
             for i in range(self.n_total_kpts):
                 k=self.flattened_kpts[:,i]
                 tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
-                self._hamiltonian[i] = tmp
+                self._hamiltonian[i] += tmp
 
         # if type(orbital_i)==type(None):
         #     orbital_i=self.atom(atom_i).orbitals
@@ -862,10 +863,15 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     def solve(self):
         t = time.time()
         if type(self.kpts)==type(None):
-            print(np.shape(self._hamiltonian))
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
+            atm_orb_spn=np.eye(self.n_atoms_orbitals_spins)
+            ft=kron(ft,atm_orb_spn)
+            self./
+        elif not self.bulk_calculation:
+            self._hamiltonian = scipy.linalg.block_diag(*self._hamiltonian)
+            self.eigenvalues, self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         else:
-            dim = self.n_dof
+            dim = self.n_atoms_orbitals_spins # dimension of (BdG) SO-matrix
             self.eigenvalues, self.eigenvectors = np.zeros([self.n_total_kpts,dim]), np.zeros([self.n_total_kpts,dim,dim])
             for dim in range(self.n_dimensions):
                 for i in range(self.n_total_kpts):
@@ -879,6 +885,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         #     self.k_space=False
 
         self.exec_time = time.time() - t
+        print(np.shape(self._hamiltonian))
         return self.eigenvalues,self.eigenvectors
 
     ############################################################
@@ -887,10 +894,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def _greens_function(self, omega, density_matrix):
         '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
-        if type(self.kpts)==type(None):
-            return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
-        else:
+        if self.bulk_calculation:
             return np.einsum('ke,kie->ki', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
+        else:
+            return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
     
     def _density_of_states(self,density_matrix):
         '''8-dimensional data set: [x, y, z, orbital, orbital, spin, spin, omega]'''
@@ -898,12 +905,12 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         green = np.array([self._greens_function(omega,density_matrix) for omega in omegas])
         dos = -(1/np.pi)*np.imag(green)
         dos = np.real_if_close(dos)
-        if type(self.kpts)==type(None):
-            dos = np.moveaxis(dos,0,-1)
-            dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
-        else:
+        if self.bulk_calculation:
             dos = np.moveaxis(dos,0,-1)
             dos = np.reshape(dos,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,self.n_energy], 'F')
+        else:
+            dos = np.moveaxis(dos,0,-1)
+            dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
         return dos
     
     def _calculate_dos(self):
@@ -1234,40 +1241,15 @@ If spin=None: trace spin, else spin polarised"""
 
         X,Y,Z=self.kpts
         values=dos
+        minv=np.min(values)
+        maxv=np.max(values)
 
         fig = go.Figure(data=go.Volume(
             x=X.flatten(),
             y=Y.flatten(),
             z=Z.flatten(),
             value=values.flatten(),
-            isomin=0.1,
-            isomax=0.8,
-            opacity=0.1, # needs to be small to see through all surfaces
-            surface_count=17, # needs to be a large number for good volume rendering
-            ))
-        fig.show()
-        exit()
-        return fig, ax
-    
-
-        ldos = self.ldos=greens_function.local_density_of_states(energy, orbital, spin)
-        
-        # ft:
-        #x=int(self.dimensions[0]/2)
-        #y=int(self.dimensions[1]/2)
-        #z=int(self.dimensions[2]/2)
-        #X, Y, Z = np.mgrid[-x:x+1, -y:y+1, -z:z+1]
-        #values = np.fft.fftshift(self.ldos)
-        ##values=self.ldos
-        #minv=np.min(values)
-        #maxv=np.max(values)
-
-        fig = go.Figure(data=go.Volume(
-           x=X.flatten(),
-           y=Y.flatten(),
-           z=Z.flatten(),
-           value=values.flatten(),
-           isomin=maxv/2,
+           isomin=maxv/4,
            isomax=maxv,
            opacity=1, # needs to be small to see through all surfaces
            opacityscale='extremes',
@@ -1275,14 +1257,17 @@ If spin=None: trace spin, else spin polarised"""
            caps= dict(x_show=False, y_show=False, z_show=False), # no caps
            ))
 
+        x=np.pi
+        y=x
+        z=x
+
         fig.update_layout(
            scene = dict(
                xaxis = dict(nticks=3, tickvals=[-x,0,x],),
                yaxis = dict(nticks=3, tickvals=[-y,0,y],),
                zaxis = dict(nticks=3, tickvals=[-z,0,z],),))
-           #width=700,
-           #margin=dict(r=20, l=10, b=10, t=10))
 
+        fig.show()
         return fig, ax
 
     def band_structure(self, fig, ax, atom=None, oribital=None, spins=None):
