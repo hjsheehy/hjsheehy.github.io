@@ -12,7 +12,7 @@ rho=0#2.21
 phi=0#0.32
 chi=0#1.42
 V=2.21
-n_cells=11
+n_cells=21
 bdg.cut_piece(n_cells, [0,1])
 bdg.set_onsite(-mu,orbital='s')
 bdg.set_hopping(-t,hop_vector=[1,0])

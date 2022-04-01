@@ -700,6 +700,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             raise ValueError(f'{position_coordinates} not an integer-valued coordinate list or list of coordinates!')
 
         return kron(so_tensor,sites)
+        # return kron(sites,so_tensor)
 
     def _cutout_hopping(self, hop_vector=None):
 
@@ -781,7 +782,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if np.shape(hopping_amplitude)==(self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins):
             # unit cell matrix
             pass
+
         temp=kron(hopping_amplitude,temp)
+        # temp=kron(temp,hopping_amplitude)
+
         # onsite = bool(atom_i==atom_f and (np.array_equal(hop_vector, np.zeros([self.n_dimensions])) or (type(k) is not type(None))))
         TRS=dagger(temp)
         onsite=False
@@ -886,8 +890,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             temp[x,y]+=1
 
             #######
-            ft=kron(ft,atm_orb_spn)
-
+            ft=kron(atm_orb_spn,ft)
+            # ft=kron(ft,atm_orb_spn)
+            # self./
         elif not self.bulk_calculation:
             self._hamiltonian = scipy.linalg.block_diag(*self._hamiltonian)
             self.eigenvalues, self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
@@ -970,6 +975,7 @@ If spin=None: trace spin, else spin polarised"""
             pass
         else:
             temp = temp[...,self.spin(spin),:]
+            # temp = temp[...,self.spin(spin),:,:]
         if atom=='integrated' and orbital=='integrated':
             temp = np.sum(temp,dim)
         elif atom=='resolved' and orbital=='resolved':
@@ -979,12 +985,14 @@ If spin=None: trace spin, else spin polarised"""
             for atom in self._atom_indices:
                 indices.append(self.index(atom,orbital))
             temp = temp[..., indices,:]
+            # temp = temp[..., indices]
             temp = np.sum(temp,dim)
         elif orbital=='integrated':
             indices=[]
             for orbital in self.atom(atom)._orbital_indices:
                 indices.append(self.index(atom,orbital))
             temp = temp[..., indices,:]
+            # temp = temp[..., indices]
             temp = np.sum(temp,dim)
         else:
             index=(self.index(atom,orbital))
@@ -1014,6 +1022,12 @@ If spin=None: trace spin, else spin polarised"""
 
     def local_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', energy='resolved'):
         return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='integrated', energy=energy)
+
+    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved'):
+        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy)
+
+    def local_density_of_states(self, sites='resolved', atom='integrated', energy='resolved'):
+        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin='integrated', energy=energy)
 
     def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved'):
         return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy)
