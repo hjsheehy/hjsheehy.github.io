@@ -79,7 +79,7 @@ def wrap(positions, dimensions):
 def Index(dimensions: tuple) -> "array":
     '''Returns an array of dimensions with elements
     given by the indexing Zn_Z'''
-    return np.reshape(np.arange(np.prod(dimensions)),dimensions,'F')
+    return np.reshape(np.arange(np.prod(dimensions)),dimensions,'C')
 
 def coordinates_to_indices(array, dimensions):
     dim=len(dimensions)
@@ -329,6 +329,7 @@ class CrystalLattice():
         self._counter=0
         self.n_spins=2
         n_dimensions=len(self.lattice_vectors)
+        self.bulk_calculation=False
         # if np.sum(np.abs(self.lattice_vectors))==0:
         #     self.lattice_vectors=np.array([])
         # if list(self.lattice_vectors)==list([]):
@@ -376,7 +377,7 @@ class CrystalLattice():
         if atom.name in self.atoms:
             raise SyntaxError(f'Atom name {atom.name} already used. Please use a different one.')
         if len(atom.position)<self.n_dimensions:
-            raise ValueError(f'Position of atom {atom} not {self.n_dim}-dimensional!')
+            raise ValueError(f'Position of atom {atom} not {self.n_dimensions}-dimensional!')
         atom._index=self._counter
         self._atoms.append(atom)
         self._atom_dict[atom.name]=self._counter
@@ -444,15 +445,12 @@ class CrystalLattice():
             raise ValueError(f'{self.n_spins} is nither 1 or 2!')
             
     def spin(self,spin):
-        if self.n_spins==1:
-            return None
-        elif self.n_spins==2:
-            if spin==0 or spin==1:
-                return spin
-            elif type(spin)==str:
-                return self.spins[spin]
+        if type(self.n_spins)==int:
+            return spin
+        elif type(spin)==str:
+            return self.spins[spin]
         else:
-            raise ValueError(f'{self.n_spins} is nither 1 or 2!')
+            raise ValueError(f'{self.n_spins} is neither 1 or 2!')
 
     def n_orbitals(self,atom):
         return self.atom(atom).n_orbitals
@@ -488,7 +486,7 @@ class CrystalLattice():
 
     @property
     def _extended_dimensions(self):
-        return np.append(self._pieces, [self.n_atoms_orbitals,self.n_spins,])
+        return self._pieces+[self.n_atoms_orbitals,self.n_spins]
 
     @property
     def centre(self):
@@ -523,7 +521,10 @@ class StatisticalMechanics():
 
     @property
     def density_matrix(self):
-        return np.einsum('in,in->in',self.eigenvectors[:self.n_dof],np.conj(self.eigenvectors[:self.n_dof]),optimize=True)
+        if self.bulk_calculation:
+            return np.einsum('kin,kin->kin',self.eigenvectors[:,:self.n_dof],np.conj(self.eigenvectors[:,:self.n_dof]),optimize=True)
+        else:
+            return np.einsum('in,in->in',self.eigenvectors[:self.n_dof],np.conj(self.eigenvectors[:self.n_dof]),optimize=True)
 
     @property
     def thermal_density_matrix(self):
@@ -587,6 +588,8 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
         self._model='tb'
         self.k_space = k_space
 
+        self.kpts = None
+
         self.temperature=0
 
         self.hoppings=[]
@@ -598,7 +601,23 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
         self._dos = None
         self._del_eigsys = True
 
+        self._flattened_kpts = None
+
         super().__init__(lattice_vectors,name)
+
+    @property
+    def n_kpts(self):
+        return list(np.shape(self.kpts[0]))
+
+    @property
+    def n_total_kpts(self):
+        return np.prod(self.n_kpts)
+
+    @property
+    def flattened_kpts(self):
+        if type(self._flattened_kpts)==type(None):
+            self._flattened_kpts = np.reshape(self.kpts,[self.n_dimensions,self.n_total_kpts])
+        return self._flattened_kpts
 
     def set_temperature(self,temperature):
         self.temperature=temperature
@@ -680,7 +699,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         else:
             raise ValueError(f'{position_coordinates} not an integer-valued coordinate list or list of coordinates!')
 
-        return kron(so_tensor, sites)
+        return kron(so_tensor,sites)
 
     def _cutout_hopping(self, hop_vector=None):
 
@@ -712,20 +731,14 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             temp[x,y]+=1
         return temp
 
-    def _bulk_hopping(self, k, hop_vector):
-        if np.array_equal(hop_vector, np.zeros([self.n_dimensions])):
-                return 1
-        else:
-            return 2*np.cos(np.dot(k,hop_vector))
-
-
     def _hopping_tensor(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None, add_time_reversal=True):
         """If TR(hopping)==+\-hopping, then TR not added."""
         if type(k)==type(None):
             temp=self._cutout_hopping(hop_vector)
         else:
-            raise ValueError('k-functionality not yet implemented')
-        if isinstance(hopping_amplitude, (int, float)):
+            temp=[1]
+            hopping_amplitude = hopping_amplitude(k)
+        if isinstance(hopping_amplitude, (int, float)) and self.n_spins==2:
             # scalar->spin pair
             hopping_amplitude=np.array([hopping_amplitude,hopping_amplitude])
         if np.shape(hopping_amplitude)==(self.n_spins) or np.shape(hopping_amplitude)==(self.n_spins,):
@@ -760,8 +773,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 A=np.zeros(self.n_atoms_orbitals_spins)
                 A=np.diag(A)
                 a=self.atom(atom_i)
-                ai=a.index
-                ao=ai+a.n_orbitals
+                ai=a._index
+                ao=ai+a.n_orbitals+self.n_spins
                 A[ai:ao,ai:ao]=hopping_amplitude
                 hopping_amplitude=A
 
@@ -769,7 +782,6 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             # unit cell matrix
             pass
         temp=kron(hopping_amplitude,temp)
-
         # onsite = bool(atom_i==atom_f and (np.array_equal(hop_vector, np.zeros([self.n_dimensions])) or (type(k) is not type(None))))
         TRS=dagger(temp)
         onsite=False
@@ -778,20 +790,40 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if add_time_reversal and not onsite:
             # temp+=dagger(temp)
             temp+=TRS
-
         return temp
+
+    def _bulk_hopping(self, k, hop_vector):
+        if np.array_equal(hop_vector, np.zeros([self.n_dimensions])):
+                return 2
+        else:
+            return 2*np.cos(np.dot(k,hop_vector))
+
+#     def _bulk_momentum(self, k, func_k, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True):
+#         hopping_amplitude = func_k(k)
+#         hop_vector = None
+#         return self._hopping_tensor(hopping_amplitude, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+        
 
     def set_onsite(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None):
         if type(self._hamiltonian)==type(None):
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
         self._hamiltonian += self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
         
-    def set_hopping(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
-
-        if type(self._hamiltonian)==type(None):
-            self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
-        self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+    def set_hopping(self, hopping_amplitude, hop_vector=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
         
+        if type(self.kpts)==type(None):
+            if type(self._hamiltonian)==type(None):
+                self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
+            self._hamiltonian += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=None, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+        else:
+            if type(self._hamiltonian)==type(None):
+                dimensions = [self.n_total_kpts,self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins]
+                self._hamiltonian = np.zeros(dimensions)
+            for i in range(self.n_total_kpts):
+                k=self.flattened_kpts[:,i]
+                tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+                self._hamiltonian[i] += tmp
+
         # if type(orbital_i)==type(None):
         #     orbital_i=self.atom(atom_i).orbitals
         # if type(orbital_f)==type(None):
@@ -830,14 +862,51 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def solve(self):
         t = time.time()
-        self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
-        #from scipy.sparse.linalg import eigsh
+        if type(self.kpts)==type(None):
+            self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
+            atm_orb_spn=np.eye(self.n_atoms_orbitals_spins)
+            #######
+
+            temp=np.zeros([self.n_cells,self.n_cells])
+            x=np.indices(self._pieces)
+            print(x)
+            exit()
+            x=np.moveaxis(x,0,-1)
+            x=np.add(np.mod(np.add(x, self.centre), self._pieces), -self.centre)
+            y=np.copy(x)
+            y=y+hop_vector
+            # cut out hop outside of boundary:
+            indices=np.invert(np.any(y>self.edge,axis=-1))
+            x = x[indices]
+            y = y[indices]
+            x=coordinates_to_indices(x,self._pieces)
+            y=coordinates_to_indices(y,self._pieces)
+            x=x.flatten()
+            y=y.flatten()
+            temp[x,y]+=1
+
+            #######
+            ft=kron(ft,atm_orb_spn)
+
+        elif not self.bulk_calculation:
+            self._hamiltonian = scipy.linalg.block_diag(*self._hamiltonian)
+            self.eigenvalues, self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
+        else:
+            dim = self.n_atoms_orbitals_spins # dimension of (BdG) SO-matrix
+            self.eigenvalues, self.eigenvectors = np.zeros([self.n_total_kpts,dim]), np.zeros([self.n_total_kpts,dim,dim])
+            for dim in range(self.n_dimensions):
+                for i in range(self.n_total_kpts):
+                    self.eigenvalues[i], self.eigenvectors[i] = la.eigh(self._hamiltonian[i], overwrite_a=True)
+
+        # For k lowest eigenvalues
+        # from scipy.sparse.linalg import eigsh
         # w,v = eigsh(ham, k=50, which='SM', return_eigenvectors=True)
         # if self.k_space:
         #     v=self.inv_fourier_transform_psi(v)
         #     self.k_space=False
 
         self.exec_time = time.time() - t
+        print(np.shape(self._hamiltonian))
         return self.eigenvalues,self.eigenvectors
 
     ############################################################
@@ -846,16 +915,23 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def _greens_function(self, omega, density_matrix):
         '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
-        return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
+        if self.bulk_calculation:
+            return np.einsum('ke,kie->ki', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
+        else:
+            return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
     
     def _density_of_states(self,density_matrix):
         '''8-dimensional data set: [x, y, z, orbital, orbital, spin, spin, omega]'''
         omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
         green = np.array([self._greens_function(omega,density_matrix) for omega in omegas])
         dos = -(1/np.pi)*np.imag(green)
-        dos = np.moveaxis(dos,0,-1)
         dos = np.real_if_close(dos)
-        dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
+        if self.bulk_calculation:
+            dos = np.moveaxis(dos,0,-1)
+            dos = np.reshape(dos,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,self.n_energy], 'F')
+        else:
+            dos = np.moveaxis(dos,0,-1)
+            dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
         return dos
     
     def _calculate_dos(self):
@@ -863,6 +939,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if self._del_eigsys:
             del self.eigenvalues
             del self.eigenvectors
+        return self._dos
     
     def _query_dos(self):
         if type(self._dos)==type(None):
@@ -872,48 +949,74 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def calculate_greens_function(self,energy_interval,resolution):
         self.energy_interval=energy_interval
+        self.emax=np.max(energy_interval)
+        self.emin=np.min(energy_interval)
         self.resolution=resolution
         self.n_energy=len(self.energy_interval)
         if type(self._dos)==type(None):
             return self._calculate_dos()
 
-    def local_density_of_states(self, energy=None, atom=None, orbital=None, spin=None):
-        """If energy=None: integrated located density of states
-If atom=None: sums over all atoms
-If orbital=None: sums over all orbitals in atoms
-If spin!=None: spin polarised"""
+    def density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', energy='resolved'):
+        """If site=None: trace sites, else local density of states
+If atom=None: trace atoms, else atom resolved
+If orbital=None: trace orbitals, else orbital resolved
+If spin=None: trace spin, else spin polarised"""
         self._query_dos()
         temp = self._dos
-        if type(spin)==type(None):
+        dim=self.n_dimensions
+        if spin=='integrated':
             temp = np.sum(temp,-2)
+        elif spin=='resolved':
+            pass
         else:
-            temp = temp[...,self.spin(spin),:,:]
-        if type(energy)==type(None):
-            temp = np.sum(temp,-1)
-        else:
-            index = FindNearestValueOfArray(self.energy_interval,energy)
-            temp = temp[..., index]
-        if type(atom)==type(None) and type(orbital)==type(None):
-            temp = np.sum(temp,-1)
-        elif type(atom)==type(None):
+            temp = temp[...,self.spin(spin),:]
+        if atom=='integrated' and orbital=='integrated':
+            temp = np.sum(temp,dim)
+        elif atom=='resolved' and orbital=='resolved':
+            pass
+        elif atom=='integrated':
             indices=[]
             for atom in self._atom_indices:
                 indices.append(self.index(atom,orbital))
-            temp = temp[..., indices]
-            temp = np.sum(temp,-1)
-            temp = np.sum(temp,-1)
-        elif type(orbital)==type(None):
+            temp = temp[..., indices,:]
+            temp = np.sum(temp,dim)
+        elif orbital=='integrated':
             indices=[]
             for orbital in self.atom(atom)._orbital_indices:
                 indices.append(self.index(atom,orbital))
-            temp = temp[..., indices]
-            temp = np.sum(temp,-1)
-            temp = np.sum(temp,-1)
+            temp = temp[..., indices,:]
+            temp = np.sum(temp,dim)
         else:
             index=(self.index(atom,orbital))
-            temp = temp[..., index]
+            temp = temp[..., index,:]
+        if sites=='resolved':
+            pass
+        elif sites=='integrated':
+            for i in range(self.n_dimensions):
+                temp = np.sum(temp,0)
+        else:
+            tmp=[]
+            for site in sites:
+                for coord in site:
+                    tmp.append(temp[coord])
+            temp=np.sum(tmp,0)
+        if energy=='integrated':
             temp = np.sum(temp,-1)
+        elif energy=='resolved':
+            pass
+        else:
+            index = FindNearestValueOfArray(self.energy_interval,energy)
+            temp = temp[..., index]
         return temp
+
+    def integrated_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated'):
+        return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin=spin, energy='integrated')
+
+    def local_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', energy='resolved'):
+        return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='integrated', energy=energy)
+
+    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved'):
+        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy)
 
     def staggered_density(self, atom_i, atom_f, energy=None):
         A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
@@ -1028,9 +1131,9 @@ If spin!=None: spin polarised"""
         lattice=lattice+self.atom(atom).position
         return lattice.T
 
-    def plot_unit_cell(self, fig, ax, atoms=None, s=1):
+    def plot_unit_cell(self, fig, ax, atoms='all', s=1):
         
-        if type(atoms)==type(None):
+        if atoms=='all':
             atoms=np.arange(self.n_atoms)
 
         dimensions=np.append(self.hop_vectors,[[1,1]],axis=0)
@@ -1061,9 +1164,9 @@ If spin!=None: spin polarised"""
         
         return fig,ax
 
-    def plot_lattice(self, fig, ax, energy=None, atoms=None, plot_ldos=False, plot_magnetism=False, s=1):
+    def plot_lattice(self, fig, ax, energy=None, atoms='all', plot_ldos=False, plot_magnetism=False, s=1):
 
-        if type(atoms)==type(None):
+        if atoms=='all':
             atoms=np.arange(self.n_atoms)
 
         cmax=[0]
@@ -1130,6 +1233,147 @@ If spin!=None: spin polarised"""
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '-'})
         
         return fig,ax
+
+    def plot_band_structure_path(self, fig, ax, dos):
+        xmin,xmax=np.min(self.kpts),np.max(self.kpts)
+        ymin,ymax=self.emin,self.emax
+        im=ax.imshow(dos.T,extent=[xmin,xmax,ymin,ymax], origin='lower', cmap='Blues')
+        ax.set_title(r'Tightbinding model $\overline{{\hat{{\mathcal{{G}}}}(\omega-\mu, \mathbf{{k}})}}$')
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        cbar=fig.colorbar(im,cax=cax)
+        return fig, ax
+
+    def plot_band_structure_2D(self, fig, ax, dos):
+        xmin,xmax=np.min(self.kpts[0]),np.max(self.kpts[0])
+        ymin,ymax=np.min(self.kpts[1]),np.max(self.kpts[1])
+        im=ax.imshow(dos.T,extent=[xmin,xmax,ymin,ymax], origin='lower', cmap='Blues')
+        ax.set_title(r'Tightbinding model $\overline{{\hat{{\mathcal{{G}}}}(\omega-\mu, \mathbf{{k}})}}$')
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        cbar=fig.colorbar(im,cax=cax)
+        return fig, ax
+
+    def plot_band_structure_3D(self, fig, ax, dos):
+
+        import plotly.graph_objects as go
+
+        X,Y,Z=self.kpts
+        values=dos
+        minv=np.min(values)
+        maxv=np.max(values)
+
+        fig = go.Figure(data=go.Volume(
+            x=X.flatten(),
+            y=Y.flatten(),
+            z=Z.flatten(),
+            value=values.flatten(),
+           isomin=maxv/4,
+           isomax=maxv,
+           opacity=1, # needs to be small to see through all surfaces
+           opacityscale='extremes',
+           surface_count=10, # needs to be a large number for good volume rendering
+           caps= dict(x_show=False, y_show=False, z_show=False), # no caps
+           ))
+
+        x=np.pi
+        y=x
+        z=x
+
+        fig.update_layout(
+           scene = dict(
+               xaxis = dict(nticks=3, tickvals=[-x,0,x],),
+               yaxis = dict(nticks=3, tickvals=[-y,0,y],),
+               zaxis = dict(nticks=3, tickvals=[-z,0,z],),))
+
+        fig.show()
+        return fig, ax
+
+    def band_structure(self, fig, ax, atom=None, oribital=None, spins=None):
+
+       self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
+       self.interpolation = 'none'
+
+       self.xlabel=['$x/a_x$','$y/a_y$']
+       self.ylabel='$\omega$'
+        
+       dos = self.data.density_of_states
+       # dos = np.sum(dos,axis=self._extended_dimensions)
+
+       x=np.shape(dos)[0]
+       y=np.real(self.energy_interval)
+
+       self._extent = [-x/2,x/2,y[0],y[-1]]
+
+       x=dos
+       x=np.fft.fftshift(x,0)
+       self.im = self.ax.imshow(
+               x.T, extent=self._extent, origin='lower',
+               interpolation=self.interpolation,
+               #vmin=self.vmin, vmax=self.vmax,
+               cmap=self.cmap)
+
+       self.ax.set(xlabel=self.xlabel, ylabel=self.ylabel)
+
+       return fig, ax
+
+       def plot_fields(self, xaxis, xlabel, field, label, twin_field=None, twin_label=None, second_twin_field=None, second_twin_label=None):
+        
+           color='tab:red'
+            
+           if len(field)!=len(label):
+               raise ValueError("length of field not equal to length of label")
+
+               if type(xaxis)==type(None):
+                   xaxis = np.arange(len(field))
+
+               field=field
+               label=label
+               self.ax.plot(xaxis, field, color=color,marker='.',markersize=4,label=label)
+               self.ax.set_ylabel(label, color=color)
+               self.ax.tick_params(axis='y', labelcolor=color)
+            
+           if type(twin_field)!=type(None):
+
+               self.twin_ax = self.ax.twinx()
+                
+               color = 'tab:blue'
+
+               if len(twin_field)!=len(twin_label):
+                   raise ValueError("length of twin_field not equal to length of twin_label")
+                
+               field=twin_field
+               label=twin_label
+
+               self.twin_ax.plot(xaxis, field, color=color,marker='x',markersize=4,label=label)  
+               self.twin_ax.set_ylabel(label, color=color)
+               self.twin_ax.tick_params(axis='y', labelcolor=color)
+
+           if type(second_twin_field)!=type(None):
+
+               self.twin_ax2 = self.ax.twinx()
+                
+               color = 'tab:green'
+
+               if len(second_twin_field)!=len(second_twin_label):
+                   raise ValueError("length of second_twin_field not equal to length of second_twin_label")
+
+               field=second_twin_field
+               label=second_twin_label
+
+               self.twin_ax2.plot(xaxis, field, color=color,marker='x',markersize=4,label=label)  
+               self.twin_ax2.set_ylabel(label, color=color)
+               self.twin_ax2.tick_params(axis='y', labelcolor=color)
+
+               self.twin_ax2.spines.right.set_position(("axes", 1.2))
+
+
+           self.ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+           self.ax.set_xlabel(xlabel)
+
+           plt.tight_layout()
+
+           return self.fig, self.ax 
 
         # for lattice_vector in self.lattice_vectors:
 
@@ -1427,7 +1671,6 @@ class BogoliubovdeGennes(Tightbinding):
         tmp=np.append(np.append(position_coordinates,orbital),spin)
         index=np.ravel(coordinates_to_indices(tmp, self._extended_dimensions))
         self._hartree_indices.append(index)
-        self._hartree_print_indices.append(_print)
 
     def record_fock(self, location_i, location_f, atom_i, atom_f, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, _print=False):
         self._fock_print = _print
@@ -1443,7 +1686,6 @@ class BogoliubovdeGennes(Tightbinding):
         temp[index_i,index_f]=1
         temp = np.ravel(np.nonzero(temp))
         self._fock_indices.append(temp)
-        self._fock_print_indices.append(_print)
 
     def record_gorkov(self, location_i, location_f, atom_i, atom_f, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, _print=False):
         self._gorkov_print = _print
@@ -1452,14 +1694,15 @@ class BogoliubovdeGennes(Tightbinding):
         orbital_i=self.index(atom_i,orbital_i,spin=0)
         orbital_f=self.index(atom_f,orbital_f,spin=0)
         tmp_i=np.append(np.append(location_i,orbital_i),spin_i)
+        # tmp_i=np.append(np.append(location_i,spin_i),orbital_i)
         tmp_f=np.append(np.append(location_f,orbital_f),spin_f)
+        # tmp_f=np.append(np.append(location_f,spin_f),orbital_f)
         index_i=coordinates_to_indices(tmp_i, self._extended_dimensions)
         index_f=coordinates_to_indices(tmp_f, self._extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof])
         temp[index_i,index_f]=1
         temp = np.ravel(np.nonzero(temp))
         self._gorkov_indices.append(temp)
-        self._gorkov_print_indices.append(_print)
 
     def set_friction(self,friction):
         self.friction = friction
@@ -1682,8 +1925,8 @@ class BogoliubovdeGennes(Tightbinding):
 
         iteration = iter(self)
         
-#         for i in tqdm(range(self.max_iterations)):
-        for i in range(self.max_iterations):
+        for i in tqdm.tqdm(range(self.max_iterations)):
+        # for i in range(self.max_iterations):
             
             self.iterations+=1
 
@@ -1712,7 +1955,7 @@ class BogoliubovdeGennes(Tightbinding):
     
     @property
     def hartree_array(self):
-        temp=np.reshape(self._hartree,self._extended_dimensions,'F')
+        temp=np.reshape(self._hartree,self._extended_dimensions,'C')
         return np.real_if_close(temp)
 
     @property
@@ -1720,7 +1963,7 @@ class BogoliubovdeGennes(Tightbinding):
         extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
         temp[self._hubbard_indices]=self._fock
-        temp=np.reshape(temp,extended_dimensions,'F')
+        temp=np.reshape(temp,extended_dimensions,'C')
         return np.real_if_close(temp)
     
     @property
@@ -1728,7 +1971,7 @@ class BogoliubovdeGennes(Tightbinding):
         extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
         temp[self._hubbard_indices]=self._gorkov
-        temp=np.reshape(temp,extended_dimensions,'F')
+        temp=np.reshape(temp,extended_dimensions,'C')
         return np.real_if_close(temp)
 
     def hartree(self,atom=None,orbital=None,spin=None):
@@ -2041,36 +2284,6 @@ class BogoliubovdeGennes(Tightbinding):
 
 #        return self.fig,self.ax
 
-#    def band_structure(self, dimension, oribital=0, spins=None):
-
-#        self.cmap = ListedColormap(cm.afmhot(np.linspace(0, 0.75, 256)))
-#        self.interpolation = 'none'
-
-#        self.xlabel=['$x/a_x$','$y/a_y$','$z/a_z$'][dimension]
-
-#        self.ylabel='$\omega$'
-        
-#        dos = self.data.density_of_states
-#        self._extended_dimensions=np.arange(len(np.shape(dos))-1)
-#        self._extended_dimensions=tuple(np.delete(self._extended_dimensions,dimension))
-#        dos=np.sum(dos,axis=self._extended_dimensions)
-
-#        x=np.shape(dos)[0]
-#        y=np.real(self.energy_interval)
-
-#        self._extent = [-x/2,x/2,y[0],y[-1]]
-
-#        x=dos
-#        x=np.fft.fftshift(x,0)
-#        self.im = self.ax.imshow(
-#                x.T, extent=self._extent, origin='lower',
-#                interpolation=self.interpolation,
-#                #vmin=self.vmin, vmax=self.vmax,
-#                cmap=self.cmap)
-
-#        self.ax.set(xlabel=self.xlabel, ylabel=self.ylabel)
-
-#        return self.fig, self.ax
 
 #    def set_text_box(self):
 #        text_box = AnchoredText(self.text, loc=2, pad=0.3, borderpad=0)
@@ -2124,64 +2337,6 @@ class BogoliubovdeGennes(Tightbinding):
 #            #margin=dict(r=20, l=10, b=10, t=10))
 
 #        return fig
-
-#    def fields(self, xaxis, xlabel, field, label, twin_field=None, twin_label=None, second_twin_field=None, second_twin_label=None):
-    
-#        color='tab:red'
-        
-#        if len(field)!=len(label):
-#            raise ValueError("length of field not equal to length of label")
-
-#            if type(xaxis)==type(None):
-#                xaxis = np.arange(len(field))
-
-#            field=field
-#            label=label
-#            self.ax.plot(xaxis, field, color=color,marker='.',markersize=4,label=label)
-#            self.ax.set_ylabel(label, color=color)
-#            self.ax.tick_params(axis='y', labelcolor=color)
-        
-#        if type(twin_field)!=type(None):
-
-#            self.twin_ax = self.ax.twinx()
-            
-#            color = 'tab:blue'
-
-#            if len(twin_field)!=len(twin_label):
-#                raise ValueError("length of twin_field not equal to length of twin_label")
-            
-#            field=twin_field
-#            label=twin_label
-
-#            self.twin_ax.plot(xaxis, field, color=color,marker='x',markersize=4,label=label)  
-#            self.twin_ax.set_ylabel(label, color=color)
-#            self.twin_ax.tick_params(axis='y', labelcolor=color)
-
-#        if type(second_twin_field)!=type(None):
-
-#            self.twin_ax2 = self.ax.twinx()
-            
-#            color = 'tab:green'
-
-#            if len(second_twin_field)!=len(second_twin_label):
-#                raise ValueError("length of second_twin_field not equal to length of second_twin_label")
-
-#            field=second_twin_field
-#            label=second_twin_label
-
-#            self.twin_ax2.plot(xaxis, field, color=color,marker='x',markersize=4,label=label)  
-#            self.twin_ax2.set_ylabel(label, color=color)
-#            self.twin_ax2.tick_params(axis='y', labelcolor=color)
-
-#            self.twin_ax2.spines.right.set_position(("axes", 1.2))
-
-
-#        self.ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-#        self.ax.set_xlabel(xlabel)
-
-#        plt.tight_layout()
-
-#        return self.fig, self.ax 
 
 #    def spectrum(self, locations, orbital, spins=None):
 

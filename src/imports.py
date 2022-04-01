@@ -19,7 +19,7 @@ from itertools import product
 from scipy.special import j0, y0
 from scipy.special import hankel1
 from math import log10, floor, ceil
-# from tqdm import tqdm # progress bar
+import tqdm
 import _pickle as cPickle # C language pickle faster than pickle
 import random
 ##### plotting libraries #####
