@@ -91,6 +91,41 @@ def coordinates_to_indices(array, dimensions):
     temp=np.sum(temp,axis=-1)
     return temp
 
+def indices(dimensions):
+    dim=len(dimensions)
+    tmp=np.indices(dimensions,dtype=float)
+    # for i in range(dim):
+    #     for j in range(i):
+    #         tmp[dim-j-1]=tmp[dim-j-1,...]*dimensions[j]
+    for i in range(dim):
+        tmp[i]=tmp[i]-int(dimensions[i]/2-1)
+        tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=dim-i-1)
+    temp=[]
+    for i in range(dim):
+        x=tmp[i].flatten()
+        x=x/(dimensions[i]-1)
+        temp.append(x)
+    tmp=np.array(temp)
+    return tmp
+
+def kpts(dimensions):
+    dim=len(dimensions)
+    tmp=np.indices(dimensions,dtype=float)
+    # for i in range(dim):
+    #     for j in range(i):
+    #         tmp[dim-j-1]=tmp[dim-j-1,...]*dimensions[j]
+    for i in range(dim):
+        tmp[i]=tmp[i]-int(dimensions[i]/2)
+        tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=dim-i-1)
+    temp=[]
+    for i in range(dim):
+        x=tmp[i].flatten()
+        x=x/(dimensions[i]-1)
+        temp.append(x)
+    tmp=np.array(temp)
+    tmp=2*np.pi*tmp/dim
+    return tmp
+
 ###################################################################
 ##################### Analytical Friedel ##########################
 ###################################################################
@@ -868,31 +903,14 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         t = time.time()
         if type(self.kpts)==type(None):
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
-            atm_orb_spn=np.eye(self.n_atoms_orbitals_spins)
             #######
-
-            temp=np.zeros([self.n_cells,self.n_cells])
-            x=np.indices(self._pieces)
-            print(x)
-            exit()
-            x=np.moveaxis(x,0,-1)
-            x=np.add(np.mod(np.add(x, self.centre), self._pieces), -self.centre)
-            y=np.copy(x)
-            y=y+hop_vector
-            # cut out hop outside of boundary:
-            indices=np.invert(np.any(y>self.edge,axis=-1))
-            x = x[indices]
-            y = y[indices]
-            x=coordinates_to_indices(x,self._pieces)
-            y=coordinates_to_indices(y,self._pieces)
-            x=x.flatten()
-            y=y.flatten()
-            temp[x,y]+=1
-
-            #######
-            ft=kron(atm_orb_spn,ft)
-            # ft=kron(ft,atm_orb_spn)
-            # self./
+            dimensions=self._pieces
+            ft=np.einsum('ij,ik->jk',indices(dimensions),kpts(dimensions))
+            ft=np.exp(1.0j*ft)
+            ft=ft/self.n_cells
+            hopping_amplitude=np.eye(self.n_atoms_orbitals_spins)
+            self._hamiltonian=np.einsum('kx,xy,qy->kq',np.conjugate(ft),self._hamiltonian,ft)
+            self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         elif not self.bulk_calculation:
             self._hamiltonian = scipy.linalg.block_diag(*self._hamiltonian)
             self.eigenvalues, self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
@@ -911,7 +929,6 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         #     self.k_space=False
 
         self.exec_time = time.time() - t
-        print(np.shape(self._hamiltonian))
         return self.eigenvalues,self.eigenvectors
 
     ############################################################

@@ -14,7 +14,7 @@ tb=Tightbinding(lattice_vectors,'TB')
 tb.add_atom(A)
 # tb.add_atom(B)
 tb.n_spins=1
-mu=-3.75
+mu=-3.25
 s=0.
 
 energy_interval=np.linspace(-2,2,401)
@@ -64,6 +64,11 @@ fig, axs = plt.subplots(1, 1)
 ########### 2D ##########
 
 dos = tb.density_of_states(sites='resolved', atom='integrated', orbital='integrated', spin='integrated', energy=0)
+dos = np.fft.fftshift(dos)
+print(dos)
+plt.imshow(dos)
+plt.show()
+exit()
 fig, axs = tb.plot_band_structure_2D(fig, axs, dos)
 
 plt.show()
