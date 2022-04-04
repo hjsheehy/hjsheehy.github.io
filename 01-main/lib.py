@@ -538,7 +538,7 @@ class CrystalLattice():
                 edge-=1
         return edge
 
-    def cut_piece(self, n_cells, axes, glue_edgs=True):
+    def cut(self, n_cells, axes, glue_edgs=True):
         if type(axes)==int:
             axes=[axes]
         for axis in axes:
@@ -774,9 +774,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         else:
             temp=[1]
             hopping_amplitude = hopping_amplitude(k)
-        if isinstance(hopping_amplitude, (int, float)) and self.n_spins==2:
+        if isinstance(hopping_amplitude, (int, float)):
             # scalar->spin pair
-            hopping_amplitude=np.array([hopping_amplitude,hopping_amplitude])
+            hopping_amplitude=np.array([hopping_amplitude for i in range(self.n_spins)])
         if np.shape(hopping_amplitude)==(self.n_spins) or np.shape(hopping_amplitude)==(self.n_spins,):
             # spin pair->spin matrix
             hopping_amplitude=np.diag(hopping_amplitude)
