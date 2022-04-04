@@ -91,19 +91,19 @@ def coordinates_to_indices(array, dimensions):
     temp=np.sum(temp,axis=-1)
     return temp
 
-def indices(dimensions):
+def xpts(dimensions):
     dim=len(dimensions)
     tmp=np.indices(dimensions,dtype=float)
     # for i in range(dim):
     #     for j in range(i):
     #         tmp[dim-j-1]=tmp[dim-j-1,...]*dimensions[j]
     for i in range(dim):
-        tmp[i]=tmp[i]-int(dimensions[i]/2-1)
-        tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=dim-i-1)
+        tmp[i]=tmp[i]-int(dimensions[i]/2)
+        # tmp[i]=np.roll(tmp[i],-2,axis=i)
+        tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=i)
     temp=[]
     for i in range(dim):
         x=tmp[i].flatten()
-        x=x/(dimensions[i]-1)
         temp.append(x)
     tmp=np.array(temp)
     return tmp
@@ -116,14 +116,14 @@ def kpts(dimensions):
     #         tmp[dim-j-1]=tmp[dim-j-1,...]*dimensions[j]
     for i in range(dim):
         tmp[i]=tmp[i]-int(dimensions[i]/2)
-        tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=dim-i-1)
+        tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=i)
     temp=[]
     for i in range(dim):
         x=tmp[i].flatten()
-        x=x/(dimensions[i]-1)
+        x=x/(dimensions[i])
         temp.append(x)
     tmp=np.array(temp)
-    tmp=2*np.pi*tmp/dim
+    tmp=2*np.pi*tmp
     return tmp
 
 ###################################################################
@@ -888,6 +888,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             cell_coordinates=[cell_coordinates]
 
         for cell in cell_coordinates:
+            # cell=list(np.array(cell)+self.centre)
             self.set_onsite(onsite=impurity_potential, atom=atom, orbital=atom, spin=spin, position_coordinates=cell)
         
 
@@ -896,20 +897,23 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         self.set_impurities(impurity_ampltiude=spin_matrix, cell_coordinates=cell_coordinates, orbitals=orbitals)
 
     ############################################################
-    ################### Diagonalisation #######################
+    ################## Fourier transform #######################
+    ############################################################
+    def fourier_transform(self):
+        dimensions=self._pieces
+        ft=np.einsum('ij,ik->jk',xpts(dimensions),kpts(dimensions),optimize=True)
+        ft=np.exp(1.0j*ft)
+        ft=ft/np.sqrt(self.n_cells)
+        hopping_amplitude=np.eye(self.n_atoms_orbitals_spins)
+        self._hamiltonian=np.einsum('kx,xy,qy->kq',np.conjugate(ft),self._hamiltonian,ft,optimize=True)
+
+    ############################################################
+    ################### diagonalisation ########################
     ############################################################
 
     def solve(self):
         t = time.time()
         if type(self.kpts)==type(None):
-            self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
-            #######
-            dimensions=self._pieces
-            ft=np.einsum('ij,ik->jk',indices(dimensions),kpts(dimensions))
-            ft=np.exp(1.0j*ft)
-            ft=ft/self.n_cells
-            hopping_amplitude=np.eye(self.n_atoms_orbitals_spins)
-            self._hamiltonian=np.einsum('kx,xy,qy->kq',np.conjugate(ft),self._hamiltonian,ft)
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         elif not self.bulk_calculation:
             self._hamiltonian = scipy.linalg.block_diag(*self._hamiltonian)

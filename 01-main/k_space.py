@@ -14,13 +14,13 @@ tb=Tightbinding(lattice_vectors,'TB')
 tb.add_atom(A)
 # tb.add_atom(B)
 tb.n_spins=1
-mu=-3.25
+mu=2.7
 s=0.
 
 energy_interval=np.linspace(-2,2,401)
 resolution=0.1
 
-n_cells=11
+n_cells=21
 tb.cut_piece(n_cells, [0,1], glue_edgs=True)
 
 pts=11
@@ -38,11 +38,12 @@ tb.set_onsite(-mu)
 tb.set_hopping(-t,hop_vector=[1,0])
 tb.set_hopping(-t,hop_vector=[0,1])
 
-tb.add_impurities(V,[0],label='V')
+# tb.add_impurities(V,[0,0],label='V')
 
 # tb.bulk_calculation=True
 tb.bulk_calculation=False
 
+tb.fourier_transform()
 #########################################################
 
 tb.solve()
@@ -65,8 +66,11 @@ fig, axs = plt.subplots(1, 1)
 
 dos = tb.density_of_states(sites='resolved', atom='integrated', orbital='integrated', spin='integrated', energy=0)
 dos = np.fft.fftshift(dos)
-print(dos)
-plt.imshow(dos)
+print(np.max(dos))
+print(np.min(dos))
+vmin=0
+vmax=3.1
+plt.imshow(dos,origin='lower',interpolation=None)#,vmin=vmin, vmax=vmax)
 plt.show()
 exit()
 fig, axs = tb.plot_band_structure_2D(fig, axs, dos)
