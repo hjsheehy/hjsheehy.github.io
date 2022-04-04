@@ -899,10 +899,13 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     ############################################################
     ################## Fourier transform #######################
     ############################################################
-    def fourier_transform(self):
+    def fourier_transform(self, inverse=False):
         dimensions=self._pieces
         ft=np.einsum('ij,ik->jk',xpts(dimensions),kpts(dimensions),optimize=True)
-        ft=np.exp(1.0j*ft)
+        if inverse:
+            ft=np.exp(-1.0j*ft)
+        else:
+            ft=np.exp(1.0j*ft)
         ft=ft/np.sqrt(self.n_cells)
         hopping_amplitude=np.eye(self.n_atoms_orbitals_spins)
         self._hamiltonian=np.einsum('kx,xy,qy->kq',np.conjugate(ft),self._hamiltonian,ft,optimize=True)

@@ -38,7 +38,7 @@ tb.set_onsite(-mu)
 tb.set_hopping(-t,hop_vector=[1,0])
 tb.set_hopping(-t,hop_vector=[0,1])
 
-# tb.add_impurities(V,[0,0],label='V')
+tb.add_impurities(V,[0,0],label='V')
 
 # tb.bulk_calculation=True
 tb.bulk_calculation=False
