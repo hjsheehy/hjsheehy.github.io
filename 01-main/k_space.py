@@ -21,7 +21,7 @@ energy_interval=np.linspace(-2,2,401)
 resolution=0.1
 
 n_cells=21
-tb.cut_piece(n_cells, [0,1], glue_edgs=True)
+tb.cut(n_cells, [0,1], glue_edgs=True)
 
 pts=11
 x_pts=np.linspace(-np.pi, np.pi, pts)
