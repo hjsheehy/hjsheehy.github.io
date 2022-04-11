@@ -94,12 +94,8 @@ def coordinates_to_indices(array, dimensions):
 def xpts(dimensions):
     dim=len(dimensions)
     tmp=np.indices(dimensions,dtype=float)
-    # for i in range(dim):
-    #     for j in range(i):
-    #         tmp[dim-j-1]=tmp[dim-j-1,...]*dimensions[j]
     for i in range(dim):
         tmp[i]=tmp[i]-int(dimensions[i]/2)
-        # tmp[i]=np.roll(tmp[i],-2,axis=i)
         tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=i)
     temp=[]
     for i in range(dim):
@@ -111,9 +107,6 @@ def xpts(dimensions):
 def kpts(dimensions):
     dim=len(dimensions)
     tmp=np.indices(dimensions,dtype=float)
-    # for i in range(dim):
-    #     for j in range(i):
-    #         tmp[dim-j-1]=tmp[dim-j-1,...]*dimensions[j]
     for i in range(dim):
         tmp[i]=tmp[i]-int(dimensions[i]/2)
         tmp[i]=np.roll(tmp[i],-int(dimensions[i]/2),axis=i)
@@ -496,6 +489,10 @@ class CrystalLattice():
         return list(self._atom_dict.keys())
 
     @property
+    def atom_positions(self):
+        return [atom.position for atom in self._atoms]
+
+    @property
     def n_dimensions(self):
         return len(self.lattice_vectors)
     
@@ -527,6 +524,10 @@ class CrystalLattice():
     def centre(self):
         """centred-coordinates"""
         return np.array(np.array(self._pieces)/2, dtype=int)  
+
+    @property
+    def com(self):
+        return np.average(self.atom_positions,axis=0)
 
     @property
     def edge(self):
@@ -618,10 +619,9 @@ class StatisticalMechanics():
 
 class Tightbinding(CrystalLattice, StatisticalMechanics):
     
-    def __init__(self,lattice_vectors,name,k_space=False):
+    def __init__(self,lattice_vectors,name):
 
         self._model='tb'
-        self.k_space = k_space
 
         self.kpts = None
 
@@ -639,6 +639,8 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
         self._flattened_kpts = None
 
         super().__init__(lattice_vectors,name)
+
+        self._k_axes = [False for i in range(self.n_dimensions)]
 
     @property
     def n_kpts(self):
@@ -662,7 +664,6 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
 Specify either the Atom, or the Crystal_lattice. If the Atom is None, then all Atoms in the Crystal_lattice are inputted. If the Orbital is None, then all Orbitals in each Atom are inputted.
 The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips) or 2*orbital-matrix (spin-orbit) i.e. kron(spin,orbit)"""
         indices=[]
-
         if type(atom)!=type(None):
             _atoms=[self._atom_index(atom)]
         else:
@@ -723,18 +724,22 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             so_tensor=np.diag(so_tensor)
             so_tensor=np.kron(spin_tensor,so_tensor)
 
-        if type(position_coordinates)==list or isinstance(position_coordinates, np.ndarray):
-            position_coordinates=tuple_to_tuples(position_coordinates)
-            sites = np.zeros([self.n_cells])
-            sites[tuple(position_coordinates)]=1
-            sites=np.diag(sites)
-
-        elif type(position_coordinates)==type(None):
+        if type(position_coordinates)==type(None):
             sites=np.eye(self.n_cells)
+            return kron(so_tensor,sites)
+        if len(np.shape(position_coordinates))==1:
+            position_coordinates=[position_coordinates]
+        if len(np.shape(position_coordinates))==2:
+            sites=np.zeros([self.n_cells,self.n_cells])
+            for x in position_coordinates:
+                x=np.moveaxis(x,0,-1)
+                x=np.add(np.mod(np.add(x, self.centre), self._pieces), -self.centre)
+                x=coordinates_to_indices(x,self._pieces)
+                x=x.flatten()
+                sites[x,x]=1
+            return kron(so_tensor,sites)
         else:
-            raise ValueError(f'{position_coordinates} not an integer-valued coordinate list or list of coordinates!')
-
-        return kron(so_tensor,sites)
+            raise ValueError(f'{position_coordinates} not a list of coordinates!')
         # return kron(sites,so_tensor)
 
     def _cutout_hopping(self, hop_vector=None):
@@ -881,17 +886,12 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     def hop_atoms(self):
         return [self.hoppings[v][:2] for v in range(len(self.hoppings))]
 
-    def add_impurities(self, impurity_potential, cell_coordinates, atom=None, orbital=None, spin=None, label=''):
+    def add_impurities(self, impurity_potential, position_coordinates, atom=None, orbital=None, spin=None, label=''):
         
-        self.impurities.append([impurity_potential,cell_coordinates,atom,orbital,spin])
+        self.impurities.append([impurity_potential,position_coordinates,atom,orbital,spin])
         self.impurity_labels.append(label)
 
-        if type(cell_coordinates[0])!=type(np.ndarray) or type(cell_coordinates[0])!=type(list):
-            cell_coordinates=[cell_coordinates]
-
-        for cell in cell_coordinates:
-            # cell=list(np.array(cell)+self.centre)
-            self.set_onsite(onsite=impurity_potential, atom=atom, orbital=atom, spin=spin, position_coordinates=cell)
+        self.set_onsite(onsite=impurity_potential, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
         
 
     def set_magnetic_impurities(self, M, cell_coordinate, atom=None, orbitals=None):
@@ -901,28 +901,38 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     ############################################################
     ################## Fourier transform #######################
     ############################################################
-    def fourier_transform(self, inverse=False):
-        dimensions=self._pieces
-        ft=np.einsum('ij,ik->jk',xpts(dimensions),kpts(dimensions),optimize=True)
-        if inverse:
-            ft=np.exp(-1.0j*ft)
-        else:
-            ft=np.exp(1.0j*ft)
-        ft=ft/np.sqrt(self.n_cells)
-        ft=np.kron(np.eye(self.n_atoms_orbitals_spins),ft)
+    # def fourier_transform(self, axes='all'):
+    #     dimensions=self._pieces
+    #     ft_axes=np.zeros(self.n_dimensions)
+    #     if axes=='all':
+    #         axes=np.arange(self.n_dimensions)
+    #     elif type(axes)==int:
+    #         axes=[axes]
+    #     for i in axes:
+    #         # check if k_space (true/false)
+    #         if self.k_axes[i]:
+    #             # k space => inv ft
+    #             ft_axes[i]=-1
+    #         else:
+    #             # real space => ft
+    #             ft_axes[i]=1
+    #     ft=np.einsum('i,ij,ik->jk',ft_axes,xpts(dimensions),kpts(dimensions),optimize=True)
+    #     ft=np.exp(1.0j*ft)
+    #     ft=ft/np.sqrt(self.n_cells)
+    #     ft=np.kron(np.eye(self.n_atoms_orbitals_spins),ft)
 
-        if self._model=='bdg':
-            ft = np.block([[ft,np.conj(ft)],[np.conj(ft),ft]])
+    #     if self._model=='bdg':
+    #         ft = np.block([[ft,np.conj(ft)],[np.conj(ft),ft]])
 
-        return ft
+    #     return ft
 
-    def ft_hamiltonian(self, inverse=False):
-        ft = self.fourier_transform(inverse)
-        self._hamiltonian=np.einsum('kx,xy,qy->kq',ft,self._hamiltonian,np.conjugate(ft),optimize=True)
+    # def ft_hamiltonian(self, axes='all'):
+    #     ft = self.fourier_transform(axes=axes)
+    #     self._hamiltonian=np.einsum('kx,xy,qy->kq',ft,self._hamiltonian,np.conjugate(ft),optimize=True)
 
-    def ft_wavefunction(self, inverse=False):
-        ft = self.fourier_transform(inverse)
-        self.eigenvectors = np.einsum('kx,xy->ky',ft,self.eigenvectors,optimize=True)
+    # def ft_wavefunction(self, axes='all'):
+    #     ft = self.fourier_transform(axes=axes)
+    #     self.eigenvectors = np.einsum('kx,xy->ky',ft,self.eigenvectors,optimize=True)
 
     ############################################################
     ################### diagonalisation ########################
@@ -950,237 +960,95 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         #     self.k_space=False
 
         self.exec_time = time.time() - t
+
+        self._reshape_eigenvectors()
         return self.eigenvalues,self.eigenvectors
 
-    ############################################################
-    ################### Greens' function #######################
-    ############################################################
+    def _reshape_eigenvectors(self):
+        '''7-dimensional data set: [normal/anom, x, y, z, orbital, spin, eigenvalues]'''
+        n=len(self.eigenvalues)
 
-    # def _greens_function(self, omega, density_matrix):
-    #     '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
-    #     if self.bulk_calculation:
-    #         return np.einsum('ke,kie->ki', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
-    #     else:
-    #         return np.einsum('e,ie->i', 1/(omega-self.eigenvalues), density_matrix,optimize=True)
-    
-    def _greens_function(self, omegas, density_matrix):
-        '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
-        reciprocal = 1/(omegas[:,None]-self.eigenvalues)
+        if np.shape(self.eigenvectors)!=(n,n):
+            return self.eigenvectors
+
         if self.bulk_calculation:
-            return np.einsum('koe,kie->koi', reciprocal, density_matrix,optimize=True)
+            self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
+            self.eigenvectors = np.reshape(self.eigenvectors,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,2*n], 'F')
         else:
-            return np.einsum('oe,ie->oi', reciprocal, density_matrix,optimize=True)
+            # self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
+            # self.eigenvectors=self.eigenvectors[int(n/2):,int(n/2):]
+            # tmp=self.eigenvectors
+            # ener=1/(self.eigenvalues[:int(n/2)]-0.1j)
+            # tmp=np.einsum('xe,xe,e->x',tmp,np.conj(tmp),ener)
+            # tmp=np.imag(tmp)
+            # tmp = np.reshape(tmp, self._extended_dimensions, 'F')
+        # self.eigenvectors = np.array([self.eigenvectors[...,n:],self.eigenvectors[...,:n]])
 
-    def _density_of_states(self,density_matrix):
-        '''8-dimensional data set: [x, y, z, orbital, orbital, spin, spin, omega]'''
-        omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
-        # green = np.array([self._greens_function(omega,density_matrix) for omega in omegas])
-        green = self._greens_function(omegas,density_matrix)
-        dos = -(1/np.pi)*np.imag(green)
-        dos = np.real_if_close(dos)
-        if self.bulk_calculation:
-            dos = np.moveaxis(dos,0,-1)
-            dos = np.reshape(dos,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,self.n_energy], 'F')
+            ###################
+            # self.energy_interval=np.linspace(-4,4,601)
+            # self.n_energy=len(self.energy_interval)
+            # self.resolution=0.1
+
+            dim=np.append(self._extended_dimensions,[2*self.n_dof])
+            # self.eigenvectors = np.array([self.eigenvectors[...,:self.n_dof],self.eigenvectors[...,self.n_dof:]])
+
+            self.eigenvectors = np.array([np.reshape(self.eigenvectors[:self.n_dof], dim, 'F'),np.reshape(self.eigenvectors[self.n_dof:], dim, 'F')])
+  
+            # dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
+            #####################
+            # dim=np.append(self._extended_dimensions,[2*self.n_dof])
+            # self.eigenvectors = np.reshape(self.eigenvectors[:self.n_dof], dim, 'F')
+            # self.eigenvectors = np.array([self.eigenvectors[...,self.n_dof:],self.eigenvectors[...,:self.n_dof]])
+            ######################
+        # tmp=dos[0]
+        # tmp=tmp[:,:,0,0,300]
+        # tmp=np.fft.fftshift(tmp).T
+        # plt.imshow(tmp)
+        # plt.show()
+        # exit()
+
+    @property
+    def axes(self):
+        if np.all(self._k_axes):
+            return "Dimensions are k-space."
+        elif np.all(self._r_axes):
+            return "Dimensions are real-space."
         else:
-            dos = np.moveaxis(dos,0,-1)
-            dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
-        return dos
-    
-    def _query_dos(self):
-        if type(self._dos)==type(None):
-            raise ValueError("Density of states doesn't exist. Please run self.calculate_greens_function first!")
-        else: 
-            pass
-
-    def calculate_greens_function(self,energy_interval,resolution,include_ft=True,inverse_ft=False):
-        self.energy_interval=energy_interval
-        self.emax=np.max(energy_interval)
-        self.emin=np.min(energy_interval)
-        self.resolution=resolution
-        self.n_energy=len(self.energy_interval)
-        if type(self._dos)==type(None):
-            return self._calculate_dos(include_ft=include_ft,inverse_ft=inverse_ft)
-
-    def density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', energy='resolved', ft=False, anomalous=False):
-        """If site=None: trace sites, else local density of states
-If atom=None: trace atoms, else atom resolved
-If orbital=None: trace orbitals, else orbital resolved
-If spin=None: trace spin, else spin polarised"""
-        self._query_dos()
-
-        if ft and anomalous:
-            temp=self._ft_ados
-        elif ft:
-            temp = self._ft_dos
-        elif anomalous:
-            temp = self._ados
-        else:
-            temp = self._dos
-
-        dim=self.n_dimensions
-        if spin=='integrated':
-            temp = np.sum(temp,-2)
-        elif spin=='resolved':
-            pass
-        else:
-            temp = temp[...,self.spin(spin),:]
-            # temp = temp[...,self.spin(spin),:,:]
-        if atom=='integrated' and orbital=='integrated':
-            temp = np.sum(temp,dim)
-        elif atom=='resolved' and orbital=='resolved':
-            pass
-        elif atom=='integrated':
-            indices=[]
-            for atom in self._atom_indices:
-                indices.append(self.index(atom,orbital))
-            temp = temp[..., indices,:]
-            # temp = temp[..., indices]
-            temp = np.sum(temp,dim)
-        elif orbital=='integrated':
-            indices=[]
-            for orbital in self.atom(atom)._orbital_indices:
-                indices.append(self.index(atom,orbital))
-            temp = temp[..., indices,:]
-            # temp = temp[..., indices]
-            temp = np.sum(temp,dim)
-        else:
-            index=(self.index(atom,orbital))
-            temp = temp[..., index,:]
-        if sites=='resolved':
-            pass
-        elif sites=='integrated':
-            for i in range(self.n_dimensions):
-                temp = np.sum(temp,0)
-        else:
-            tmp=[]
-            for site in sites:
-                for coord in site:
-                    tmp.append(temp[coord])
-            temp=np.sum(tmp,0)
-        if energy=='integrated':
-            temp = np.sum(temp,-1)
-        elif energy=='resolved':
-            pass
-        else:
-            index = FindNearestValueOfArray(self.energy_interval,energy)
-            temp = temp[..., index]
-        return temp
-
-    def integrated_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', ft=False, anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin=spin, energy='integrated', ft=ft, anomalous=anomalous)
-
-    def local_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', energy='resolved', ft=False, anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='integrated', energy=energy, ft=ft, anomalous=anomalous)
-
-    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', ft=False, anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, ft=ft, anomalous=anomalous)
-
-    def local_density_of_states(self, sites='resolved', atom='integrated', energy='resolved', ft=False, anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin='integrated', energy=energy, ft=ft, anomalous=anomalous)
-
-    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', ft=False, anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, ft=ft, anomalous=anomalous)
-
-    def staggered_density(self, atom_i, atom_f, energy=None):
-        A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
-        B=self.local_density_of_states(energy=energy, atom=atom_f, orbital=None, spin=None)
-        return A-B
-
-    def mean_abs_staggered_density(self, atom_i, atom_f, energy=None):
-        den=self.staggered_density(atom_i,atom_f,energy)
-        den=np.abs(den)
-        for i in range(self.n_dimensions):
-            den=np.sum(den,axis=0)
-        den=den/self.n_cells
-        return den
-
-    def IPR_abs_staggered_density(self, atom_i, atom_f, energy=None):
-        stag_density=self.staggered_density(atom_i=atom_i,atom_f=atom_f,energy=energy)
-        ipr=np.sum(np.abs(stag_density))**2/np.sum(np.square(stag_density))
-        return ipr
-
-    def magnetism(self, energy=None, atom=None, orbital=None):
-        up=self.local_density_of_states(energy, atom, orbital, spin=self.spin('up'))
-        dn=self.local_density_of_states(energy, atom, orbital, spin=self.spin('down'))
-        return up-dn
-
-    def mean_abs_magnetism(self, energy=None, atom=None, orbital=None):
-        magnetism=self.magnetism(energy, atom, orbital)
-        magnetism=np.abs(magnetism)
-        for i in range(self.n_dimensions):
-            magnetism=np.sum(magnetism,axis=0)
-        magnetism=magnetism/self.n_cells
-        return magnetism
-
-    def spectrum(self, locations, orbital, spins=None):
-        self._query_dos()
-        temp = self._dos
-        if type(spin)==type(None):
-            temp = np.sum(temp,-2)
-        else:
-            temp = temp[...,spin,:]
-        temp = temp[..., orbital,:]
-        location=locations[0]
-        temp = np.array([temp[(*location, ...)] for location in locations])
-        return temp
-
-    #############################
-    ####### Check these:  #######
-    #############################
-    def ldos_cartesian(self, ldos, n_pts=40, gaussian_mean=0.4):
-
-        def gaussian_convolution(x,x0,sigma):
-            return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
-        coord = self.coordinates_to_orbital_position
-        xx = []
-        n_pts=np.multiply([n_pts,n_pts],self.dimensions)
-        for i in range(self.n_dim):
-            _min = np.min(coord[...,i])-0.5
-            _max = np.max(coord[...,i])+0.5
-            xx.append(np.linspace(_min,_max,n_pts[i]))
-        xx = np.meshgrid(*xx)
-
-        coords = np.reshape(coord,[self.n_orbitals,self.n_cells,self.n_dim])
-        ldos = np.reshape(ldos,[self.n_orbitals,self.n_cells])
-
-        gaussian = [np.sum([gaussian_convolution(xx,coords[o,i],gaussian_mean)*ldos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbitals)]
+            return f"k-space axes are {self._momentum_axes} and real-space axes are {self._real_axes}."
         
-        gaussian=np.sum(gaussian,0)
-        gaussian=np.flip(np.fft.fftshift(gaussian).T,axis=0)
-        return gaussian
+    @property
+    def _momentum_axes(self):
+        axes=np.arange(self.n_dimensions)
+        axes=axes[self._k_axes]
+        return axes
 
-    def qpi_cartesian(self, ldos, n_pts=40, gaussian_mean=2, remove_central_bright_spot=True):
-        
-        ldos = np.fft.fft2(ldos, axes=(0,1), norm='ortho')
+    @property
+    def _r_axes(self):
+        return np.logical_not(self._k_axes)
 
-        if remove_central_bright_spot:
-            ldos[0,0]=0
+    @property
+    def _real_axes(self):
+        axes=np.arange(self.n_dimensions)
+        axes=axes[self._r_axes]
+        return axes
 
-        def gaussian_convolution(x,x0,sigma):
-            return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
-        coord = self.reciprocal_to_orbital_position
-        xx = []
-        n_pts=np.multiply([n_pts,n_pts],self.dimensions)
-        for i in range(self.n_dim):
-            _min = np.min(coord[...,i])*1.1
-            _max = np.max(coord[...,i])*1.1
-            xx.append(np.linspace(_min,_max,n_pts[i]))
-        xx = np.meshgrid(*xx)
+    def set_k_axes(self, axes):
+        for axis in axes:
+            if self._k_axes[axis]:
+                pass
+            else:
+                norm = 1/np.sqrt(self._pieces[axis])
+                self.eigenvectors = norm*np.fft.fft(self.eigenvectors,axis=axis+1)
+            self._k_axes[axis] = not self._k_axes[axis]
 
-        coords = np.reshape(coord,[self.n_orbitals,self.n_cells,self.n_dim])
-        ldos = np.reshape(ldos,[self.n_orbitals,self.n_cells])
-
-        gaussian = [np.sum([gaussian_convolution(xx,coords[o,i],gaussian_mean)*ldos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbitals)]
-
-        gaussian=np.sum(gaussian,0) #sum over orbitals
-
-        gaussian = np.abs(gaussian)
-        
-        gaussian=np.sum(gaussian,-1)
-
-        ldos=np.abs(ldos)
-
-        return gaussian
+    def set_real_axes(self, axes):
+        for axis in axes:
+            if not self._k_axes[axis]:
+                pass
+            else:
+                norm = 1/np.sqrt(self._pieces[axis])
+                self.eigenvectors = norm*np.fft.ifft(self.eigenvectors,axis=axis+1)
+            self._k_axes[axis] = not self._k_axes[axis]
 
 ###################################################################
 ######################## Plotting ################################
@@ -1189,36 +1057,53 @@ If spin=None: trace spin, else spin polarised"""
     def lattice(self,atom,dimensions=None):
         if type(dimensions)==type(None):
             dimensions=self._pieces
-        lattice=np.indices(dimensions).T
+        centre=np.array(np.array(dimensions)/2,dtype=int)
+        lattice=np.indices(np.array(dimensions)).T -centre
         lattice=np.dot(lattice,self.lattice_vectors)
         lattice=lattice+self.atom(atom).position
         return lattice.T
 
-    def plot_unit_cell(self, fig, ax, atoms='all', s=1, x_cells=2, y_cells=1, include_basis_vec=True, include_hoppings=True, include_atomic_labels=True):
+    def plot_unit_cell(self, fig, ax, atoms='all', s=1, x_cells=3, y_cells=3, include_basis_vec=True, include_hoppings=True, include_atomic_labels=True):
+
         if atoms=='all':
             atoms=np.arange(self.n_atoms)
         
-        vec=np.array(self.hop_vectors)
-        x=np.max(np.abs(vec[0]))
-        y=np.max(np.abs(vec[1]))
-        dimensions=[x+x_cells,y+y_cells]
-        for atom in atoms:
-            x,y=self.lattice(atom,dimensions=dimensions)
-            ax.scatter(x,y,s=s)
+        vec=np.array(self.lattice_vectors)
+        b0=vec[0]
+        b1=vec[1]
+        x=np.max(np.abs(b0))
+        y=np.max(np.abs(b1))
+        centre=b0+b1
+        
+        # unit cell:
+        # rectangle = plt.Rectangle(-centre/2+self.com, centre[0], centre[1], fc='lightblue',ec="black")
+        # plt.gca().add_patch(rectangle)
+        
+        n = len(atoms)
+        colors = cm.rainbow(np.linspace(0, 1, n))
+
+        # lattice:
+        for i,atom in enumerate(atoms):
+            x,y=self.lattice(atom,dimensions=[x_cells,y_cells])
+            ax.scatter(x,y,s=s,color=colors[i],alpha=0.3)
+
+        for i,atom in enumerate(atoms):
+            x,y=self.lattice(atom,dimensions=[1,1])
+            ax.scatter(x,y,s=s,color=colors[i])
             
             # atomic labels:
             if include_atomic_labels:
                 pos=self.atom(atom).position
-                pos=pos-np.array([0,0.03])
+                pos=pos-np.array([0,0.05])
                 label=self.atom(atom).name
                 ax.annotate(text=label, xytext=pos,xy=pos)
 
         # basis vectors:
-        shift=0.01
+        shift=0.00
         if include_basis_vec:
             for i in range(self.n_dimensions): # Two basis vectors are plotted in the plane 
-               ax.annotate(text='', xytext=self.lattice_vectors[i]+np.array([-shift,-shift]),xy=[-shift,-shift],arrowprops=dict(arrowstyle='<-', lw=2))
-               ax.annotate(text=f'$b_{i}$', xytext=0.5*self.lattice_vectors[i]+[0.03,0.03],xy=[0,0])
+               ax.annotate(text='', xytext=self.lattice_vectors[i]+np.array([-shift,-shift])-centre,xy=[-shift,-shift]-centre,arrowprops=dict(arrowstyle='<-', lw=2))
+               ax.annotate(text=f'$b_{i}$', xytext=0.5*self.lattice_vectors[i]+[0.03,0.03]-centre,xy=[0,0]-centre)
 
         # hoppings
         if include_hoppings:
@@ -1231,9 +1116,10 @@ If spin=None: trace spin, else spin polarised"""
                 else:
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<-', 'ls': 'dashed'})
                 ax.annotate(text=self.hopping_labels[i], xytext=0.5*(B+A)+[0.05,0.05],xy=[0,0])
-
-        ax.set_xlabel(r'$\hat{x}$')
-        ax.set_ylabel(r'$\hat{y}$')
+        
+        # axes labels
+        ax.set_xlabel(r'$\hat{x}/|b_0|$')
+        ax.set_ylabel(r'$\hat{y}/|b_1|$')
         
         return fig,ax
 
@@ -1600,11 +1486,12 @@ class BogoliubovdeGennes(Tightbinding):
         anomalous thermal density matrix
     """
 
-    def __init__(self,lattice_vectors,name,k_space=False):
+    def __init__(self,lattice_vectors,name):
 
         super().__init__(lattice_vectors,name)
 
         self._model='bdg'
+
         self.iterations=0
 
         self._hartree=None
@@ -1928,7 +1815,7 @@ class BogoliubovdeGennes(Tightbinding):
             temp=np.array(self._gorkov_iterations[-1])
             print(temp[self._gorkov_print_indices])
 
-    def solve(self):
+    def solve(self,reshape=True):
         """Decorates self.solve() with self._set_mean_field_hamiltonian()"""
 
         self._set_mean_field_hamiltonian()
@@ -1936,23 +1823,10 @@ class BogoliubovdeGennes(Tightbinding):
         t = time.time()
         self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         self.exec_time = time.time() - t
+        if reshape:
+            self._reshape_eigenvectors()
         return self.eigenvalues,self.eigenvectors
 
-    def _calculate_dos(self,include_ft=True,inverse_ft=False,del_eigsys=True):
-
-        self._dos = self._density_of_states(self.density_matrix)
-        self._ados = self._density_of_states(self.anomalous_density_matrix)
-
-        if include_ft:
-            self.ft_wavefunction(inverse_ft)
-            self._ft_dos = self._density_of_states(self.density_matrix)
-            self._ft_ados = self._density_of_states(self.anomalous_density_matrix)
-
-        if del_eigsys:
-            del self.eigenvalues
-            del self.eigenvectors
-        return self._dos, self._ados, self._ft_dos, self._ft_ados
-    
     def __iter__(self):
 
         return self
@@ -1965,7 +1839,7 @@ class BogoliubovdeGennes(Tightbinding):
 
         ############ Solve mean-field Hamiltonian #############
 
-        self.solve()
+        self.solve(reshape=False)
 
         trace_density, density, anomalous_density = self.thermal_density_matrix
 
@@ -2010,7 +1884,7 @@ class BogoliubovdeGennes(Tightbinding):
             fock_old = self._fock
             gorkov_old = self._gorkov
 
-            w,v = next(iteration)
+            next(iteration)
             
             eps = self.absolute_convergence_factor
             if (np.allclose(hartree_old,self._hartree,atol=eps) & np.allclose(fock_old,self._fock,atol=eps) & np.allclose(gorkov_old,self._gorkov,atol=eps)):
@@ -2026,8 +1900,7 @@ class BogoliubovdeGennes(Tightbinding):
         self._hartree_iterations = np.transpose(self._hartree_iterations)
         self._fock_iterations = np.transpose(self._fock_iterations)
         self._gorkov_iterations = np.transpose(self._gorkov_iterations)
-
-        return w,v
+        self.reshape_eigenvectors()
     
     @property
     def hartree_array(self):
@@ -2577,4 +2450,277 @@ class BogoliubovdeGennes(Tightbinding):
 #                        orb_1=orb_1[:2]
 #                        self.ax.annotate(text='', xytext=orb_1, xy=orb_0,  arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
 #                        self.ax.annotate(text=label, xytext=0.5*(orb_0+orb_1)+(0,0.01), xy=orb_0)
+
+
+
+    ############################################################
+    ################### Greens' function #######################
+    ############################################################
+
+class GreensFunction(BogoliubovdeGennes):
+    """Greens function
+    
+    Attributes
+    ----------
+
+    Parameters
+    ----------
+    conf : model = instance of TightBinding or BogoloiubovdeGennes
+
+    Attributes
+    ----------
+    dm : array
+        normal density matrix
+    adm : array
+        anomalous density matrix
+    t_dm : array
+        normal thermal density matrix
+    t_adm : array
+        anomalous thermal density matrix
+    """
+
+    def __init__(self, model, energy_interval, resolution):
+
+        self.lattice_vectors = model.lattice_vectors
+        self.name = model.name
+
+        self._model= model._model
+
+        self._k_axes = model._k_axes
+
+        self.kpts = model.kpts
+
+        self.n_spins = model.n_spins
+        self._atoms = model._atoms
+        self._pieces = model._pieces
+        self._atom_dict= model._atom_dict
+        self._atom_indices = model._atom_indices
+        self._counter= model._counter
+        self.bulk_calculation=model.bulk_calculation
+
+        self.temperature=model.temperature
+
+        self.hoppings=model.hoppings
+        self.hopping_labels=model.hopping_labels
+        self.impurities=model.impurities
+        self.impurity_labels=model.impurity_labels
+
+        self._flattened_kpts = model._flattened_kpts
+
+        self.bulk_calculation = model.bulk_calculation
+
+        self.energy_interval=energy_interval
+        self.emax=np.max(energy_interval)
+        self.emin=np.min(energy_interval)
+        self.resolution=resolution
+        self.n_energy=len(self.energy_interval)
+        
+        if self._model=='tb':
+            dm = np.array([np.multiply(model.eigenvectors,np.conj(model.eigenvectors))])
+        else:
+            # dm = np.array([np.multiply(model.eigenvectors[0],np.conj(model.eigenvectors[0])),
+            #     np.multiply(model.eigenvectors[0],np.conj(model.eigenvectors[1]))])
+
+        # omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
+        # self._dos=self._greens_function(omegas,model.eigenvalues,dm)
+
+            density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
+            omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
+            reciprocal = 1/(omegas[:,None]-model.eigenvalues[:]) #assuming T=0
+            if self.bulk_calculation:
+                self._dos = np.einsum('koe,k...e->k...o', reciprocal, density_matrix,optimize=True)
+            else:
+                self._dos = np.einsum('oe,...e->...o', reciprocal, density_matrix,optimize=True)
+
+    def _greens_function(self, omegas, eigenvalues, density_matrix):
+        '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
+    
+    def _query_dos(self):
+        if type(self._dos)==type(None):
+            raise ValueError("Density of states doesn't exist. Please run self.calculate_greens_function first!")
+        else: 
+            pass
+
+#     def calculate_greens_function(self,energy_interval,resolution,ft_axes=None):
+
+#         return self._dos
+
+    def density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', energy='resolved', anomalous=False):
+        """If site=None: trace sites, else local density of states
+If atom=None: trace atoms, else atom resolved
+If orbital=None: trace orbitals, else orbital resolved
+If spin=None: trace spin, else spin polarised"""
+        self._query_dos()
+
+        temp = (-1/np.pi)*np.imag(self._dos)
+
+        if anomalous:
+            temp=temp[1]
+        else:
+            temp=temp[0]
+
+        dim=self.n_dimensions
+        if spin=='integrated':
+            temp = np.sum(temp,-2)
+        elif spin=='resolved':
+            pass
+        else:
+            temp = temp[...,self.spin(spin),:]
+            # temp = temp[...,self.spin(spin),:,:]
+        if atom=='integrated' and orbital=='integrated':
+            temp = np.sum(temp,dim)
+        elif atom=='resolved' and orbital=='resolved':
+            pass
+        elif atom=='integrated':
+            indices=[]
+            for atom in self._atom_indices:
+                indices.append(self.index(atom,orbital))
+            temp = temp[..., indices,:]
+            # temp = temp[..., indices]
+            temp = np.sum(temp,dim)
+        elif orbital=='integrated':
+            indices=[]
+            for orbital in self.atom(atom)._orbital_indices:
+                indices.append(self.index(atom,orbital))
+            temp = temp[..., indices,:]
+            # temp = temp[..., indices]
+            temp = np.sum(temp,dim)
+        else:
+            index=(self.index(atom,orbital))
+            temp = temp[..., index,:]
+        if sites=='resolved':
+            pass
+        elif sites=='integrated':
+            for i in range(self.n_dimensions):
+                temp = np.sum(temp,0)
+        else:
+            tmp=[]
+            for site in sites:
+                for coord in site:
+                    tmp.append(temp[coord])
+            temp=np.sum(tmp,0)
+        if energy=='integrated':
+            temp = np.sum(temp,-1)
+        elif energy=='resolved':
+            pass
+        else:
+            index = FindNearestValueOfArray(self.energy_interval,energy)
+            temp = temp[..., index]
+        return temp
+
+    def integrated_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', anomalous=False):
+        return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin=spin, energy='integrated', anomalous=anomalous)
+
+    def local_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', energy='resolved', anomalous=False):
+        return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='integrated', energy=energy, anomalous=anomalous)
+
+    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', anomalous=False):
+        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, anomalous=anomalous)
+
+    def local_density_of_states(self, sites='resolved', atom='integrated', energy='resolved', anomalous=False):
+        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin='integrated', energy=energy, anomalous=anomalous)
+
+    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', anomalous=False):
+        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, anomalous=anomalous)
+
+    def staggered_density(self, atom_i, atom_f, energy=None):
+        A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
+        B=self.local_density_of_states(energy=energy, atom=atom_f, orbital=None, spin=None)
+        return A-B
+
+    def mean_abs_staggered_density(self, atom_i, atom_f, energy=None):
+        den=self.staggered_density(atom_i,atom_f,energy)
+        den=np.abs(den)
+        for i in range(self.n_dimensions):
+            den=np.sum(den,axis=0)
+        den=den/self.n_cells
+        return den
+
+    def IPR_abs_staggered_density(self, atom_i, atom_f, energy=None):
+        stag_density=self.staggered_density(atom_i=atom_i,atom_f=atom_f,energy=energy)
+        ipr=np.sum(np.abs(stag_density))**2/np.sum(np.square(stag_density))
+        return ipr
+
+    def magnetism(self, energy=None, atom=None, orbital=None):
+        up=self.local_density_of_states(energy, atom, orbital, spin=self.spin('up'))
+        dn=self.local_density_of_states(energy, atom, orbital, spin=self.spin('down'))
+        return up-dn
+
+    def mean_abs_magnetism(self, energy=None, atom=None, orbital=None):
+        magnetism=self.magnetism(energy, atom, orbital)
+        magnetism=np.abs(magnetism)
+        for i in range(self.n_dimensions):
+            magnetism=np.sum(magnetism,axis=0)
+        magnetism=magnetism/self.n_cells
+        return magnetism
+
+    def spectrum(self, locations, orbital, spins=None):
+        self._query_dos()
+        temp = self._dos
+        if type(spin)==type(None):
+            temp = np.sum(temp,-2)
+        else:
+            temp = temp[...,spin,:]
+        temp = temp[..., orbital,:]
+        location=locations[0]
+        temp = np.array([temp[(*location, ...)] for location in locations])
+        return temp
+
+    #############################
+    ####### Check these:  #######
+    #############################
+    def ldos_cartesian(self, ldos, n_pts=40, gaussian_mean=0.4):
+
+        def gaussian_convolution(x,x0,sigma):
+            return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
+        coord = self.coordinates_to_orbital_position
+        xx = []
+        n_pts=np.multiply([n_pts,n_pts],self.dimensions)
+        for i in range(self.n_dim):
+            _min = np.min(coord[...,i])-0.5
+            _max = np.max(coord[...,i])+0.5
+            xx.append(np.linspace(_min,_max,n_pts[i]))
+        xx = np.meshgrid(*xx)
+
+        coords = np.reshape(coord,[self.n_orbitals,self.n_cells,self.n_dim])
+        ldos = np.reshape(ldos,[self.n_orbitals,self.n_cells])
+
+        gaussian = [np.sum([gaussian_convolution(xx,coords[o,i],gaussian_mean)*ldos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbitals)]
+        
+        gaussian=np.sum(gaussian,0)
+        gaussian=np.flip(np.fft.fftshift(gaussian).T,axis=0)
+        return gaussian
+
+    def qpi_cartesian(self, ldos, n_pts=40, gaussian_mean=2, remove_central_bright_spot=True):
+        
+        ldos = np.fft.fft2(ldos, axes=(0,1), norm='ortho')
+
+        if remove_central_bright_spot:
+            ldos[0,0]=0
+
+        def gaussian_convolution(x,x0,sigma):
+            return np.exp(-np.sum([ (x[i]-x0[i])**2 for i in range(self.n_dim)],0)/(2*sigma**2))
+        coord = self.reciprocal_to_orbital_position
+        xx = []
+        n_pts=np.multiply([n_pts,n_pts],self.dimensions)
+        for i in range(self.n_dim):
+            _min = np.min(coord[...,i])*1.1
+            _max = np.max(coord[...,i])*1.1
+            xx.append(np.linspace(_min,_max,n_pts[i]))
+        xx = np.meshgrid(*xx)
+
+        coords = np.reshape(coord,[self.n_orbitals,self.n_cells,self.n_dim])
+        ldos = np.reshape(ldos,[self.n_orbitals,self.n_cells])
+
+        gaussian = [np.sum([gaussian_convolution(xx,coords[o,i],gaussian_mean)*ldos[o,i] for i in range(self.n_cells)],0) for o in range(self.n_orbitals)]
+
+        gaussian=np.sum(gaussian,0) #sum over orbitals
+
+        gaussian = np.abs(gaussian)
+        
+        gaussian=np.sum(gaussian,-1)
+
+        ldos=np.abs(ldos)
+
+        return gaussian
 
