@@ -975,38 +975,11 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
             self.eigenvectors = np.reshape(self.eigenvectors,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,2*n], 'F')
         else:
-            # self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
-            # self.eigenvectors=self.eigenvectors[int(n/2):,int(n/2):]
-            # tmp=self.eigenvectors
-            # ener=1/(self.eigenvalues[:int(n/2)]-0.1j)
-            # tmp=np.einsum('xe,xe,e->x',tmp,np.conj(tmp),ener)
-            # tmp=np.imag(tmp)
-            # tmp = np.reshape(tmp, self._extended_dimensions, 'F')
-        # self.eigenvectors = np.array([self.eigenvectors[...,n:],self.eigenvectors[...,:n]])
-
-            ###################
-            # self.energy_interval=np.linspace(-4,4,601)
-            # self.n_energy=len(self.energy_interval)
-            # self.resolution=0.1
 
             dim=np.append(self._extended_dimensions,[2*self.n_dof])
-            # self.eigenvectors = np.array([self.eigenvectors[...,:self.n_dof],self.eigenvectors[...,self.n_dof:]])
 
             self.eigenvectors = np.array([np.reshape(self.eigenvectors[:self.n_dof], dim, 'F'),np.reshape(self.eigenvectors[self.n_dof:], dim, 'F')])
   
-            # dos = np.reshape(dos, np.append(self._extended_dimensions,[self.n_energy]), 'F')
-            #####################
-            # dim=np.append(self._extended_dimensions,[2*self.n_dof])
-            # self.eigenvectors = np.reshape(self.eigenvectors[:self.n_dof], dim, 'F')
-            # self.eigenvectors = np.array([self.eigenvectors[...,self.n_dof:],self.eigenvectors[...,:self.n_dof]])
-            ######################
-        # tmp=dos[0]
-        # tmp=tmp[:,:,0,0,300]
-        # tmp=np.fft.fftshift(tmp).T
-        # plt.imshow(tmp)
-        # plt.show()
-        # exit()
-
     @property
     def axes(self):
         if np.all(self._k_axes):
@@ -1033,22 +1006,26 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         return axes
 
     def set_k_axes(self, axes):
+        if type(axes)==type(None):
+            axes=[]
         for axis in axes:
             if self._k_axes[axis]:
                 pass
             else:
                 norm = 1/np.sqrt(self._pieces[axis])
                 self.eigenvectors = norm*np.fft.fft(self.eigenvectors,axis=axis+1)
-            self._k_axes[axis] = not self._k_axes[axis]
+                self._k_axes[axis] = not self._k_axes[axis]
 
     def set_real_axes(self, axes):
+        if type(axes)==type(None):
+            axes=[]
         for axis in axes:
             if not self._k_axes[axis]:
                 pass
             else:
                 norm = 1/np.sqrt(self._pieces[axis])
                 self.eigenvectors = norm*np.fft.ifft(self.eigenvectors,axis=axis+1)
-            self._k_axes[axis] = not self._k_axes[axis]
+                self._k_axes[axis] = not self._k_axes[axis]
 
 ###################################################################
 ######################## Plotting ################################
@@ -1118,8 +1095,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 ax.annotate(text=self.hopping_labels[i], xytext=0.5*(B+A)+[0.05,0.05],xy=[0,0])
         
         # axes labels
-        ax.set_xlabel(r'$\hat{x}/|b_0|$')
-        ax.set_ylabel(r'$\hat{y}/|b_1|$')
+        ax.set_xlabel(r'$x/|b_0|$')
+        ax.set_ylabel(r'$y/|b_1|$')
         
         return fig,ax
 
@@ -2479,14 +2456,19 @@ class GreensFunction(BogoliubovdeGennes):
         anomalous thermal density matrix
     """
 
-    def __init__(self, model, energy_interval, resolution):
+    def __init__(self, model, energy_interval, resolution, k_axes='default'):
 
         self.lattice_vectors = model.lattice_vectors
         self.name = model.name
 
         self._model= model._model
+        
+        if k_axes!='default':
+            model.set_k_axes(k_axes)
 
-        self._k_axes = model._k_axes
+        self._k_axes = np.copy(model._k_axes)
+
+        self._plot_index=0
 
         self.kpts = model.kpts
 
@@ -2724,3 +2706,102 @@ If spin=None: trace spin, else spin polarised"""
 
         return gaussian
 
+    def plot_spectrum(self, ax, energy='resolved', axes=['resolved','integrated'], atom='integrated', xmin='default', xmax='default', omega_min='default', omega_max='default', vmin='default', vmax='default',label=''):
+
+        from matplotlib.ticker import FuncFormatter, MultipleLocator
+        ldos=self.local_density_of_states(energy='resolved', atom=atom)
+
+        axis_index=axes.index('resolved')
+        rlabels=[r'$x/|b_0|$',r'$y/|b_1|$',r'$z/|b_2|$']
+        klabels=[r'$k_x|b_0|$',r'$k_y/|b_1|$',r'$k_z/|b_2|$']
+        rrlabels=[r'$x$',r'$y$',r'$z$']
+        kklabels=[r'$k_x$',r'$k_y$',r'$k_z$']
+        axes_labels=[]
+        coords=[]
+        integrated=[]
+        k=0
+        for i in range(self.n_dimensions):
+            if self._k_axes[i]:
+                axes_labels.append(klabels[i])
+                if type(axes[i])!=str:
+                    kklabels[i]=kklabels[i]+f'$={(axes[i])}$'
+                coords.append(kklabels[i])
+            else:
+                axes_labels.append(rlabels[i])
+                if type(axes[i])!=str:
+                    rrlabels[i]=rrlabels[i]+f'$={(axes[i])}$'
+                coords.append(rrlabels[i])
+            if axes[i]=='resolved':
+                if self._k_axes[i]:
+                    xxmin,xxmax=-np.pi,np.pi
+                    if xmin=='default' and xmax=='default':
+                        xmin,xmax=xxmin,xxmax
+                        j=0
+                    else:
+                        j=1
+                else:
+                    xxmin,xxmax=-self.centre[1-i],self.centre[1-i]
+                    if xmin=='default' and xmax=='default':
+                        xmin,xmax=xxmin,xxmax
+                    j=1
+            elif axes[i]=='integrated':
+                ldos=np.sum(ldos,i-k)
+                k+=1
+                if self._k_axes[i]:
+                    integrated.append(kklabels[i])
+            else:
+                if i-k==0:
+                    ldos=ldos[axes[i]]
+                elif i-k==1:
+                    ldos=ldos[:,axes[i]]
+                elif i-k==2:
+                    ldos=ldos[:,:,axes[i]]
+
+        if omega_min=='default':
+            omega_min=self.emin
+        if omega_max=='default':
+            omega_max=self.emax
+
+        ldos=np.fft.fftshift(ldos.T, axes=1)
+
+        if energy!='resolved':
+            energy_index = FindNearestValueOfArray(self.energy_interval,energy)
+            ldos=ldos[energy_index]
+
+        if vmin=='default':
+            vmin=np.min(ldos)
+        if vmax=='default':
+            vmax=np.max(ldos)
+
+        ax.set_xlim(xmin,xmax)
+        ax.set_xticks([xmin,0,xmax])
+        if j==0:
+            ax.set_xticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+        elif j==1:
+            ax.set_xticklabels([f'${xmin}$',f'$0$',f'${xmax}$'])
+        ax.set_xlabel(axes_labels[axis_index])
+        ax.set_ylabel('$\omega$')
+
+        title=''
+        coords=', '.join(coords)
+        if len(integrated)>0:
+            integrated=', '.join(integrated)
+            title=r'$\int\text{{d}}$'+integrated
+        title=title+r'$-\frac{{1}}{{\pi}}\Im\hat{{\mathcal{{G}}}}(\omega-i\epsilon,$ '+coords+'$)$'
+        colors=['r^-','bo-','g*-']
+        if energy=='resolved':
+            title=title+f'$|_{{\epsilon={self.resolution}}}$'
+            ax.set_ylim(omega_min,omega_max)
+            ax.set_yticks([omega_min,0,omega_max])
+            extent=[xmin,xmax,self.emin,self.emax]
+            ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax)
+        else:
+            title=title+f'$|_{{\omega={energy}, \epsilon={self.resolution}}}$'
+            ax.set_ylim(vmin,vmax)
+            ax.set_yticks([vmin,vmax])
+            xs=np.linspace(xxmin,xxmax,self._pieces[axis_index])
+            ax.plot(xs,ldos,colors[self._plot_index],label=label)
+            self._plot_index+=1
+        ax.set_title(title)
+
+        return ax
