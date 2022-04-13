@@ -22,9 +22,9 @@ def main():
     # Uw=1
     rho=0
     phi=0
-    chi=0.
+    chi=0.1
     V=1.21
-    n_cells=41
+    n_cells=31
     bdg.cut(n_cells, axes=0, glue_edgs=False)
     bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
@@ -71,6 +71,9 @@ def main():
 
     energy_interval=np.linspace(-4,4,601)
     resolution=0.05
+
+    greens_function_kq=GreensFunction(bdg,energy_interval,resolution, k_axes=[0,1])
+    exit()
 
     greens_function_xy=GreensFunction(bdg,energy_interval,resolution, k_axes=None)
 
@@ -133,27 +136,32 @@ def k_space(greens_function):
 def majorana_fermi_arc(greens_function):
 
     fig, ax = plt.subplots()
-
-    ax = greens_function.plot_spectrum(ax, axes=['integrated','resolved'], omega_min=-2,omega_max=2,vmin='default',vmax='default')
-
-    plt.show()
-    plt.close()
-
-    fig, ax = plt.subplots()
-
-    ax = greens_function.plot_spectrum(ax, energy=0, axes=['resolved',11], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
-    ax = greens_function.plot_spectrum(ax, energy=0.5, axes=['resolved',11], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoloiubov-Fermi arc')
+    
+    majorana_energy=0
+    Bogoliubov_Fermi_arc_energy=0
+    majorana_ky=1.8
+    Bogoliubov_Fermi_arc_ky=0.5
+    ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
+    ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoloiubov-Fermi arc')
     ax.set_title('')
     ax.legend()
 
+    ins = ax.inset_axes([0.2,0.5,0.6,0.4])
+
+    ins = greens_function.plot_spectrum(ins, axes=['integrated','resolved'], omega_min=-1,omega_max=1,vmin='default',vmax='default')
+    
+    ins.scatter(majorana_ky,majorana_energy,c='r',s=10)
+    ins.scatter(Bogoliubov_Fermi_arc_ky,Bogoliubov_Fermi_arc_energy,c='blue',s=20)
+    ins.set_xlim([0,np.pi])
+    ax.set_title('Quasiparticle spectrum')
     plt.show()
     plt.close()
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-# greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
-[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(data, allow_pickle=True)
+# [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(data, allow_pickle=True)
 
 # plot_itartions(bdg)
 # unit_cell(bdg)

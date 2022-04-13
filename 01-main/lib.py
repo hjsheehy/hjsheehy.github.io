@@ -2478,6 +2478,7 @@ class GreensFunction(BogoliubovdeGennes):
         self._atom_dict= model._atom_dict
         self._atom_indices = model._atom_indices
         self._counter= model._counter
+        self._glue_edgs = model._glue_edgs
         self.bulk_calculation=model.bulk_calculation
 
         self.temperature=model.temperature
@@ -2500,11 +2501,48 @@ class GreensFunction(BogoliubovdeGennes):
         if self._model=='tb':
             dm = np.array([np.multiply(model.eigenvectors,np.conj(model.eigenvectors))])
         else:
-            # dm = np.array([np.multiply(model.eigenvectors[0],np.conj(model.eigenvectors[0])),
-            #     np.multiply(model.eigenvectors[0],np.conj(model.eigenvectors[1]))])
+            ############################################
+            ############# Berry curvature ##############
+            ############################################
+            psi_x=np.conj(model.eigenvectors)
+            psi_y=np.conj(model.eigenvectors)
+            [xx,yy]=self.centre
+            for x in range(-xx,xx+1):
+                for y in range(-yy,yy+1):
+                    if x==0:
+                        dx=0
+                    else:
+                        dx=int(x/np.abs(x))
+                    if y==0:
+                        dy=0
+                    else:
+                        dy=int(y/np.abs(y))
+                    psi_x[:,x,y,:,:,:]=(psi_x[:,x+dx,y,:,:,:]-psi_x[:,x-dx,y,:,:,:])/2
+                    psi_y[:,x,y,:,:,:]=(psi_y[:,x,y+dy,:,:,:]-psi_y[:,x,y-dy,:,:,:])/2
 
-        # omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
-        # self._dos=self._greens_function(omegas,model.eigenvalues,dm)
+
+            density_matrix_x = np.einsum('...,...->...',model.eigenvectors,psi_x,optimize=True)
+            density_matrix_y = np.einsum('...,...->...',model.eigenvectors,psi_y,optimize=True)
+            temp = (-1/np.pi)*np.imag([density_matrix_x,density_matrix_y])
+            # temp = (-1j/np.pi)*np.array([density_matrix_x,density_matrix_y])
+            temp = temp[1]
+            temp = np.sum(temp,3)
+            temp = np.sum(temp,3)
+            temp = temp[...,self.n_dof]
+            U=temp[0]
+            V=temp[1]
+            # U=np.fft.fftshift(U.T, axes=1)
+            # V=np.fft.fftshift(V.T, axes=1)
+            C=np.sqrt(U**2+V**2)
+            U=U/C
+            V=V/C
+            plt.quiver(U.T,V.T,color='cyan')
+            C=np.fft.fftshift(C,axes=1)
+            plt.imshow(C.T,cmap='inferno',origin='lower')
+            plt.show()
+            
+            exit()
+            ############################################
 
             density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
             omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
@@ -2749,13 +2787,16 @@ If spin=None: trace spin, else spin polarised"""
                 k+=1
                 if self._k_axes[i]:
                     integrated.append(kklabels[i])
+                else:
+                    integrated.append(rrlabels[i])
             else:
+                k_index = FindNearestValueOfArray(np.linspace(-np.pi,np.pi,self._pieces[i]),axes[i])-self.centre[i]
                 if i-k==0:
-                    ldos=ldos[axes[i]]
+                    ldos=ldos[k_index]
                 elif i-k==1:
-                    ldos=ldos[:,axes[i]]
+                    ldos=ldos[:,k_index]
                 elif i-k==2:
-                    ldos=ldos[:,:,axes[i]]
+                    ldos=ldos[:,:,k_index]
 
         if omega_min=='default':
             omega_min=self.emin
