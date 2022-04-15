@@ -1071,7 +1071,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             # atomic labels:
             if include_atomic_labels:
                 pos=self.atom(atom).position
-                pos=pos-np.array([0,0.05])
+                pos=pos-np.array([-0.05,0.07])
                 label=self.atom(atom).name
                 ax.annotate(text=label, xytext=pos,xy=pos)
 

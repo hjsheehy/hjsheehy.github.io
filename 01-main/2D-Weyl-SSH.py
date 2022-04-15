@@ -1,54 +1,22 @@
 from lib import *
 
 filename=sys.argv[0].split('.')[0]
-data=DATA+filename+'.npz'
+DATA=os.path.join(DATA,filename+'.npz')
+FIG=os.path.join(FIG,filename)
 
 def main():
-    A=Atom([0,0],'A')
-    B=Atom([0.5,0],'B')
-    A.add_orbital('s')
-    B.add_orbital('s')
-    lattice_vectors=[[1,0],[0,1]]
-    bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
-    bdg.add_atom(A)
-    bdg.add_atom(B)
-    bdg.n_spins=1
-    mu=0.0
-    s=0.0
-    td=0.9
-    v=0.6
-    w=1.2
-    Uv=1
-    # Uw=1
-    rho=0
-    phi=0
-    chi=0.1
-    V=1.21
-    n_cells=61
     bdg.cut(n_cells, axes=0, glue_edgs=False)
     bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
-    def papers_convention():
-        bdg.set_hopping(-v,hop_vector=[0,0],atom_i='A',atom_f='B',label='$v$')
-        bdg.set_hopping(-w,hop_vector=[-1,0],atom_i='A',atom_f='B',label='$w$')
-        bdg.set_hopping(-td,hop_vector=[0,1],atom_i='B',atom_f='A',label='$t_d$')
-        bdg.set_hopping(-td,hop_vector=[0,-1],atom_i='B',atom_f='A',label='$t_d$')
-        bdg.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
-        bdg.set_hopping(-td,hop_vector=[1,-1],atom_i='B',atom_f='A',label='$t_d$')
+    bdg.set_hopping(-v,hop_vector=[0,0],atom_i='A',atom_f='B',label='$v$')
+    bdg.set_hopping(-w,hop_vector=[-1,0],atom_i='A',atom_f='B',label='$w$')
+    bdg.set_hopping(-td,hop_vector=[0,1],atom_i='B',atom_f='A',label='$t_d$')
+    bdg.set_hopping(-td,hop_vector=[0,-1],atom_i='B',atom_f='A',label='$t_d$')
+    bdg.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
+    bdg.set_hopping(-td,hop_vector=[1,-1],atom_i='B',atom_f='A',label='$t_d$')
 
-    def my_convention():
-        bdg.set_hopping(-v,hop_vector=[0,0],atom_i='A',atom_f='B',label='$v$')
-        bdg.set_hopping(-w,hop_vector=[1,0],atom_i='B',atom_f='A',label='$w$')
-        bdg.set_hopping(-td,hop_vector=[0,1],atom_i='A',atom_f='B',label='$t_d$')
-        bdg.set_hopping(-td,hop_vector=[0,1],atom_i='B',atom_f='A',label='$t_d$')
-        bdg.set_hopping(-td,hop_vector=[-1,1],atom_i='A',atom_f='B',label='$t_d$')
-        bdg.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
-
-    papers_convention()
-    # my_convention()
-    
     # impurity_wall = [[0,i] for i in range(n_cells)]
     # bdg.add_impurities(V,impurity_wall)
 
@@ -78,7 +46,7 @@ def main():
 
     greens_function_kq=GreensFunction(bdg,energy_interval,resolution, k_axes=[0,1])
 
-    with open(data, 'wb') as f:
+    with open(DATA, 'wb') as f:
         cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
@@ -94,10 +62,29 @@ def iterations(bdg):
     plt.close()
     
 def unit_cell(model):
+    FIGNAME='unit_cell'
+
     fig, ax = plt.subplots(1, 1)
     model.plot_unit_cell(fig, ax, atoms='all', s=100)
-    plt.show()
-    plt.close()
+    fig.set_size_inches(w=LATEX_WIDTH, h=5) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    # plt.close()
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''The local density of states of a spinless square lattice tight-binding
+model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+sites, a single orbital with an impurity at the centre with coupling
+strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+waves in the electron quasiparticle density. The electronic excitations
+at zero temperature necessarily carry the Fermi energy, and hence the 
+wavefunction describing the excitations is of the Fermi wavelength. 
+The electronic charge distrbution is the square modulus of the
+wavefunction and hence takes on twice the periodicty or double the
+wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+{friedel_wavelength:.3}$. \\
+''')
 
 def ldos_each_atom(greens_function_xy):
     ldos=greens_function_xy.local_density_of_states(energy=0, atom='A')
@@ -116,7 +103,7 @@ def real_space(greens_function):
 
     fig, ax = plt.subplots()
 
-    ax = greens_function.plot_spectrum(ax, axes=['resolved','integrated'],omega_min=-2,omega_max=2,vmin=0,vmax=10)
+    ax = greens_function.plot_spectrum(ax, axes=['resolved','integrated'],omega_min=-2,omega_max=2,vmin=0,vmax=80)
 
     plt.show()
     plt.close()
@@ -156,13 +143,35 @@ def majorana_fermi_arc(greens_function):
 #############################################################################
 ################################# Main ######################################
 #############################################################################
+A=Atom([0,0],'A')
+B=Atom([0.5,0],'B')
+A.add_orbital('s')
+B.add_orbital('s')
+lattice_vectors=[[1,0],[0,1]]
+bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
+bdg.add_atom(A)
+bdg.add_atom(B)
+bdg.n_spins=1
+mu=0.0
+s=0.0
+td=0.9
+v=0.6
+w=1.2
+Uv=1
+# Uw=1
+rho=0
+phi=0
+chi=0.1
+V=1.21
+n_cells=61
+
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
-[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(data, allow_pickle=True)
+[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
 
-# plot_itartions(bdg)
-# unit_cell(bdg)
+# plot_itertions(bdg)
+unit_cell(bdg)
 # ldos_each_atom(greens_function_xy)
 # real_space(greens_function_xy)
 # k_space(greens_function_kq)
-majorana_fermi_arc(greens_function_xq)
+# majorana_fermi_arc(greens_function_xq)
