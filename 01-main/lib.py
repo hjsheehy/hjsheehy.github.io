@@ -2497,10 +2497,24 @@ class GreensFunction(BogoliubovdeGennes):
         self.emin=np.min(energy_interval)
         self.resolution=resolution
         self.n_energy=len(self.energy_interval)
+
+        self._Berry_curvature = False
         
         if self._model=='tb':
             dm = np.array([np.multiply(model.eigenvectors,np.conj(model.eigenvectors))])
         else:
+            density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
+            omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
+            reciprocal = 1/(omegas[:,None]-model.eigenvalues[:]) #assuming T=0
+            if self.bulk_calculation:
+                self._dos = np.einsum('koe,k...e->k...o', reciprocal, density_matrix,optimize=True)
+            else:
+                self._dos = np.einsum('oe,...e->...o', reciprocal, density_matrix,optimize=True)
+
+        if self._Berry_curvature:
+            self.Berry_curvature()
+
+        def Berry_curvature(self):
             ############################################
             ############# Berry curvature ##############
             ############################################
@@ -2529,32 +2543,37 @@ class GreensFunction(BogoliubovdeGennes):
             temp = np.sum(temp,3)
             temp = np.sum(temp,3)
             temp = temp[...,self.n_dof]
+            X=np.arange(-self.centre[0],self.centre[0]+1)*2*np.pi/(self._pieces[0])
+            Y=np.arange(-self.centre[1],self.centre[1]+1)*2*np.pi/(self._pieces[1])
             U=temp[0]
             V=temp[1]
-            # U=np.fft.fftshift(U.T, axes=1)
-            # V=np.fft.fftshift(V.T, axes=1)
+            U=np.fft.fftshift(U, axes=1)
+            V=np.fft.fftshift(V, axes=1)
             C=np.sqrt(U**2+V**2)
             U=U/C
             V=V/C
-            plt.quiver(U.T,V.T,color='cyan')
-            C=np.fft.fftshift(C,axes=1)
-            plt.imshow(C.T,cmap='inferno',origin='lower')
+
+            with open(DATA+'temp', 'wb') as f:
+                cPickle.dump([X,Y,U,V],f)
+
+            [X,Y,U,V]=np.load(DATA+'temp', allow_pickle=True)
+
+            fig, ax = plt.subplots()
+            ax.quiver(X,Y,U.T,V.T)#,color='cyan')
+            # ax.set_xticks([-np.pi,0,np.pi])
+            # ax.set_yticks([-np.pi,0,np.pi])
+            # ax.set_xticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+            # ax.set_yticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+
+            ax.set_xlim(-0.1,0.1)
+            ax.set_ylim(0.25,0.4)
+            # C=np.fft.fftshift(C,axes=1)
+            # ax.imshow(C.T,cmap='inferno',origin='lower')
             plt.show()
             
             exit()
             ############################################
 
-            density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
-            omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
-            reciprocal = 1/(omegas[:,None]-model.eigenvalues[:]) #assuming T=0
-            if self.bulk_calculation:
-                self._dos = np.einsum('koe,k...e->k...o', reciprocal, density_matrix,optimize=True)
-            else:
-                self._dos = np.einsum('oe,...e->...o', reciprocal, density_matrix,optimize=True)
-
-    def _greens_function(self, omegas, eigenvalues, density_matrix):
-        '''7-dimensional data set: [x, y, z, orbital, orbital, spin, spin]'''
-    
     def _query_dos(self):
         if type(self._dos)==type(None):
             raise ValueError("Density of states doesn't exist. Please run self.calculate_greens_function first!")

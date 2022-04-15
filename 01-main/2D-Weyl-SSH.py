@@ -24,7 +24,7 @@ def main():
     phi=0
     chi=0.1
     V=1.21
-    n_cells=31
+    n_cells=61
     bdg.cut(n_cells, axes=0, glue_edgs=False)
     bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
@@ -71,9 +71,6 @@ def main():
 
     energy_interval=np.linspace(-4,4,601)
     resolution=0.05
-
-    greens_function_kq=GreensFunction(bdg,energy_interval,resolution, k_axes=[0,1])
-    exit()
 
     greens_function_xy=GreensFunction(bdg,energy_interval,resolution, k_axes=None)
 
@@ -139,7 +136,7 @@ def majorana_fermi_arc(greens_function):
     
     majorana_energy=0
     Bogoliubov_Fermi_arc_energy=0
-    majorana_ky=1.8
+    majorana_ky=2.04
     Bogoliubov_Fermi_arc_ky=0.5
     ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
     ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoloiubov-Fermi arc')
@@ -159,9 +156,9 @@ def majorana_fermi_arc(greens_function):
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+# greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
-# [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(data, allow_pickle=True)
+[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(data, allow_pickle=True)
 
 # plot_itartions(bdg)
 # unit_cell(bdg)

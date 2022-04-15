@@ -1,0 +1,28 @@
+\section{Quasiparticle-interference results for a two-dimensional superconducting multiorbital Weyl SSH model}
+The emergence of topological superconductivity in a two-dimensional (2D) Weyl system, 
+composed of stacked Su-Schrieffer-Heeger (SSH) chains was studied by Rosenberg and Manousakis [CITE: Rosenberg, Aryal PRB 100 104522 (2019)].
+They showed that an attractive Hubbard interaction between spinful electrons leads to a topological trivial supercondictor.
+Next, a pairing interaction that couples spinless fermions on opposite sublattices within the same unit cell was shown [CITE: Rosenberg and Manousakis arXiv:2203.12004v1] to induce a topological superconducting state,
+characterised by a gap function with a non-trivial phase, as well as Majorana and Fermi arc edge states.
+We reproduce the results in a finite model with open-boundary conditions along the direction of SSH dimerisation and periodic boundary condition on the perpendicular axis.
+We then investigate a model with periodic-boundary conditions and a wall of impurities, self-consistently, in the mean-field limit. 
+We show the expected quasiparticle-interference, superconducting gap spectrum and local density of states in such a system.
+
+\subsection{Reproducing results}
+The Hamiltonian is given by
+\begin{eqnarray}
+    \hat{\mathcal{H}}_{0}&=&
+    -\sum_{1\leq x,y\leq N} \left[
+        v \hat{c}^{(A)\dagger}_{ x,y } \hat{c}_{ x,y }^{(B)}
+    + w \hat{c}^{(A)\dagger}_{ x,y } \hat{c}_{ x-1,y }^{(B)} + \text{h.c.} \right]
+    \nonumber \\
+    &&-\sum_{1\leq x,y\leq N} 
+    \left[ t_d \hat{c}^{(B)\dagger}_{ x,y } \hat{c}_{ x,y\pm1 }^{(A)}
+    + t_d \hat{c}^{(B)\dagger}_{ x,y } \hat{c}_{ x+1,y\pm1 }^{(A)} + \text{h.c.} \right] \nonumber \\
+      &&+\sum_{1\leq x,y\leq N} \left[\left( -\mu + s(-1)^\alpha \right) \hat{n}^{(\alpha)\dagger}_{ x,y } \right]
+,
+\end{eqnarray}
+where the fermion operator $\hat{c}^{(\alpha)\dagger}_{ x,y }$ creates an operator on atom $\alpha\in\{A,B\}$ within the unit cell located at $\mathbf{R}_{x,y}= x \mathbf{b}_0\hat{x}+y \mathbf{b}_1 \hat{y}$,
+where $\mathbf{b}_0, \mathbf{b}_1$ are the lattice basis vectors,
+$\hat{n}^{(\alpha)\dagger}_{ x,y }$ is the number operator, $\mu$ is the chemical potential and $s$ is a rigid shift of the atomic potentials.
+
