@@ -65,9 +65,9 @@ def unit_cell(model):
     FIGNAME='unit_cell'
 
     fig, ax = plt.subplots(1, 1)
-    model.plot_unit_cell(fig, ax, atoms='all', s=100)
-    fig.set_size_inches(w=LATEX_WIDTH, h=5) 
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
     plt.tight_layout()
+    model.plot_unit_cell(fig, ax, atoms='all', s=100)
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
     # plt.close()
@@ -86,38 +86,97 @@ wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
 {friedel_wavelength:.3}$. \\
 ''')
 
-def ldos_each_atom(greens_function_xy):
-    ldos=greens_function_xy.local_density_of_states(energy=0, atom='A')
-    ldos=np.fft.fftshift(ldos.T)
-    plt.imshow(ldos)
-    plt.show()
-    plt.close()
+def ldos_each_atom(greens_function):
+    FIGNAME='ldos_each_atom'
 
-    ldos=greens_function_xy.local_density_of_states(energy=0, atom='B')
-    ldos=np.fft.fftshift(ldos.T)
-    plt.imshow(ldos)
-    plt.show()
-    plt.close()
+    fig, ax = plt.subplots(1, 2, sharey='row')
+    
+    bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+    n=int(n_cells/2-3)
+    for i,atom in enumerate(['A','B']):
+        ax[i]=greens_function.plot_ldos(ax[i],energy=0,atom=atom)
+        ax[i].set_title('')
+        ax[i].set_xlabel('')
+        ax[i].set_ylabel('')
+        ax[i].text(n, n, "Atom "+atom, ha="right", va="top", size=10,
+        bbox=bbox_props)
+
+    fig.suptitle(greens_function.title)
+    fig.supxlabel(greens_function.xlabel)
+    fig.supylabel(greens_function.ylabel)
+    fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''The local density of states of a spinless square lattice tight-binding
+model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+sites, a single orbital with an impurity at the centre with coupling
+strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+waves in the electron quasiparticle density. The electronic excitations
+at zero temperature necessarily carry the Fermi energy, and hence the 
+wavefunction describing the excitations is of the Fermi wavelength. 
+The electronic charge distrbution is the square modulus of the
+wavefunction and hence takes on twice the periodicty or double the
+wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+{friedel_wavelength:.3}$. \\
+''')
 
 def real_space(greens_function):
+    FIGNAME='ldos'
 
     fig, ax = plt.subplots()
 
     ax = greens_function.plot_spectrum(ax, axes=['resolved','integrated'],omega_min=-2,omega_max=2,vmin=0,vmax=80)
 
-    plt.show()
-    plt.close()
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''The local density of states of a spinless square lattice tight-binding
+model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+sites, a single orbital with an impurity at the centre with coupling
+strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+waves in the electron quasiparticle density. The electronic excitations
+at zero temperature necessarily carry the Fermi energy, and hence the 
+wavefunction describing the excitations is of the Fermi wavelength. 
+The electronic charge distrbution is the square modulus of the
+wavefunction and hence takes on twice the periodicty or double the
+wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+{friedel_wavelength:.3}$. \\
+''')
 
 def k_space(greens_function):
+    FIGNAME='k_space'
 
     fig, ax = plt.subplots()
 
     ax = greens_function.plot_spectrum(ax, axes=['integrated','resolved'],omega_min=-2,omega_max=2,vmin=0,vmax=80)
 
-    plt.show()
-    plt.close()
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''The local density of states of a spinless square lattice tight-binding
+model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+sites, a single orbital with an impurity at the centre with coupling
+strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+waves in the electron quasiparticle density. The electronic excitations
+at zero temperature necessarily carry the Fermi energy, and hence the 
+wavefunction describing the excitations is of the Fermi wavelength. 
+The electronic charge distrbution is the square modulus of the
+wavefunction and hence takes on twice the periodicty or double the
+wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+{friedel_wavelength:.3}$. \\
+''')
 
 def majorana_fermi_arc(greens_function):
+    FIGNAME='majorana_fermi_arc'
 
     fig, ax = plt.subplots()
     
@@ -130,7 +189,7 @@ def majorana_fermi_arc(greens_function):
     ax.set_title('')
     ax.legend()
 
-    ins = ax.inset_axes([0.2,0.5,0.6,0.4])
+    ins = ax.inset_axes([0.2,0.3,0.6,0.4])
 
     ins = greens_function.plot_spectrum(ins, axes=['integrated','resolved'], omega_min=-1,omega_max=1,vmin='default',vmax='default')
     
@@ -138,8 +197,25 @@ def majorana_fermi_arc(greens_function):
     ins.scatter(Bogoliubov_Fermi_arc_ky,Bogoliubov_Fermi_arc_energy,c='blue',s=20)
     ins.set_xlim([0,np.pi])
     ax.set_title('Quasiparticle spectrum')
-    plt.show()
-    plt.close()
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''The local density of states of a spinless square lattice tight-binding
+model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+sites, a single orbital with an impurity at the centre with coupling
+strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+waves in the electron quasiparticle density. The electronic excitations
+at zero temperature necessarily carry the Fermi energy, and hence the 
+wavefunction describing the excitations is of the Fermi wavelength. 
+The electronic charge distrbution is the square modulus of the
+wavefunction and hence takes on twice the periodicty or double the
+wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+{friedel_wavelength:.3}$. \\
+''')
 #############################################################################
 ################################# Main ######################################
 #############################################################################
@@ -170,8 +246,8 @@ n_cells=61
 [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
 
 # plot_itertions(bdg)
-unit_cell(bdg)
+# unit_cell(bdg)
 # ldos_each_atom(greens_function_xy)
 # real_space(greens_function_xy)
 # k_space(greens_function_kq)
-# majorana_fermi_arc(greens_function_xq)
+majorana_fermi_arc(greens_function_xq)
