@@ -3,6 +3,8 @@ from lib import *
 filename=sys.argv[0].split('.')[0]
 DATA=os.path.join(DATA,filename+'.npz')
 FIG=os.path.join(FIG,filename)
+if not os.path.exists(FIG):
+    os.makedirs(FIG)
 
 def main():
     bdg.cut(n_cells, axes=0, glue_edgs=False)
@@ -17,10 +19,8 @@ def main():
     bdg.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
     bdg.set_hopping(-td,hop_vector=[1,-1],atom_i='B',atom_f='A',label='$t_d$')
 
-    # impurity_wall = [[0,i] for i in range(n_cells)]
-    # bdg.add_impurities(V,impurity_wall)
-
-    # bdg.add_impurities(V,[0,4])
+    impurity_wall = [[0,i] for i in range(n_cells)]
+    bdg.add_impurities(V,impurity_wall)
 
     # bdg.set_hartree(rho)
     # bdg.set_fock(phi,atom_i='A',atom_f='B')
@@ -190,7 +190,7 @@ def majorana_fermi_arc(greens_function):
     ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
     ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoloiubov-Fermi arc')
     ax.set_title('')
-    ax.legend()
+    ax.legend(loc='upper right')
 
     ins = ax.inset_axes([0.2,0.3,0.6,0.4])
 
@@ -206,19 +206,19 @@ def majorana_fermi_arc(greens_function):
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
+    # with open(output+'.txt', 'w') as f:
+    #     f.write(rf'''The local density of states of a spinless square lattice tight-binding
+# model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
+# sites, a single orbital with an impurity at the centre with coupling
+# strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
+# waves in the electron quasiparticle density. The electronic excitations
+# at zero temperature necessarily carry the Fermi energy, and hence the 
+# wavefunction describing the excitations is of the Fermi wavelength. 
+# The electronic charge distrbution is the square modulus of the
+# wavefunction and hence takes on twice the periodicty or double the
+# wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
+# {friedel_wavelength:.3}$. \\
+# ''')
 #############################################################################
 ################################# Main ######################################
 #############################################################################
@@ -241,10 +241,10 @@ Uv=0
 rho=0
 phi=0
 chi=0
-V=0
+V=20
 n_cells=41
 
-greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+# greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
 [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
 

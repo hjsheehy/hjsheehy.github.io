@@ -1601,11 +1601,15 @@ class BogoliubovdeGennes(Tightbinding):
         self._anomalous_indices+=self.n_dof
         self._anomalous_indices=tuple(self._anomalous_indices)
 
-    def record_hartree(self, position_coordinates, atom, orbital, spin, _print=False):
+    def record_hartree(self, location, atom, orbital=None, spin=None, _print=False):
+        if type(orbital)==type(None):
+            orbital=0
+        if type(spin)==type(None) and self.n_spins==1:
+            spin=0
         orbital=self.index(atom,orbital)
         spin=self.spin(spin)
         self._hartree_print = _print
-        tmp=np.append(np.append(position_coordinates,orbital),spin)
+        tmp=np.append(np.append(location,orbital),spin)
         index=np.ravel(coordinates_to_indices(tmp, self._extended_dimensions))
         self._hartree_indices.append(index)
 
@@ -1613,6 +1617,8 @@ class BogoliubovdeGennes(Tightbinding):
         self._fock_print = _print
         if type(orbital_i)==type(None) and type(orbital_f)==type(None):
             orbital_i=orbital_f=0
+        if type(spin_i)==type(None) and type(spin_f)==type(None) and self.n_spins==1:
+            spin_i=spin_f=0
         orbital_i=self.index(atom_i,orbital_i,spin=0)
         orbital_f=self.index(atom_f,orbital_f,spin=0)
         tmp_i=np.append(np.append(location_i,orbital_i),spin_i)
@@ -1628,6 +1634,8 @@ class BogoliubovdeGennes(Tightbinding):
         self._gorkov_print = _print
         if type(orbital_i)==type(None) and type(orbital_f)==type(None):
             orbital_i=orbital_f=0
+        if type(spin_i)==type(None) and type(spin_f)==type(None) and self.n_spins==1:
+            spin_i=spin_f=0
         orbital_i=self.index(atom_i,orbital_i,spin=0)
         orbital_f=self.index(atom_f,orbital_f,spin=0)
         tmp_i=np.append(np.append(location_i,orbital_i),spin_i)
@@ -1874,14 +1882,14 @@ class BogoliubovdeGennes(Tightbinding):
 
         self.exec_time = time.time() - t
 
-        self._hartree_iterations = np.transpose(self._hartree_iterations)
-        self._fock_iterations = np.transpose(self._fock_iterations)
-        self._gorkov_iterations = np.transpose(self._gorkov_iterations)
-        self.reshape_eigenvectors()
+        self._hartree_iterations = np.real_if_close(self._hartree_iterations).T
+        self._fock_iterations = np.real_if_close(self._fock_iterations).T
+        self._gorkov_iterations = np.real_if_close(self._gorkov_iterations).T
+        self._reshape_eigenvectors()
     
     @property
     def hartree_array(self):
-        temp=np.reshape(self._hartree,self._extended_dimensions,'C')
+        temp=np.reshape(self._hartree,self._extended_dimensions,'F')
         return np.real_if_close(temp)
 
     @property
@@ -1889,7 +1897,7 @@ class BogoliubovdeGennes(Tightbinding):
         extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
         temp[self._hubbard_indices]=self._fock
-        temp=np.reshape(temp,extended_dimensions,'C')
+        temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
     
     @property
@@ -1897,7 +1905,7 @@ class BogoliubovdeGennes(Tightbinding):
         extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
         temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
         temp[self._hubbard_indices]=self._gorkov
-        temp=np.reshape(temp,extended_dimensions,'C')
+        temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
 
     def hartree(self,atom=None,orbital=None,spin=None):
@@ -1917,9 +1925,9 @@ class BogoliubovdeGennes(Tightbinding):
         
         hartree=np.copy(self.hartree_array)
         if type(spin)==type(None):
-            hartree=np.sum(hartree,-2)
+            hartree=np.sum(hartree,-1)
         else:
-            hartree=hartree[...,spin,:]
+            hartree=hartree[...,spin]
         hartree=np.sum(hartree[...,indices],-1)
 
         return hartree

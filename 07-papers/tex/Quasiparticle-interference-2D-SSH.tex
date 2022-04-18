@@ -20,10 +20,10 @@ The Hamiltonian is given by
     &&-\sum_{1\leq x,y\leq N} 
     \left[ t_d \hat{c}^{(B)\dagger}_{ x,y } \hat{c}_{ x,y\pm1 }^{(A)}
     + t_d \hat{c}^{(B)\dagger}_{ x,y } \hat{c}_{ x+1,y\pm1 }^{(A)} + \text{h.c.} \right] \nonumber \\
-      &&-\sum_{1\leq x,y\leq N} \left[\left( \mu + s(-1)^\alpha \right) \hat{n}^{(\alpha)\dagger}_{ x,y } \right]
+      &&-\sum_{1\leq x,y\leq N} \left[\left( \mu + s(-1)^m \right) \hat{n}^{(m)\dagger}_{ x,y } \right]
 ,
 \end{eqnarray}
-where the fermion operator $\hat{c}^{(\alpha)\dagger}_{ x,y }$ creates an operator on atom $\alpha\in\{A,B\}$ within the unit cell located at $\mathbf{R}_{x,y}= x \mathbf{b}_0\hat{x}+y \mathbf{b}_1 \hat{y}$,
+where the fermion operator $\hat{c}^{(m)\dagger}_{ x,y }$ creates an operator on atom $m\in\{A,B\}$ within the unit cell located at $\mathbf{R}_{x,y}= x \mathbf{b}_0\hat{x}+y \mathbf{b}_1 \hat{y}$,
 where $\mathbf{b}_0, \mathbf{b}_1$ are the lattice basis vectors,
 $\hat{n}^{(\alpha)\dagger}_{ x,y }$ is the number operator, $\mu$ is the chemical potential and $s$ is a rigid shift of the atomic potentials.
 The intra- and inter-unit-cell hoppings strengths in the $\hat{x}$ direction are given by $v$ and $w$, which form the terms of the standard SSH model.
@@ -74,7 +74,7 @@ As a function of $x$-position, we observe that indeed, the modes are spread non-
 
 {\color{red} Mention Bo Huang's thesis results on the influence of the shape of the lattice on the topological modes.}
 
-\subsection{Interactions}
+\subsection{Interactions and mean-field solution}
 We add an interaction term to model multiorbital superconductivity within the unit-cell, $U_v$, and an interorbital intercell Coulomb repulsion term, $U_w$. The interacting contribution to the Hamiltonian is 
 \begin{equation}
     \hat{\mathcal{H}}_{ I }=
@@ -82,7 +82,37 @@ We add an interaction term to model multiorbital superconductivity within the un
     +U_w \hat{c}^{ (A) \dagger }_{ x,y }\hat{c}^{ (B) \dagger}_{ x-1,y } \hat{c}^{ (B) }_{ x-1,y }\hat{c}^{ (A) }_{ x,y }
 .
 \end{equation}
-The mean-field solution 
+The mean-field Hamiltonian is
+\begin{multline}
+    \hat{\mathcal{H}}^{'}_{ I }=
+    \sum_{x,y}\Bigg[
+    \sum_m\left[\phi_{\,m}\hat{n}^{ (m) }_{ x,y }\right]
+    +\Phi_v \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }
+    +\Phi_w \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }
+    \\
+    +\Delta_v \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x,y }
+    +\Delta_w \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x-1,y }
+    +\Delta_v^* \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }
+    +\Delta_w^* \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }
+    \Bigg],
+\end{multline}
+where $\phi_v$ is the {\it Hartree} term which renormalises the chemical potential, allowing for a Peirl's instability. 
+$\Phi_v$ is a {\it Fock} term, describing renormalistion of the hopping parameter $v$.
+The additional {\it Gorkov} terms $\Delta_v$ capture fermion-fermion pairing, relevant to theories of magnetism and superconductivity.
+These terms are known as the method of {\it (superconducting) density functional theory, SC-DFT}. 
+The self-consistent solution to the mean field is the saddle point 
+$\langle\hat{\mathcal{H}}_{ I }\rangle = \langle\hat{\mathcal{H}}^{'}_{ I }\rangle$.
+The solutions are
+\begin{eqnarray}
+    \rho_{m} &=& (-U_v+U_w))\langle\hat{n}^{ (m^{'}) }_{ x,y }\rangle,\\
+    \Phi_v &=& -U_v\langle\hat{c}^{ (A) \dagger }_{ x,y }\hat{c}^{ (B) }_{ x,y }\rangle,\\
+    \Phi_w &=& U_w\langle\hat{c}^{ (A) \dagger }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }\rangle,\\
+    \Delta_v &=& +U_v\langle\hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }\rangle,\\
+    \Delta_w &=& -U_w\langle\hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }\rangle,\\
+    \Delta_v^* &=& +U_v\langle \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x,y }\rangle,\\
+    \Delta_w^* &=& -U_w\langle \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x-1,y }\rangle,
+\end{eqnarray}
+where $m'$ refers to the opposite atom to $m$. 
+Note the sign of the Gorkov terms due Fermionic anticommutation.
 
-\subsection{Mean-field solution}
-
+For simplicity and because we are in particular interested in the multiorbital pairing due to $U_v$, we neglect the intercell interaction $U_w$.
