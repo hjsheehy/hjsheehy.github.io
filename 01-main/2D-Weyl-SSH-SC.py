@@ -111,43 +111,42 @@ extract_from_bdg is user defined, as are friction, max_iterations and absolute_c
     return bdg, y
 
 def phase_diagrams(xx,extract_from_bdg,zz,include_reverse=True,init_friction=0.9,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
-    for z in zz:
-        phase_diagram(xx,extract_from_bdg,z,include_reverse,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor)
-
-def phase_diagram(xx,extract_from_bdg,z,include_reverse=True,init_friction=0.7,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
-
-    yyy=[]
+    
+    xxx=[]
     if include_reverse:
         xxx=[xx, xx[::-1]]
     else:
         xxx=[xx]
-
-    for xx in xxx:
-        yy=[]
-        for i,x in enumerate(xx):
-            if i==0: #inital
-                bdg = model(x,z)
-                bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
-            bdg, y = self_consistent(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
-            yy.append(y)
-        yyy.append(yy)
-
-    xxx=np.array(xxx)
-    yyy=np.array(yyy)
     
+    n=len(xxx)*len(zz)
+    with tqdm.tqdm(total=n,desc='Simulation') as pbar:
+        for xx in xxx:
+            for z in zz:
+                phase_diagram(xx,extract_from_bdg,z,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor)
+
+def phase_diagram(xx,extract_from_bdg,z,init_friction=0.7,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
+
+    yy=[]
+    for i,x in tqdm.tqdm(enumerate(xx),desc='Phase contour', total=len(xx)):
+        if i==0: #inital
+            bdg = model(x,z)
+            bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
+        bdg, y = self_consistent(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
+        yy.append(y)
+
     name=f'{z:.2f}'
     name=os.path.join(DATA,name)
     with open(name+'.npz', 'wb') as f:
-        cPickle.dump([xxx,yyy,z], f)
+        cPickle.dump([xx,yy,z], f)
 
 def plot_phase_diagram(field_index=3):
     names=glob.glob(os.path.join(DATA,'*'+'.npz'))
     markers=['>','<']
     for name in names:
-        [xxx,yyy,z] = np.load(name, allow_pickle=True)
-        plt.plot(xxx[0],yyy[0,:,field_index],marker=markers[0])
-        if np.shape(xxx)[0]==2:
-            plt.plot(xxx[1],yyy[1,:,field_index],marker=markers[1])
+        [xx,yy,z] = np.load(name, allow_pickle=True)
+        plt.plot(xx[0],yy[0,:,field_index],marker=markers[0])
+        if np.shape(xx)[0]==2:
+            plt.plot(xx[1],yy[1,:,field_index],marker=markers[1])
     plt.show()
 
 
