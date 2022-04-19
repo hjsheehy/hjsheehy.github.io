@@ -110,7 +110,7 @@ extract_from_bdg is user defined, as are friction, max_iterations and absolute_c
 
     return bdg, y
 
-def phase_diagrams(xx,extract_from_bdg,zz,include_reverse=True,init_friction=0.7,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
+def phase_diagrams(xx,extract_from_bdg,zz,include_reverse=True,init_friction=0.9,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
     for z in zz:
         phase_diagram(xx,extract_from_bdg,z,include_reverse,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor)
 
@@ -219,7 +219,6 @@ n_cells=11
 # plot_iterations(bdg)
 
 mu=np.arange(-4,4.1,0.1)
-mu=np.arange(-4,4.1,1)
 Uv=np.arange(1.1,6.5,1.1)
 phase_diagrams(mu,extract_from_bdg,Uv)
 

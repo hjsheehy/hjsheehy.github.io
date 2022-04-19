@@ -1883,11 +1883,11 @@ class BogoliubovdeGennes(Tightbinding):
                 absolute_error=absolute_error[argmax]
                 a=np.abs(a[argmax])
                 b=np.abs(b[argmax])
-                percent_error=100*absolute_error/(b)
-                print((b)/a)
-                # percent_error=absolute_error
-                pbar.update(percent_error)
-                # print(percent_error)
+                a=abs(np.log10(abs(a-b)))
+                b=abs(np.log10(eps))
+                percent_error=100*min(a,b)/max(a,b)
+                percent_error=np.floor(percent_error)
+                pbar.update(percent_error-pbar.n)
                 pbar.set_description("Iteration %s" % i)
 
                 if absolute_error<eps:
