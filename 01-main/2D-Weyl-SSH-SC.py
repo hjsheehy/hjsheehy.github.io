@@ -1,10 +1,15 @@
 from lib import *
 
 filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename+'.npz')
+DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
+for directory in [DATA,FIG]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-def model(*args):
+def model(mu,Uv):
+    """Creates a model for the phase diagram.
+Use two args: independent variables x and z"""
     A=Atom([0,0],'A')
     B=Atom([0.5,0],'B')
     A.add_orbital('s')
@@ -50,9 +55,20 @@ def model(*args):
 
     return bdg
 
-def process():
+def extract_from_bdg(bdg):
+    """The dependent variables to be extracted from the bdg model"""
 
-    bdg = model()
+    hartree_A=bdg.hartree(atom='A')[0,0]
+    hartree_B=bdg.hartree(atom='B')[0,0]
+    fock_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
+    gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
+
+    return [hartree_A, hartree_B, fock_v, gorkov_v]
+
+def process(*args):
+    """A function which processes the bdg model, returning greens functions"""
+
+    bdg = model(*args)
 
     bdg.self_consistent_calculation(friction=0.2, max_iterations=200, absolute_convergence_factor=0.00001)
 
@@ -68,11 +84,14 @@ def process():
     del bdg.eigenvectors
     del bdg.eigenvalues
 
-    with open(DATA, 'wb') as f:
+    with open(DATA+'.npz', 'wb') as f:
         cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
-def self_consistent(init_bdg,*args):
+
+def self_consistent(init_bdg, extract_from_bdg, friction, max_iterations, absolute_convergence_factor, *args):
+    """A self-consistent calculation for independent variables *args=x,z.
+extract_from_bdg is user defined, as are friction, max_iterations and absolute_convergence_factor."""
     
     bdg = model(*args)
     bdg._hartree=init_bdg._hartree
@@ -82,33 +101,21 @@ def self_consistent(init_bdg,*args):
     bdg._anomalous_indices=init_bdg._anomalous_indices
     bdg.U_entries=init_bdg.U_entries
     
-    bdg.self_consistent_calculation(friction=0.9, max_iterations=400, absolute_convergence_factor=0.00001)
-
-    hartree_A=bdg.hartree(atom='A')[0,0]
-    hartree_B=bdg.hartree(atom='B')[0,0]
-    fock_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
-    gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
+    bdg.self_consistent_calculation(friction=friction, max_iterations=max_iterations, absolute_convergence_factor=absolute_convergence_factor)
     
     del bdg.eigenvectors
     del bdg.eigenvalues
 
-    return bdg, [hartree_A, hartree_B, fock_v, gorkov_v]
+    y = extract_from_bdg(bdg)
 
-def phase_diagrams(xx,zz):
+    return bdg, y
+
+def phase_diagrams(xx,extract_from_bdg,zz,include_reverse=True,init_friction=0.7,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
     for z in zz:
-        phase_diagram(xx,z)
+        phase_diagram(xx,extract_from_bdg,z,include_reverse,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor)
 
-def phase_diagram(xx,z,include_reverse=True):
+def phase_diagram(xx,extract_from_bdg,z,include_reverse=True,init_friction=0.7,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
 
-    self.init_friction=self.friction
-    self.init_max_iterations=self.max_iterations
-    self.init_absolute_convergence_factor=self.absolute_convergence_factor
-
-    self.init_friction=0.7
-    self.init_max_iterations=400
-    self.init_absolute_convergence=0.00001
-    
-    yy=[]
     yyy=[]
     if include_reverse:
         xxx=[xx, xx[::-1]]
@@ -116,28 +123,31 @@ def phase_diagram(xx,z,include_reverse=True):
         xxx=[xx]
 
     for xx in xxx:
+        yy=[]
         for i,x in enumerate(xx):
-            if i==0:
+            if i==0: #inital
                 bdg = model(x,z)
-                bdg.self_consistent_calculation(friction=self.init_friction, max_iterations=self.init_max_iterations, absolute_convergence_factor=self.init_absolute_convergence_factor)
-            bdg, y = self_consistent(bdg,x,z)
+                bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
+            bdg, y = self_consistent(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
             yy.append(y)
         yyy.append(yy)
 
     xxx=np.array(xxx)
     yyy=np.array(yyy)
-
-    with open(DATA+'_phase_diagram_{Uv:.2f}', 'wb') as f:
+    
+    name=f'{z:.2f}'
+    name=os.path.join(DATA,name)
+    with open(name+'.npz', 'wb') as f:
         cPickle.dump([xxx,yyy,z], f)
 
-def plot_phase_diagram():
-    [Uv,fields] = np.load(DATA+'_phase_diagram', allow_pickle=True)
-    
-
-    print(np.shape(fields))
+def plot_phase_diagram(field_index=3):
+    names=glob.glob(os.path.join(DATA,'*'+'.npz'))
     markers=['>','<']
-    plt.plot(muu,fields[0,:,3],marker=markers[0])
-    plt.plot(muu,fields[1,:,3],marker=markers[1])
+    for name in names:
+        [xxx,yyy,z] = np.load(name, allow_pickle=True)
+        plt.plot(xxx[0],yyy[0,:,field_index],marker=markers[0])
+        if np.shape(xxx)[0]==2:
+            plt.plot(xxx[1],yyy[1,:,field_index],marker=markers[1])
     plt.show()
 
 
@@ -200,16 +210,17 @@ phi_w=0
 chi_v=4.2
 chi_w=0
 V=0
-n_cells=3
+n_cells=11
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = process()
 
-# [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
+# [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA+'.npz', allow_pickle=True)
 
 # plot_iterations(bdg)
 
 mu=np.arange(-4,4.1,0.1)
+mu=np.arange(-4,4.1,1)
 Uv=np.arange(1.1,6.5,1.1)
-phase_diagrams(mu,Uv)
+phase_diagrams(mu,extract_from_bdg,Uv)
 
 plot_phase_diagram()

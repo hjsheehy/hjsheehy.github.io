@@ -1860,25 +1860,43 @@ class BogoliubovdeGennes(Tightbinding):
 
         iteration = iter(self)
         
-        for i in tqdm.tqdm(range(self.max_iterations)):
-        # for i in range(self.max_iterations):
-            
-            self.iterations+=1
+        # for i in tqdm.tqdm(range(self.max_iterations)):
+        with tqdm.tqdm(total=100) as pbar:
+            for i in range(self.max_iterations):
+                
+                self.iterations+=1
 
-            hartree_old = self._hartree
-            fock_old = self._fock
-            gorkov_old = self._gorkov
+                hartree_old = self._hartree
+                fock_old = self._fock
+                gorkov_old = self._gorkov
 
-            next(iteration)
-            
-            eps = self.absolute_convergence_factor
-            if (np.allclose(hartree_old,self._hartree,atol=eps) & np.allclose(fock_old,self._fock,atol=eps) & np.allclose(gorkov_old,self._gorkov,atol=eps)):
-                self.converged=True
-                break
-            if i+1 == self.max_iterations:
-                self.converged=False
-                print('Did not converge within max_iterations!')
-                break
+                next(iteration)
+                
+                eps = self.absolute_convergence_factor
+                
+                absolute_error=[]
+                a=np.array([hartree_old,fock_old,gorkov_old])
+                b=np.array([self._hartree,self._fock,self._gorkov])
+                absolute_error=np.abs(a-b)
+                argmax=np.argmax(absolute_error)
+                argmax=np.unravel_index(argmax, a.shape)
+                absolute_error=absolute_error[argmax]
+                a=np.abs(a[argmax])
+                b=np.abs(b[argmax])
+                percent_error=100*absolute_error/(b)
+                print((b)/a)
+                # percent_error=absolute_error
+                pbar.update(percent_error)
+                # print(percent_error)
+                pbar.set_description("Iteration %s" % i)
+
+                if absolute_error<eps:
+                    self.converged=True
+                    break
+                if i+1 == self.max_iterations:
+                    self.converged=False
+                    print('Did not converge within max_iterations!')
+                    break
 
         self.exec_time = time.time() - t
 
