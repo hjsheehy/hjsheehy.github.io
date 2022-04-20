@@ -1728,11 +1728,10 @@ class BogoliubovdeGennes(Tightbinding):
     def calculate_free_energy(self, trace_density, density, anomalous_density):
 
         self.Eg.append(np.real(np.sum(self.eigenvalues[:self.n_dof] + np.diagonal(self._hamiltonian)[:self.n_dof])/self.n_dof))
-
         if self.temperature==0:
             self.f_mf.append(self.Eg[-1])
         else:
-            self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[self.n_dof:]/self.temperature)))/self.n_dof))
+            self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[self.n_dof]/self.temperature)))/self.n_dof))
         
         h=np.sum(self._hartree*trace_density)
         h+=h
@@ -1861,7 +1860,7 @@ class BogoliubovdeGennes(Tightbinding):
         iteration = iter(self)
         
         # for i in tqdm.tqdm(range(self.max_iterations)):
-        with tqdm.tqdm(total=100) as pbar:
+        with tqdm.tqdm(total=100,leave=False) as pbar:
             for i in range(self.max_iterations):
                 
                 self.iterations+=1
@@ -3006,4 +3005,133 @@ If spin=None: trace spin, else spin polarised"""
         ################################
 
         ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None)
+        return ax
+
+class PhaseDiagram():
+    """Greens function
+    
+    Attributes
+    ----------
+
+    Parameters
+    ----------
+    conf : model = instance of TightBinding or BogoloiubovdeGennes
+
+    Attributes
+    ----------
+    dm : array
+        normal density matrix
+    adm : array
+        anomalous density matrix
+    t_dm : array
+        normal thermal density matrix
+    t_adm : array
+        anomalous thermal density matrix
+    """
+
+    def __init__(self,model):
+
+        self.model=model
+        self.directory=DATA
+        self.initial_name='initial_convergence'
+        self.initial_title=''
+        self.filename=''
+
+    def _extract_dependent_vars(self, init_bdg, dependent_variables, friction, max_iterations, absolute_convergence_factor, *args):
+        """A self-consistent calculation for independent variables *args=x,z.
+    extract_from_bdg is user defined, as are friction, max_iterations and absolute_convergence_factor."""
+        
+        bdg = self.model(*args)
+        bdg._hartree=init_bdg._hartree
+        bdg._fock=init_bdg._fock
+        bdg._gorkov=init_bdg._gorkov
+        bdg._hubbard_indices=init_bdg._hubbard_indices
+        bdg._anomalous_indices=init_bdg._anomalous_indices
+        bdg.U_entries=init_bdg.U_entries
+        
+        bdg.self_consistent_calculation(friction=friction, max_iterations=max_iterations, absolute_convergence_factor=absolute_convergence_factor)
+        
+        del bdg.eigenvectors
+        del bdg.eigenvalues
+
+        y = dependent_variables(bdg)
+
+        return bdg, y
+
+    def phase_diagram(self,xx,dependent_variables,zz,include_reverse=True,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None):
+        
+        xxx=[]
+        if include_reverse:
+            xxx=[xx, xx[::-1]]
+        else:
+            xxx=[xx]
+        
+        if max(zz)==zz[-1]:
+            zz=zz[::-1]
+
+        n=len(xxx)*len(zz)
+        j=0
+        with tqdm.tqdm(total=n,desc='Simulation') as pbar:
+            for xx in xxx:
+                for z in zz:
+                    if j==1:
+                        initial_renormalisation_plot_function=None
+                    self._phase_diagram(xx,dependent_variables,z,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor,initial_renormalisation_plot_function)
+                    j+=1
+
+    def _phase_diagram(self,xx,extract_from_bdg,z,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None):
+
+        yy=[]
+        ee=[]
+        xxx=[]
+        i=0
+        for x in tqdm.tqdm(xx,desc='Indep var', total=len(xx),leave=False):
+            if i==0: #inital
+                bdg = self.model(x,z)
+                bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
+                if type(initial_renormalisation_plot_function)!=type(None):
+                    directory=os.path.join(DATA,self.filename+'_initial')
+                    filename=os.path.join(directory,self.initial_name)
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+                    with open(filename+'.npz', 'wb') as f:
+                        cPickle.dump(bdg, f)
+                    initial_renormalisation_plot_function(init_friction,init_max_iterations,absolute_convergence_factor,filename,self.initial_name,self.initial_title)
+                i+=1
+            bdg, y = self._extract_dependent_vars(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
+            if bdg.converged:
+                y.insert(0,bdg.free_energy[-1])
+                yy.append(y)
+                xxx.append(x)
+            else: 
+                break
+
+        name=f'{z:.2f}_{xx[0]:.2f}'
+        name=os.path.join(self.directory,name)
+        xxx=np.array(xxx)
+        yy=np.array(yy)
+        with open(name+'.npz', 'wb') as f:
+            cPickle.dump([xxx,yy,z], f)
+
+    def plot_phase_diagram(self,ax,field_index=3):
+        names=glob.glob(os.path.join(self.directory,'*'+'.npz'))
+        names_x=np.array([float(name.split('/')[-1].split('_')[0]) for name in names])
+        names_y=np.array([float(name.split('_')[-1].split('.')[0]) for name in names])
+        names_z=names_x-names_y/1000000
+        names=[x for _, x in sorted(zip(names_z, names))]
+        n=len(names)
+        markers=['>','<']
+        color = iter(cm.gist_rainbow(np.linspace(0, 1, int(n/2))))
+        s=4
+        for name in names:
+            [x,y,z] = np.load(name, allow_pickle=True)
+            x=np.array(x)
+            y=np.array(y)
+            x=x[:len(y[:,0])]
+            if x[0]==min(x):
+                c = lighten_color(c,amount=0.3)
+                ax.plot(x,y[:,field_index],marker=markers[0],markersize=s,color=c,label=f'${z:.2f}$')
+            else:
+                c = next(color)
+                ax.plot(x,y[:,field_index],marker=markers[1],markersize=s,color=c,label=f'${z:.2f}$')
         return ax

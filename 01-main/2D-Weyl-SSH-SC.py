@@ -1,13 +1,15 @@
 from lib import *
 
 filename=sys.argv[0].split('.')[0]
+DATA_Uv=os.path.join(DATA,filename+'_Uv')
+DATA_s=os.path.join(DATA,filename+'_s')
 DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
-for directory in [DATA,FIG]:
+for directory in [DATA,DATA_Uv,DATA_s,FIG]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def model(mu,Uv):
+def model(mu,Uv,s):
     """Creates a model for the phase diagram.
 Use two args: independent variables x and z"""
     A=Atom([0,0],'A')
@@ -55,7 +57,13 @@ Use two args: independent variables x and z"""
 
     return bdg
 
-def extract_from_bdg(bdg):
+def model_Uv(mu,Uv):
+    return model(mu,Uv,s)
+
+def model_s(mu,s):
+    return model(mu,Uv,s)
+
+def dependent_variables(bdg):
     """The dependent variables to be extracted from the bdg model"""
 
     hartree_A=bdg.hartree(atom='A')[0,0]
@@ -70,7 +78,7 @@ def process(*args):
 
     bdg = model(*args)
 
-    bdg.self_consistent_calculation(friction=0.2, max_iterations=200, absolute_convergence_factor=0.00001)
+    bdg.self_consistent_calculation(friction=0.2, max_iterations=400, absolute_convergence_factor=0.00001)
 
     energy_interval=np.linspace(-4,4,601)
     resolution=0.05
@@ -88,109 +96,114 @@ def process(*args):
         cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
-
-def self_consistent(init_bdg, extract_from_bdg, friction, max_iterations, absolute_convergence_factor, *args):
-    """A self-consistent calculation for independent variables *args=x,z.
-extract_from_bdg is user defined, as are friction, max_iterations and absolute_convergence_factor."""
-    
-    bdg = model(*args)
-    bdg._hartree=init_bdg._hartree
-    bdg._fock=init_bdg._fock
-    bdg._gorkov=init_bdg._gorkov
-    bdg._hubbard_indices=init_bdg._hubbard_indices
-    bdg._anomalous_indices=init_bdg._anomalous_indices
-    bdg.U_entries=init_bdg.U_entries
-    
-    bdg.self_consistent_calculation(friction=friction, max_iterations=max_iterations, absolute_convergence_factor=absolute_convergence_factor)
-    
-    del bdg.eigenvectors
-    del bdg.eigenvalues
-
-    y = extract_from_bdg(bdg)
-
-    return bdg, y
-
-def phase_diagrams(xx,extract_from_bdg,zz,include_reverse=True,init_friction=0.9,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
-    
-    xxx=[]
-    if include_reverse:
-        xxx=[xx, xx[::-1]]
-    else:
-        xxx=[xx]
-    
-    n=len(xxx)*len(zz)
-    with tqdm.tqdm(total=n,desc='Simulation') as pbar:
-        for xx in xxx:
-            for z in zz:
-                phase_diagram(xx,extract_from_bdg,z,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor)
-
-def phase_diagram(xx,extract_from_bdg,z,init_friction=0.7,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.00001):
-
-    yy=[]
-    for i,x in tqdm.tqdm(enumerate(xx),desc='Phase contour', total=len(xx)):
-        if i==0: #inital
-            bdg = model(x,z)
-            bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
-        bdg, y = self_consistent(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
-        yy.append(y)
-
-    name=f'{z:.2f}'
-    name=os.path.join(DATA,name)
-    with open(name+'.npz', 'wb') as f:
-        cPickle.dump([xx,yy,z], f)
-
-def plot_phase_diagram(field_index=3):
-    names=glob.glob(os.path.join(DATA,'*'+'.npz'))
-    markers=['>','<']
-    for name in names:
-        [xx,yy,z] = np.load(name, allow_pickle=True)
-        plt.plot(xx[0],yy[0,:,field_index],marker=markers[0])
-        if np.shape(xx)[0]==2:
-            plt.plot(xx[1],yy[1,:,field_index],marker=markers[1])
-    plt.show()
-
-
 # Plotting:
 
-def plot_iterations(bdg):
-    hartree_A=bdg.hartree(atom='A')[0,0]
-    hartree_B=bdg.hartree(atom='B')[0,0]
-    fock_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
-    gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
+def plot_initial_renormalisation(friction,max_iterations,absolute_convergence_factor,dataname,filename,title):
+
+    markers=['o','+','^','x','.']
+    s=3
+
+    bdg = np.load(dataname+'.npz', allow_pickle=True)
+
+    # hartree_A=bdg.hartree(atom='A')[0,0]
+    # hartree_B=bdg.hartree(atom='B')[0,0]
+    # fock_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
+    # gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
+    # free_energy=bdg.free_energy
     
     # exit()
     # gorkov_w=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[-1,0])
 
-    plt.plot(bdg._hartree_iterations[0],c='b')
-    plt.plot(bdg._hartree_iterations[1],c='g')
-    plt.plot(bdg._fock_iterations[0],c='k')
-    plt.plot(bdg._gorkov_iterations[0],c='r')
+    fig, [ax1, ax3] = plt.subplots(2,1,sharex='col')
+
+    # color = 'tab:black'
+    ax1.tick_params(axis='y')
+    ax1.plot(bdg._fock_iterations[0],c='k',marker=markers[2],markersize=s,label=f'$\Phi_v$')
+    ax1.plot(bdg._gorkov_iterations[0],c='cyan',marker=markers[3],markersize=s,label=f'$\Delta_v$')
+    ax1.legend()
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:red'
+    ax2.set_ylabel('Free energy', color=color)  # we already handled the x-label with ax1
+    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.plot(bdg.free_energy,c='r',marker=markers[4],markersize=s,label=f'Free energy')
+
+    ax3.plot(bdg._hartree_iterations[0],c='b',marker=markers[0],markersize=s,label=f'$\phi_A$')
+    ax3.plot(bdg._hartree_iterations[1],c='g',marker=markers[1],markersize=s,label=f'$\phi_B$')
+    ax3.legend()
     # plt.plot(np.real(bdg._gorkov_iterations[1]))
-    plt.show()
-    plt.close()
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
+    xlabel=r'Iterations'
+    ylabel=r'Amplitude of fields'
+    fig.suptitle(title)
+    fig.supxlabel(xlabel)
+    fig.supylabel(ylabel)
+    plt.tight_layout()
+    
+    # print('Hartree A:')
+    # print(bdg._hartree_iterations[0,-1])
+    # print('Hartree B:')
+    # print(bdg._hartree_iterations[1,-1])
+    # print('Fock v:')
+    # print(bdg._fock_iterations[0,-1])
+    # print('Gorkov v:')
+    # print(bdg._gorkov_iterations[0,-1])
 
-    # FIGNAME='unit_cell'
+    FIGNAME=filename
 
-    # fig, ax = plt.subplots(1, 1)
-    # fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
-    # plt.tight_layout()
-    # model.plot_unit_cell(fig, ax, atoms='all', s=100)
-    # output=os.path.join(FIG,FIGNAME)
-    # plt.savefig(output+'.pdf', bbox_inches = "tight")
+    output=os.path.join(FIG,FIGNAME)
 
-    # with open(output+'.txt', 'w') as f:
-    #     f.write(rf'''The local density of states of a spinless square lattice tight-binding
-# model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-# sites, a single orbital with an impurity at the centre with coupling
-# strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-# waves in the electron quasiparticle density. The electronic excitations
-# at zero temperature necessarily carry the Fermi energy, and hence the 
-# wavefunction describing the excitations is of the Fermi wavelength. 
-# The electronic charge distrbution is the square modulus of the
-# wavefunction and hence takes on twice the periodicty or double the
-# wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-# {friedel_wavelength:.3}$. \\
-# ''')
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''Renormalisation of the Hartree, Fock and Gorkov fields on a 
+        2-dimensional spinless Weyl-SSH lattice with 
+attractive intracell Hubbard U, pairing fermions on sites A and B. 
+The fields are calculated self-consistently, with absolute convergence factor 
+${absolute_convergence_factor}$
+and an initial friction ${init_friction}$ and 
+friction ${iter_friction}$ over subsequent iterations.
+The lattice is ${n_cells}x{n_cells}$ cells squared.
+''')
+
+def plot_phase_diagram_Uv(phase_diagram_Uv):
+    fig, ax = plt.subplots(1,1)
+    ax=phase_diagram_Uv.plot_phase_diagram(ax)
+    ax.legend()
+
+    FIGNAME='Self-consistent_convergence_mu_Uv'
+
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an 
+${n_cells}x{n_cells}$ 
+spinless Weyl-SSH lattice as a function of chemical potential 
+$\mu$ and multiorbital Hubbard attraction $U_v$.
+The absolute convergence factor is
+${absolute_convergence_factor}$
+and an initial friction ${init_friction}$ and 
+friction ${iter_friction}$ over subsequent iterations.
+''')
+
+def plot_phase_diagram_s(phase_diagram_s):
+    fig, ax = plt.subplots(1,1)
+    ax=phase_diagram_s.plot_phase_diagram(ax)
+    ax.legend()
+
+    FIGNAME='Self-consistent_convergence_mu_s'
+
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an ${n_cells}x{n_cells}$ spinless Weyl-SSH lattice as a function of chemical potential $\mu={mu}$ and multiorbital rigid intracell shift $s$, with $U_v={Uv}$.
+The absolute convergence factor is
+${absolute_convergence_factor}$
+and an initial friction ${init_friction}$ and 
+friction ${iter_friction}$ over subsequent iterations.
+''')
 
 #############################################################################
 ################################# Main ######################################
@@ -202,23 +215,48 @@ v=0.6
 w=1.2
 Uv=3.6
 Uw=0
-rho=6.0
-rho_shift=0.3
-phi_v=0.2
+rho=-2.2
+rho_shift=0.1
+phi_v=0.1
 phi_w=0
-chi_v=4.2
+chi_v=1.2
 chi_w=0
 V=0
-n_cells=11
+n_cells=25
 
-# greens_function_xy, greens_function_xq, greens_function_kq, bdg = process()
+# Convergence plot
+# iterations(friction,max_iterations,absolute_convergence_factor,mu,Uv,s)
+# plot_iterations(friction,max_iterations,absolute_convergence_factor)
+# exit()
 
-# [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA+'.npz', allow_pickle=True)
+# Phase diagram mu,Uv/s
+rho_shift=0
+rho=-2.13378
+phi_v=0.06427
+chi_v=0.828633
+init_friction=0.6
+iter_friction=0.7
+init_max_iterations=400
+iter_max_iterations=200
+absolute_convergence_factor=0.0001
 
-# plot_iterations(bdg)
+muu=np.arange(-4,4.1,0.1)[::-1]
+Uvv=np.arange(1.1,6.5,1.1)[::-1]
+phase_diagram_Uv=PhaseDiagram(model_Uv)
+phase_diagram_Uv.directory=DATA_Uv
+phase_diagram_Uv.filename=filename
+phase_diagram_Uv.initial_name='initial_convergence_Uv'
+phase_diagram_Uv.initial_title=f'Self-consistent convergence\n$U_v={Uvv[0]:.2f},\, \mu={muu[0]:.2f},\, s={s},\,$'+rf'$\text{{friction}}={init_friction}$'
+phase_diagram_Uv.phase_diagram(muu,dependent_variables,Uvv,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation)
+plot_phase_diagram_Uv(phase_diagram_Uv)
 
-mu=np.arange(-4,4.1,0.1)
-Uv=np.arange(1.1,6.5,1.1)
-phase_diagrams(mu,extract_from_bdg,Uv)
 
-plot_phase_diagram()
+Uv=3.6
+ss=np.arange(0,2,0.44)[::-1]
+phase_diagram_s=PhaseDiagram(model_s)
+phase_diagram_s.directory=DATA_s
+phase_diagram_s.initial_name='initial_convergence_s'
+phase_diagram_s.filename=filename
+phase_diagram_s.initial_title=f'Self-consistent convergence\n$U_v={Uv},\, \mu={muu[0]:.2f},\, s={ss[0]:.2f},\,$'+rf'$\text{{friction}}={init_friction}$'
+phase_diagram_s.phase_diagram(muu,dependent_variables,ss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation)
+plot_phase_diagram_s(phase_diagram_s)
