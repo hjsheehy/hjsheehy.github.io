@@ -20,7 +20,7 @@ def main():
     # impurity_wall = [[0,i] for i in range(n_cells)]
     # bdg.add_impurities(V,impurity_wall)
 
-    # bdg.add_impurities(V,[0,4])
+    bdg.add_impurities(V,[0,0])
 
     # bdg.set_hartree(rho)
     # bdg.set_fock(phi,atom_i='A',atom_f='B')

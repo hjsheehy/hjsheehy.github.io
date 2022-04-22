@@ -222,7 +222,13 @@ phi_w=0
 chi_v=1.2
 chi_w=0
 V=0
-n_cells=25
+n_cells=11
+
+
+bdg = model_Uv(mu,Uv)
+
+bdg.self_consistent_calculation(friction=0.2, max_iterations=400, absolute_convergence_factor=0.00001)
+exit()
 
 # Convergence plot
 # iterations(friction,max_iterations,absolute_convergence_factor,mu,Uv,s)
@@ -230,7 +236,7 @@ n_cells=25
 # exit()
 
 # Phase diagram mu,Uv/s
-rho_shift=0
+rho_shift=0.4
 rho=-2.13378
 phi_v=0.06427
 chi_v=0.828633

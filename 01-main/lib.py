@@ -546,6 +546,7 @@ class CrystalLattice():
             if axis>=self.n_dimensions:
                 raise ValueError(f'axis {axis} is greater than dimensions {self.n_dimensions}!')
             self._bulk[axis]=False
+            self._k_axes[axis]=False
             self._pieces[axis]=n_cells
             self._glue_edgs[axis]=glue_edgs
 
@@ -617,7 +618,7 @@ class StatisticalMechanics():
         # exit()
         return trace_density, density, anomalous_density
 
-class Tightbinding(CrystalLattice, StatisticalMechanics):
+class TightBinding(CrystalLattice, StatisticalMechanics):
     
     def __init__(self,lattice_vectors,name):
 
@@ -640,7 +641,7 @@ class Tightbinding(CrystalLattice, StatisticalMechanics):
 
         super().__init__(lattice_vectors,name)
 
-        self._k_axes = [False for i in range(self.n_dimensions)]
+        self._k_axes = [True for i in range(self.n_dimensions)]
 
     @property
     def n_kpts(self):
@@ -838,11 +839,11 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             temp+=TRS
         return temp
 
-    def _bulk_hopping(self, k, hop_vector):
+    def _bulk_hopping(self, amplitude, k, hop_vector):
         if np.array_equal(hop_vector, np.zeros([self.n_dimensions])):
-                return 2
+                return 2*amplitude
         else:
-            return 2*np.cos(np.dot(k,hop_vector))
+            return 2*amplitude*np.cos(np.dot(k,hop_vector))
 
 #     def _bulk_momentum(self, k, func_k, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True):
 #         hopping_amplitude = func_k(k)
@@ -854,6 +855,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if type(self._hamiltonian)==type(None):
             self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
         self._hamiltonian += self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
+        if type(self.kpts)!=type(None):
+            self._hamiltonian = np.array([self._hamiltonian for k in range(self.n_total_kpts)])
         
     def set_hopping(self, hopping_amplitude, hop_vector=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
         
@@ -867,6 +870,14 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 self._hamiltonian = np.zeros(dimensions)
             for i in range(self.n_total_kpts):
                 k=self.flattened_kpts[:,i]
+                import types
+                if type(hopping_amplitude) != types.FunctionType:
+                    t = np.copy(hopping_amplitude)
+                    del hopping_amplitude
+                    if type(hop_vector)!=type(None):
+                        hopping_amplitude = lambda k : self._bulk_hopping(t, k, hop_vector)
+                    else:
+                        hopping_amplitude = lambda k : hopping_amplitude
                 tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
                 self._hamiltonian[i] += tmp
 
@@ -947,7 +958,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self.eigenvalues, self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
         else:
             dim = self.n_atoms_orbitals_spins # dimension of (BdG) SO-matrix
-            self.eigenvalues, self.eigenvectors = np.zeros([self.n_total_kpts,dim]), np.zeros([self.n_total_kpts,dim,dim])
+            self.eigenvalues, self.eigenvectors = np.zeros([self.n_total_kpts,dim]), np.zeros([self.n_total_kpts,dim,dim],dtype=COMPLEX)
             for dim in range(self.n_dimensions):
                 for i in range(self.n_total_kpts):
                     self.eigenvalues[i], self.eigenvectors[i] = la.eigh(self._hamiltonian[i], overwrite_a=True)
@@ -975,10 +986,14 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
             self.eigenvectors = np.reshape(self.eigenvectors,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,2*n], 'F')
         else:
-
-            dim=np.append(self._extended_dimensions,[2*self.n_dof])
-
-            self.eigenvectors = np.array([np.reshape(self.eigenvectors[:self.n_dof], dim, 'F'),np.reshape(self.eigenvectors[self.n_dof:], dim, 'F')])
+            if self._model=='bdg':
+                dim=np.append(self._extended_dimensions,[2*self.n_dof])
+                
+                self.eigenvectors = np.array([np.reshape(self.eigenvectors[:self.n_dof], dim, 'F'),np.reshape(self.eigenvectors[self.n_dof:], dim, 'F')])
+            else:
+                dim=np.append(self._extended_dimensions,[self.n_dof])
+                
+                self.eigenvectors = np.array([np.reshape(self.eigenvectors, dim, 'F'),np.reshape(self.eigenvectors, dim, 'F')])
   
     @property
     def axes(self):
@@ -1440,7 +1455,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 ##################### BdG model ##########################
 ###################################################################
 
-class BogoliubovdeGennes(Tightbinding):
+class BogoliubovdeGennes(TightBinding):
     """Bogoliubov-de Gennes model from TB parent class  
     
     Attributes
@@ -2505,6 +2520,7 @@ class GreensFunction(BogoliubovdeGennes):
         self._counter= model._counter
         self._glue_edgs = model._glue_edgs
         self.bulk_calculation=model.bulk_calculation
+        self._dos = model._dos
 
         self.temperature=model.temperature
 
@@ -2525,16 +2541,30 @@ class GreensFunction(BogoliubovdeGennes):
 
         self._Berry_curvature = False
         
-        if self._model=='tb':
-            dm = np.array([np.multiply(model.eigenvectors,np.conj(model.eigenvectors))])
+        density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
+        omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
+        if self.bulk_calculation:
+            # model.eigenvalues=model.eigenvalues.T
+            k_dim=np.shape(self.n_kpts)[0]
+            reciprocal = 1/np.subtract.outer(omegas,model.eigenvalues) #assuming T=0
+            if k_dim==1:
+                self._dos = np.einsum('oke,ksme->ksmo', reciprocal, density_matrix,optimize=True)   
+            if k_dim==2:
+                self._dos = np.einsum('okqe,kqsme->kqsmo', reciprocal, density_matrix,optimize=True)   
+            if k_dim==3:
+                self._dos = np.einsum('okqpe,kqpsme->kqpsmo', reciprocal, density_matrix,optimize=True)   
         else:
-            density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
+            # reciprocal = 1/(omegas[:,None]-model.eigenvalues[:]) #assuming T=0
+            self._dos = np.einsum('oe,...e->...o', reciprocal, density_matrix,optimize=True)
+
+        if self._model=='bdg':
+            density_matrix = np.array([np.multiply(model.eigenvectors,model.eigenvectors)])
             omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
             reciprocal = 1/(omegas[:,None]-model.eigenvalues[:]) #assuming T=0
             if self.bulk_calculation:
-                self._dos = np.einsum('koe,k...e->k...o', reciprocal, density_matrix,optimize=True)
+                self._ados = np.einsum('koe,k...e->k...o', reciprocal, density_matrix,optimize=True)
             else:
-                self._dos = np.einsum('oe,...e->...o', reciprocal, density_matrix,optimize=True)
+                self._ados = np.einsum('oe,...e->...o', reciprocal, density_matrix,optimize=True)
 
         if self._Berry_curvature:
             self.Berry_curvature()
@@ -2936,7 +2966,7 @@ If spin=None: trace spin, else spin polarised"""
                             xmin,xmax=xxmin,xxmax
                         jx=1
                     l+=1
-                if l==1:
+                elif l==1:
                     if self._k_axes[i]:
                         yymin,yymax=-np.pi,np.pi
                         if ymin=='default' and ymax=='default':
