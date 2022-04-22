@@ -657,6 +657,16 @@ class TightBinding(CrystalLattice, StatisticalMechanics):
             self._flattened_kpts = np.reshape(self.kpts,[self.n_dimensions,self.n_total_kpts])
         return self._flattened_kpts
 
+    def set_kpts(self,n_kpts):
+        if len(n_kpts)==1:
+            self.kpts=np.mgrid[0:2*np.pi:n_kpts[0]*1j]
+        if len(n_kpts)==2:
+            self.kpts=np.mgrid[0:2*np.pi:n_kpts[0]*1j, 0:2*np.pi:n_kpts[1]*1j]
+        if len(n_kpts)==3:
+            self.kpts=np.mgrid[0:2*np.pi:n_kpts[0]*1j, 0:2*np.pi:self.n_kpts[1]*1j, 0:2*np.pi:self.n_kpts[2]*1j]
+
+        self.bulk_calculation=True
+
     def set_temperature(self,temperature):
         self.temperature=temperature
 
@@ -979,12 +989,16 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         '''7-dimensional data set: [normal/anom, x, y, z, orbital, spin, eigenvalues]'''
         n=len(self.eigenvalues)
 
-        if np.shape(self.eigenvectors)!=(n,n):
-            return self.eigenvectors
-
+        # if np.shape(self.eigenvectors)!=(n,n):
+        #     return self.eigenvectors
         if self.bulk_calculation:
-            self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
-            self.eigenvectors = np.reshape(self.eigenvectors,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,2*n], 'F')
+
+            dim=self._extended_dimensions[2:]
+            self.eigenvectors = np.reshape(self.eigenvectors,self.n_kpts+dim+[self.n_dof])
+            self.eigenvalues = np.reshape(self.eigenvalues,self.n_kpts+[self.n_dof])
+            # self.eigenvectors = np.moveaxis(self.eigenvectors,0,-1)
+            # self.eigenvectors = np.reshape(self.eigenvectors,self.n_kpts+[self.n_atoms_orbitals,self.n_spins,2*n], 'F')
+            # dim=self._extended_dimensions[2:]
         else:
             if self._model=='bdg':
                 dim=np.append(self._extended_dimensions,[2*self.n_dof])
@@ -1022,7 +1036,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def set_k_axes(self, axes):
         if type(axes)==type(None):
+            self.set_real_axes('all')
             axes=[]
+        if axes=='all':
+            axes=np.arange(self.n_dimensions)
         for axis in axes:
             if self._k_axes[axis]:
                 pass
@@ -1033,7 +1050,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 
     def set_real_axes(self, axes):
         if type(axes)==type(None):
+            self.set_k_axes('all')
             axes=[]
+        if axes=='all':
+            axes=np.arange(self.n_dimensions)
         for axis in axes:
             if not self._k_axes[axis]:
                 pass
@@ -1531,34 +1551,71 @@ class BogoliubovdeGennes(TightBinding):
             self._tb_ham
         except:
             self._tb_ham = self._hamiltonian
-
+        
         n_dof = self.n_dof
 
         try:
             self._hubbard_indices
         except:
             self._set_hubbard_indices()
-
+        
             if type(self._hartree)==type(None):
-                self._hartree = np.zeros(self.n_dof, dtype=COMPLEX) 
+                if self.bulk_calculation:
+                    self._hartree = np.zeros([self.n_total_kpt,self.n_dof], dtype=COMPLEX) 
+                else:
+                    self._hartree = np.zeros(self.n_dof, dtype=COMPLEX) 
             if type(self._fock)==type(None):
-                self._fock = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
+                if self.bulk_calculation:
+                    self._fock = np.zeros([self.n_total_kpt,self.n_dof,self.n_dof], dtype=COMPLEX) 
+                else:
+                    self._fock = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
             if type(self._gorkov)==type(None):
-                self._gorkov = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
-            self._fock=self._fock[self._hubbard_indices]
-            self._gorkov=self._gorkov[self._hubbard_indices]
+                if self.bulk_calculation:
+                    self._gorkov = np.zeros([self.n_total_kpt,self.n_dof,self.n_dof], dtype=COMPLEX) 
+                else:
+                    self._gorkov = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
+            if self.bulk_calculation:
+                print(np.shape(self._fock))
+                print(np.shape(self._hubbard_indices))
+                self._fock=self._fock[:,self._hubbard_indices]
+                print(np.shape(self._fock))
+                exit()
+
+                self._gorkov=self._gorkov[:,self._hubbard_indices]
+            else:
+                print(np.shape(self._fock))
+                print(np.shape(self._hubbard_indices))
+                self._fock=self._fock[self._hubbard_indices]
+                print(np.shape(self._fock))
+                exit()
+                self._gorkov=self._gorkov[self._hubbard_indices]
 
         hartree=self._hartree
         fock=self._fock
         gorkov=self._gorkov
 
-        hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=COMPLEX)
-        hamiltonian[:n_dof,:n_dof]=self._tb_ham-np.diag(hartree)
-        hamiltonian[n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(np.diag(hartree)))
-        hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1]]=-fock
-        hamiltonian[self._anomalous_indices[0],self._hubbard_indices[1]]=-(-np.conj(fock))
-        hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1]]=-np.conj(-gorkov)
-        hamiltonian[self._anomalous_indices[0],self._hubbard_indices[1]]=-gorkov
+        if self.bulk_calculation:
+            hart=[np.diag(hartree[k]) for k in range(self.n_total_kpts)]
+            hamiltonian = np.zeros([self.n_total_kpts,2*n_dof,2*n_dof],dtype=complex)
+            hamiltonian[:,:n_dof,:n_dof]=self._tb_ham-hart
+            hamiltonian[:,n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(hart))
+            print(np.shape(hamiltonian))
+            print(np.shape(fock))
+            hamiltonian[:,self._hubbard_indices[0],self._anomalous_indices[1]]=-fock
+            hamiltonian[:,self._anomalous_indices[0],self._hubbard_indices[1]]=-(-np.conj(fock))
+            hamiltonian[:,self._hubbard_indices[0],self._anomalous_indices[1]]=-np.conj(-gorkov)
+            hamiltonian[:,self._anomalous_indices[0],self._hubbard_indices[1]]=-gorkov
+        else:
+            hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex)
+            hamiltonian[:n_dof,:n_dof]=self._tb_ham-np.diag(hartree)
+            hamiltonian[n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(np.diag(hartree)))
+            hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1]]=-fock
+            hamiltonian[self._anomalous_indices[0],self._hubbard_indices[1]]=-(-np.conj(fock))
+            hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1]]=-np.conj(-gorkov)
+            hamiltonian[self._anomalous_indices[0],self._hubbard_indices[1]]=-gorkov
+            print(np.shape(hamiltonian))
+            print(np.shape(fock))
+            exit()
         self._hamiltonian = hamiltonian
 
     def reset_hartree(self):
@@ -1579,17 +1636,26 @@ class BogoliubovdeGennes(TightBinding):
 
     def set_hartree(self,onsite,atom=None,orbital=None,spin=None,position_coordinates=None):
         if type(self._hartree)==type(None):
-            self._hartree = np.zeros(self.n_dof, dtype=COMPLEX) 
+            if self.bulk_calculation:
+                self._hartree = np.zeros([self.n_total_kpts,self.n_dof], dtype=COMPLEX) 
+            else:
+                self._hartree = np.zeros([self.n_dof], dtype=COMPLEX) 
         self._hartree += np.diag(self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates))
 
     def set_fock(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
         if type(self._fock)==type(None):
-            self._fock = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
+            if self.bulk_calculation:
+                self._fock = np.zeros([self.n_total_kpts,self.n_dof,self.n_dof], dtype=COMPLEX) 
+            else:
+                self._fock = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
         self._fock += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
 
     def set_gorkov(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
         if type(self._gorkov)==type(None):
-            self._gorkov = np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
+            if self.bulk_calculation:
+                self._gorkov= np.zeros([self.n_total_kpts,self.n_dof,self.n_dof], dtype=COMPLEX) 
+            else:
+                self._gorkov= np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX) 
         self._gorkov += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
 
     def set_external_hartree(self,onsite,atom=None,orbital=None,spin=None,position_coordinates=None):
@@ -2645,13 +2711,14 @@ If atom=None: trace atoms, else atom resolved
 If orbital=None: trace orbitals, else orbital resolved
 If spin=None: trace spin, else spin polarised"""
         self._query_dos()
-
+        
         temp = (-1/np.pi)*np.imag(self._dos)
 
-        if anomalous:
-            temp=temp[1]
-        else:
-            temp=temp[0]
+        if self._model=='bdg':
+            if anomalous:
+                temp=temp[1]
+            else:
+                temp=temp[0]
 
         dim=self.n_dimensions
         if spin=='integrated':
@@ -2700,6 +2767,7 @@ If spin=None: trace spin, else spin polarised"""
         else:
             index = FindNearestValueOfArray(self.energy_interval,energy)
             temp = temp[..., index]
+
         return temp
 
     def integrated_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', spin='integrated', anomalous=False):

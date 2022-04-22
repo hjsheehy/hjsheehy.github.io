@@ -6,11 +6,9 @@ def main():
     lattice_vectors=[[1,0],[0,1]]
     tb=TightBinding(lattice_vectors,'Simple TB')
     tb.add_atom(A)
-    tb.n_spins=1
+    tb.n_spins=2
     
-    kpts=np.mgrid[-np.pi:np.pi:21j, -np.pi:np.pi:21j]
-    # kpts=kpts.reshape(-1, kpts.shape[0])
-    tb.kpts=kpts
+    tb.set_kpts([n_cells,n_cells])
 
     # tb.cut(n_cells, axes=0, glue_edgs=True)
     # tb.cut(n_cells, axes=1, glue_edgs=True)
@@ -20,27 +18,22 @@ def main():
 
     # tb.add_impurities(V,[0,0])
 
-    tb.bulk_calculation=True
-
     tb.solve()
     
-    dim=tb._extended_dimensions[2:]
-    tb.eigenvectors = np.reshape(tb.eigenvectors,tb.n_kpts+dim+[tb.n_dof])
-    tb.eigenvalues = np.reshape(tb.eigenvalues,tb.n_kpts+[tb.n_dof])
-
     energy_interval=np.linspace(-4,4,601)
     resolution=0.05
 
-    greens_function_xy=GreensFunction(tb,energy_interval,resolution, k_axes=None)
+    # greens_function_xy=GreensFunction(tb,energy_interval,resolution, k_axes=None)
 
-    greens_function_xq=GreensFunction(tb,energy_interval,resolution, k_axes=[1])
+    # greens_function_xq=GreensFunction(tb,energy_interval,resolution, k_axes=[1])
 
     greens_function_kq=GreensFunction(tb,energy_interval,resolution, k_axes=[0,1])
 
     del tb.eigenvectors
     del tb.eigenvalues
 
-    return greens_function_xy, greens_function_xq, greens_function_kq
+    return greens_function_kq
+    # return greens_function_xy, greens_function_xq, greens_function_kq
 
 # Plotting:
 
@@ -52,7 +45,8 @@ t=1
 V=0
 n_cells=21
 
-greens_function_xy, greens_function_xq, greens_function_kq = main()
+# greens_function_xy, greens_function_xq, greens_function_kq = main()
+greens_function_kq = main()
 
 #real space
 # fig,ax = plt.subplots(1,1)
