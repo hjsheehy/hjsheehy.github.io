@@ -3,6 +3,9 @@ from lib import *
 filename=sys.argv[0].split('.')[0]
 DATA=os.path.join(DATA,filename+'.npz')
 FIG=os.path.join(FIG,filename)
+for directory in [FIG]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def main():
     bdg.cut(n_cells, axes=0, glue_edgs=False)
@@ -188,7 +191,7 @@ def majorana_fermi_arc(greens_function):
     majorana_ky=2.12
     Bogoliubov_Fermi_arc_ky=0.5
     ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
-    ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoloiubov-Fermi arc')
+    ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoliubov-Fermi arc')
     ax.set_title('')
     ax.legend()
 
@@ -244,7 +247,7 @@ chi=0
 V=0
 n_cells=41
 
-greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+# greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
 [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
 

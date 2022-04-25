@@ -8,32 +8,41 @@ def main():
     bdg.add_atom(A)
     bdg.n_spins=2
     
-    bdg.set_kpts([n_cells,n_cells])
+    # bdg.set_kpts([n_cells,n_cells])
 
-    # bdg.cut(n_cells, axes=0, glue_edgs=True)
-    # bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.cut(n_cells, axes=0, glue_edgs=True)
+    bdg.cut(n_cells, axes=1, glue_edgs=True)
+
     bdg.set_onsite(-mu)
     bdg.set_hopping(-t,hop_vector=[1,0],label='$t$')
     bdg.set_hopping(-t,hop_vector=[0,1],label='$t$')
 
     # bdg.add_impurities(V,[0,0])
-
     bdg.set_hartree(rho)
     bdg.set_fock(phi,spin_i='up',spin_f='dn')
-    bdg.set_gorkov(chi,spin_i='up',spin_f='dn')
-
+    bdg.set_gorkov(chi*1j*Pauli_y)
+    
     bdg.set_hubbard_u(-U,spin_i='up',spin_f='dn')
 
-    # bdg.record_hartree(location=[0,0], atom='A', _print=False)
-    # bdg.record_hartree(location=[0,0], atom='B', _print=False)
-    # bdg.record_fock(location_i=[0,0], location_f=[0,0], atom_i='A', atom_f='B',_print=False)
-    # bdg.record_gorkov(location_i=[0,0], location_f=[0,0], atom_i='A', atom_f='B',_print=False)
-    # bdg.record_gorkov(location_i=[0,0], location_f=[1,0], atom_i='B', atom_f='A', orbital_i='s', orbital_f='s', spin_i=0, spin_f=0,_print=False)
+    # bdg._set_mean_field_hamiltonian()
+    # hamiltonian = np.real(bdg._hamiltonian)
+    # plt.imshow(hamiltonian)
+    # plt.show()
+    # exit()
 
-    bdg.self_consistent_calculation(friction=0.2, max_iterations=400, absolute_convergence_factor=0.00001)
+    # _print=True
+    # bdg.record_hartree(location=[0,0], spin='up', _print=_print)
+    # bdg.record_hartree(location=[0,0], spin='down', _print=_print)
+    # bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='down', _print=_print)
+    # bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='down', spin_f='up', _print=_print)
+    # bdg.record_gorkov(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='down',_print=_print)
+    # bdg.record_gorkov(location_i=[0,0], location_f=[0,0], spin_i='down', spin_f='up',_print=_print)
+
+    # bdg.self_consistent_calculation(friction=0.2, max_iterations=400, absolute_convergence_factor=0.0001)
+    bdg.solve()
 
     energy_interval=np.linspace(-4,4,601)
-    resolution=0.05
+    resolution=0.02
 
     # greens_function_xy=GreensFunction(bdg,energy_interval,resolution, k_axes=None)
 
@@ -52,13 +61,22 @@ def main():
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=-3.7
+mu=3.2
 t=1
 U=3.6
-rho=-2.2
+rho=5.2
 phi=0.1
-chi=1.2
-V=0
-n_cells=11
+chi=2.2
+rho=0
+phi=0
+chi=0
+# V=1.21
+n_cells=21
 
-main()
+# greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+greens_function_kq = main()
+
+# k-space
+fig,ax = plt.subplots(1,1)
+greens_function_kq.plot_ldos(ax, energy=0, anomalous=False)
+plt.show()

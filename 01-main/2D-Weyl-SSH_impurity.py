@@ -1,10 +1,12 @@
 from lib import *
 
 filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename+'.npz')
+DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
-if not os.path.exists(FIG):
-    os.makedirs(FIG)
+for directory in [FIG]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+DATA=DATA+'.npz'
 
 def main():
     bdg.cut(n_cells, axes=0, glue_edgs=False)
@@ -19,10 +21,10 @@ def main():
     bdg.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
     bdg.set_hopping(-td,hop_vector=[1,-1],atom_i='B',atom_f='A',label='$t_d$')
 
-    impurity_wall = [[0,i] for i in range(int(n_cells/2))]
-    bdg.add_impurities(V,impurity_wall)
+    # impurity_wall = [[0,i] for i in range(n_cells)]
+    # bdg.add_impurities(V,impurity_wall)
 
-    # bdg.add_impurities(V,[0,0])
+    bdg.add_impurities(V,[0,0])
 
     # bdg.set_hartree(rho)
     # bdg.set_fock(phi,atom_i='A',atom_f='B')
@@ -47,7 +49,7 @@ def main():
     greens_function_xq=GreensFunction(bdg,energy_interval,resolution, k_axes=[1])
 
     greens_function_kq=GreensFunction(bdg,energy_interval,resolution, k_axes=[0,1])
- 
+
     del bdg.eigenvectors
     del bdg.eigenvalues
 
@@ -56,41 +58,6 @@ def main():
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 # Plotting:
-
-def iterations(bdg):
-    gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])
-    # gorkov_w=bdg.gorkov(atom_i='B', atom_f='A', hop_vector=[1,0])
-
-    plt.plot(np.real(bdg._gorkov_iterations[0]))
-    plt.plot(np.real(bdg._gorkov_iterations[1]))
-    plt.show()
-    plt.close()
-    
-def unit_cell(model):
-    FIGNAME='unit_cell'
-
-    fig, ax = plt.subplots(1, 1)
-    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
-    plt.tight_layout()
-    model.plot_unit_cell(fig, ax, atoms='all', s=100)
-    output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
-    # plt.close()
-
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
-
 def ldos_each_atom(greens_function):
     FIGNAME='ldos_each_atom'
 
@@ -113,46 +80,34 @@ def ldos_each_atom(greens_function):
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
-
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
+    if caption:
+        with open(output+'.txt', 'w') as f:
+            f.write(rf'''Local density of states with an impurity at the centre. 
+The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal.
+The impurity has coupling strength $V/t={V:.2f}$. 
+No additional topological features are seen.''')
 
 def real_space(greens_function):
     FIGNAME='ldos'
 
     fig, ax = plt.subplots()
 
-    ax = greens_function.plot_spectrum(ax, axes=['resolved','integrated'],omega_min=-2,omega_max=2,vmin=0,vmax=80)
+    ax = greens_function.plot_spectrum(ax, axes=['resolved',0],omega_min=-2,omega_max=2,vmin=0,vmax='default')
 
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
-
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
+    
+    if caption:
+        with open(output+'.txt', 'w') as f:
+            f.write(rf'''Local density of states integrated over the intracell atomic sites. 
+The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal.
+The impurity has coupling strength $V/t={V:.2f}$.''')
 
 def k_space(greens_function):
     FIGNAME='k_space'
@@ -165,20 +120,12 @@ def k_space(greens_function):
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
-
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
+    
+    if caption:
+        with open(output+'.txt', 'w') as f:
+            f.write(rf'''Band structure integrated over the axis of the SSH dimers, $k_x$, with
+open boundary conditions along the $x$ axis.
+An additional mode crosses zero energy at $k_y=\pm\pi$.''')
 
 def majorana_fermi_arc(greens_function):
     FIGNAME='majorana_fermi_arc'
@@ -190,13 +137,13 @@ def majorana_fermi_arc(greens_function):
     majorana_ky=2.12
     Bogoliubov_Fermi_arc_ky=0.5
     ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
-    ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoloiubov-Fermi arc')
+    ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoliubov-Fermi arc')
     ax.set_title('')
     ax.legend()
 
     ins = ax.inset_axes([0.2,0.3,0.6,0.4])
 
-    ins = greens_function.plot_spectrum(ins, axes=['integrated','resolved'], omega_min=-1,omega_max=1,vmin='default',vmax='default')
+    ins = greens_function.plot_spectrum(ins, axes=['integrated','resolved'], omega_min=-1,omega_max=1,vmin='default',vmax=20)
     
     ins.scatter(majorana_ky,majorana_energy,c='r',s=10)
     ins.scatter(Bogoliubov_Fermi_arc_ky,Bogoliubov_Fermi_arc_energy,c='blue',s=20)
@@ -207,20 +154,75 @@ def majorana_fermi_arc(greens_function):
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
+    
+    if caption:
+        with open(output+'.txt', 'w') as f:
+            f.write(rf'''Topological modes in the presence of an impurity. No additional topological effects seen.''')
 
-    # with open(output+'.txt', 'w') as f:
-    #     f.write(rf'''The local density of states of a spinless square lattice tight-binding
-# model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-# sites, a single orbital with an impurity at the centre with coupling
-# strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-# waves in the electron quasiparticle density. The electronic excitations
-# at zero temperature necessarily carry the Fermi energy, and hence the 
-# wavefunction describing the excitations is of the Fermi wavelength. 
-# The electronic charge distrbution is the square modulus of the
-# wavefunction and hence takes on twice the periodicty or double the
-# wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-# {friedel_wavelength:.3}$. \\
-# ''')
+def fermi_surface(greens_function):
+
+    FIGNAME='fermi_surface'
+
+    fig, ax = plt.subplots(1, 1, sharey='row')
+    
+    ax=greens_function.plot_ldos(ax,energy=0,atom='integrated')
+    ax.set_title(r'Fermi surface')
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    
+    if caption:
+        with open(output+'.txt', 'w') as f:
+            f.write(rf'''Fermi surface with a central impurity with coupling strength $V={V}$ and 
+chemical potential $\mu={mu}$, in the normal state.
+The hopping parameters are $t_d={td}, v={v}$ and $w={w}$.
+Notice density concentrated near $k_y\approx\pi/2$ corresponding to the Majorana mode,
+and density around $k_x\approx\pm\pi$ corresponding to the Fermi arc.
+''')
+
+def qpi(greens_function):
+
+    ldos=greens_function.local_density_of_states(energy='resolved', atom='A', anomalous=False)
+    # ldos=np.abs(np.fft.fft2(ldos,axes=[0,1]))
+    ldos=np.fft.fftshift(ldos,axes=[0,1])
+    # ldos=np.sum(ldos,axis=1)/greens_function._pieces[1]
+    ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(greens_function.n_cells)
+    print(np.shape(ldos))
+    vmin=np.min(ldos)
+    vmax=np.max(ldos)
+    print(vmin)
+    print(vmax)
+    vmin=0
+    vmax=0.1
+    n=int(greens_function._pieces[0]/2)
+    xmin,xmax=-n,n
+    ymin,ymax=-n,n #greens_function.emin,greens_function.emax
+    extent=[xmin,xmax,ymin,ymax]
+    plt.imshow(ldos[:,:,300].T,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
+    plt.show()
+
+    exit()
+    FIGNAME='qpi'
+
+    fig, ax = plt.subplots()
+
+    ax = greens_function.plot_spectrum(ax, axes=['resolved',0],omega_min=-2,omega_max=2,vmin=0,vmax='default')
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    
+    if caption:
+        with open(output+'.txt', 'w') as f:
+            f.write(rf'''Local density of states integrated over the intracell atomic sites. 
+The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal.
+The impurity has coupling strength $V/t={V:.2f}$.''')
+
 #############################################################################
 ################################# Main ######################################
 #############################################################################
@@ -244,15 +246,16 @@ rho=0
 phi=0
 chi=0
 V=1.21
-n_cells=15
+n_cells=41
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
 [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
 
-# plot_itertions(bdg)
-# unit_cell(bdg)
+caption=True
 # ldos_each_atom(greens_function_xy)
 # real_space(greens_function_xy)
 # k_space(greens_function_kq)
-majorana_fermi_arc(greens_function_xq)
+# majorana_fermi_arc(greens_function_xq)
+fermi_surface(greens_function_kq)
+qpi(greens_function_xy)

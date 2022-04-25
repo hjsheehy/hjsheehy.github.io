@@ -43,7 +43,7 @@ def main():
 mu=-3.2
 t=1
 V=0
-n_cells=21
+n_cells=31
 
 # greens_function_xy, greens_function_xq, greens_function_kq = main()
 greens_function_kq = main()

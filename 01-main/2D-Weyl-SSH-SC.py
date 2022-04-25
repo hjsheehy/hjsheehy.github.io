@@ -5,7 +5,7 @@ DATA_Uv=os.path.join(DATA,filename+'_Uv')
 DATA_s=os.path.join(DATA,filename+'_s')
 DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
-for directory in [DATA,DATA_Uv,DATA_s,FIG]:
+for directory in [DATA_Uv,DATA_s,FIG]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -22,8 +22,10 @@ Use two args: independent variables x and z"""
     bdg.add_atom(B)
     bdg.n_spins=1
 
-    bdg.cut(n_cells, axes=0, glue_edgs=False)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.set_kpts([n_cells,n_cells])
+
+    # bdg.cut(n_cells, axes=0, glue_edgs=False)
+    # bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
