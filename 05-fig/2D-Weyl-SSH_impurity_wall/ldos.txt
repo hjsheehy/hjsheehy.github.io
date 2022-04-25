@@ -1,0 +1,6 @@
+Local density of states with an impurity at the centre. 
+The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal.
+The impurity has coupling strength $V/t=1.21$. 
+No additional topological features are seen.

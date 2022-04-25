@@ -1,0 +1,3 @@
+Band structure integrated over the axis of the SSH dimers, $k_x$, with
+open boundary conditions along the $x$ axis.
+An additional mode crosses zero energy at $k_y=\pm\pi$.
