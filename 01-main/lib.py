@@ -627,7 +627,8 @@ class TightBinding(CrystalLattice, StatisticalMechanics):
         self.kpts = None
 
         self.temperature=0
-
+        
+        self.onsites=[]
         self.hoppings=[]
         self.hopping_labels=[]
         self.impurities=[]
@@ -857,7 +858,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         return temp
 
     def _bulk_hopping(self, amplitude, k, hop_vector):
-        return 2*amplitude*np.sum(np.cos(np.multiply(k,hop_vector)))
+        if (np.array(hop_vector)==np.zeros(self.n_dimensions)).all():
+            return amplitude
+        return 2*amplitude*np.cos(np.dot(k,hop_vector))
 
 #     def _bulk_momentum(self, k, func_k, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True):
 #         hopping_amplitude = func_k(k)
@@ -866,6 +869,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         
 
     def set_onsite(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None):
+        self.onsites.append([onsite,atom,orbital,spin,position_coordinates])
+
+    def _onsite(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None):
+
         ham=self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
         if self.bulk_calculation:
             if type(self._hamiltonian)==type(None):
@@ -875,10 +882,25 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             if type(self._hamiltonian)==type(None):
                 self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
             self._hamiltonian += ham
-
         
     def set_hopping(self, hopping_amplitude, hop_vector=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
-        
+        self.hoppings.append([hopping_amplitude,hop_vector,atom_i,atom_f,orbital_i,orbital_f,spin_i,spin_f,add_time_reversal,label])
+        self.hopping_labels.append(label)
+
+        # if type(orbital_i)==type(None):
+        #     orbital_i=self.atom(atom_i).orbitals
+        # if type(orbital_f)==type(None):
+        #     orbital_f=self.atom(atom_f).orbitals
+
+    def _hopping(self, hopping_amplitude, hop_vector=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True, label=''):
+
+        # if self.bulk_calculation:
+        #     if type(hop_vector)!=type(None):
+        #         if not (np.array(hop_vector)==np.zeros(self.n_dimensions)).all():
+        #             for i in range(len(self.hoppings)):
+        #                 if (np.logical_or(np.array(self.hoppings[i][1])==-np.conj(hop_vector),np.array(self.hoppings[i][1])==hop_vector)).all() and not (np.array(self.hoppings[i][1])==hop_vector).all(): # check whether hopping is TRS and not equal; if so, avoid double counting:
+        #                     hopping_amplitude = hopping_amplitude/2
+
         if not self.bulk_calculation:
             if type(self._hamiltonian)==type(None):
                 self._hamiltonian = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
@@ -888,25 +910,19 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 dimensions = [self.n_total_kpts,self.n_atoms_orbitals_spins,self.n_atoms_orbitals_spins]
                 self._hamiltonian = np.zeros(dimensions)
             import types
+            if type(hopping_amplitude) != types.FunctionType:
+                t = np.copy(hopping_amplitude)
+                del hopping_amplitude
+                if type(hop_vector)!=type(None):
+                    hopping_amplitude = lambda k : self._bulk_hopping(t, k, hop_vector)
+                else:
+                    hopping_amplitude = lambda k : t
             for i in range(self.n_total_kpts):
-                k=self.flattened_kpts[:,i]
-                if type(hopping_amplitude) != types.FunctionType:
-                    t = np.copy(hopping_amplitude)
-                    del hopping_amplitude
-                    if type(hop_vector)!=type(None):
-                        hopping_amplitude = lambda k : self._bulk_hopping(t, k, hop_vector)
-                    else:
-                        hopping_amplitude = lambda k : t
+                k=self.flattened_kpts[::-1,i]
+                add_time_reversal=False
                 tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+                tmp += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=-k, atom_i=atom_f, atom_f=atom_i, orbital_i=orbital_f, orbital_f=orbital_i, hop_vector=hop_vector, spin_i=spin_f, spin_f=spin_i, add_time_reversal=add_time_reversal)
                 self._hamiltonian[i] += tmp
-
-        # if type(orbital_i)==type(None):
-        #     orbital_i=self.atom(atom_i).orbitals
-        # if type(orbital_f)==type(None):
-        #     orbital_f=self.atom(atom_f).orbitals
-
-        self.hoppings.append([atom_i,atom_f,hop_vector,add_time_reversal])
-        self.hopping_labels.append(label)
 
     @property
     def hop_vectors(self):
@@ -917,14 +933,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         return [self.hoppings[v][:2] for v in range(len(self.hoppings))]
 
     def add_impurities(self, impurity_potential, position_coordinates, atom=None, orbital=None, spin=None, label=''):
-        
-        self.impurities.append([impurity_potential,position_coordinates,atom,orbital,spin])
+        self.impurities.append([impurity_potential,atom,orbital,spin,position_coordinates])
         self.impurity_labels.append(label)
 
-        self.set_onsite(onsite=impurity_potential, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates)
-        
-
-    def set_magnetic_impurities(self, M, cell_coordinate, atom=None, orbitals=None):
+    def add_magnetic_impurities(self, M, cell_coordinate, atom=None, orbitals=None):
         spin_matrix=np.einsum('i,ijk->jk',M,Pauli_vec)
         self.set_impurities(impurity_ampltiude=spin_matrix, cell_coordinates=cell_coordinates, orbitals=orbitals)
 
@@ -969,6 +981,16 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     ############################################################
 
     def solve(self):
+        if len(self.impurities)==0:
+            # automatic bulk calculation
+            pass
+        for [onsite,atom,orbital,spin,position_coordinates] in self.onsites:
+            self._onsite(onsite, atom, orbital, spin, position_coordinates)
+        for [impurity_potential,atom,orbital,spin,position_coordinates] in self.impurities:
+            self._onsite(impurity_potential, atom, orbital, spin, position_coordinates)
+        for [hopping_amplitude,hop_vector,atom_i,atom_f,orbital_i,orbital_f,spin_i,spin_f,add_time_reversal,label] in self.hoppings:
+            self._hopping(hopping_amplitude, hop_vector, atom_i, atom_f, orbital_i, orbital_f, spin_i, spin_f, add_time_reversal, label)
+
         t = time.time()
         if type(self.kpts)==type(None):
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)

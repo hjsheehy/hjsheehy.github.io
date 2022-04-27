@@ -8,13 +8,14 @@ def main():
     tb.add_atom(A)
     tb.n_spins=2
     
-    tb.set_kpts([n_cells,n_cells])
-
-    # tb.cut(n_cells, axes=0, glue_edgs=True)
-    # tb.cut(n_cells, axes=1, glue_edgs=True)
+    if alpha:
+        tb.set_kpts([n_cells,n_cells])
+    else:
+        tb.cut(n_cells, axes=0, glue_edgs=True)
+        tb.cut(n_cells, axes=1, glue_edgs=True)
     tb.set_onsite(-mu)
-    tb.set_hopping(-t,hop_vector=[1,0],label='$t$')
-    tb.set_hopping(-t,hop_vector=[0,1],label='$t$')
+    tb.set_hopping(-t*1.1,hop_vector=[1,0],label='$t$')
+    tb.set_hopping(-t*0.9,hop_vector=[0,1],label='$t$')
 
     # tb.add_impurities(V,[0,0])
 
@@ -43,17 +44,20 @@ def main():
 mu=-3.2
 t=1
 V=0
-n_cells=31
+n_cells=21
 
-# greens_function_xy, greens_function_xq, greens_function_kq = main()
-greens_function_kq = main()
+fig,ax = plt.subplots(1,2)
+i=0
+for alpha in [True,False]:
+    # greens_function_xy, greens_function_xq, greens_function_kq = main()
+    greens_function_kq = main()
 
-#real space
-# fig,ax = plt.subplots(1,1)
-# greens_function_xy.plot_ldos(ax, energy=0)
-# plt.show()
+    #real space
+    # fig,ax = plt.subplots(1,1)
+    # greens_function_xy.plot_ldos(ax, energy=0)
+    # plt.show()
 
-# k-space
-fig,ax = plt.subplots(1,1)
-greens_function_kq.plot_ldos(ax, energy=0)
+    # k-space
+    greens_function_kq.plot_ldos(ax[i], energy=0)
+    i+=1
 plt.show()

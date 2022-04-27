@@ -53,9 +53,13 @@ def main(alpha):
     # greens_function_xy=GreensFunction(tb,energy_interval,resolution, k_axes=None)
 
     # greens_function_xq=GreensFunction(tb,energy_interval,resolution, k_axes=[1])
-
-    print(np.real(tb._hamiltonian))
-    print('####')
+    # print(tb.kpts)
+    # k=0
+    # tmp=-v-2*w*np.cos(k)-4*2*td*np.cos(k)
+    # print(tmp)
+    # print(np.real(tb._hamiltonian))
+    # print('####')
+    # exit()
     greens_function_kq=GreensFunction(tb,energy_interval,resolution, k_axes=[0,1])
 
     del tb.eigenvectors
@@ -69,17 +73,20 @@ def main(alpha):
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=3.2
+mu=-3.8
 s=0
 w=1.2
 v=0.6
+# w=v=0
 td=0.9
+# td=0
 V=0
-n_cells=3
+n_cells=21
 
-fig,ax = plt.subplots(1,2)
+fig,ax = plt.subplots(2,2)
 greens_function_kq=[]
-for i,alpha in enumerate([False,True]):
+title=['Continuum model','Lattice model']
+for i,alpha in enumerate([True,False]):
     # greens_function_xy, greens_function_xq, greens_function_kq = main()
     greens_function_kq.append(main(alpha))
 
@@ -89,5 +96,8 @@ for i,alpha in enumerate([False,True]):
     # plt.show()
 
     # k-space
-    greens_function_kq[i].plot_ldos(ax[i], energy=0)
+    greens_function_kq[i].plot_ldos(ax[0,i], energy=0,atom='A')
+    greens_function_kq[i].plot_ldos(ax[1,i], energy=0,atom='B')
+    ax[0,i].set_title(title[i])
+    ax[1,i].set_title('')
 plt.show()
