@@ -14,8 +14,8 @@ def main():
         tb.cut(n_cells, axes=0, glue_edgs=True)
         tb.cut(n_cells, axes=1, glue_edgs=True)
     tb.set_onsite(-mu)
-    tb.set_hopping(-t,hop_vector=[1,0],label='$t$')
-    tb.set_hopping(-t,hop_vector=[0,1],label='$t$')
+    tb.set_hopping(-t*1.1,hop_vector=[1,0],label='$t$')
+    tb.set_hopping(-t*0.9,hop_vector=[0,1],label='$t$')
 
     # tb.add_impurities(V,[0,0])
 
@@ -44,6 +44,7 @@ def main():
 mu=0
 t=1
 V=0
+<<<<<<< HEAD
 n_cells=31
 fig,ax=plt.subplots(1,2)
 i=0
@@ -56,6 +57,21 @@ for alpha in [True,False]:
     # greens_function_xy.plot_ldos(ax, energy=0)
     # plt.show()
 
+=======
+n_cells=21
+
+fig,ax = plt.subplots(1,2)
+i=0
+for alpha in [True,False]:
+    # greens_function_xy, greens_function_xq, greens_function_kq = main()
+    greens_function_kq = main()
+
+    #real space
+    # fig,ax = plt.subplots(1,1)
+    # greens_function_xy.plot_ldos(ax, energy=0)
+    # plt.show()
+
+>>>>>>> e3f6c4460c17734a30563a387a3ab2800fa31082
     # k-space
     greens_function_kq.plot_ldos(ax[i], energy=0)
     i+=1
