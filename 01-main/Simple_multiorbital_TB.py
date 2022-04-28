@@ -53,19 +53,14 @@ def main(alpha):
     # greens_function_xy=GreensFunction(tb,energy_interval,resolution, k_axes=None)
 
     # greens_function_xq=GreensFunction(tb,energy_interval,resolution, k_axes=[1])
-<<<<<<< HEAD
 
-    # print(np.real(tb._hamiltonian))
-    # print('####')
-=======
-    # print(tb.kpts)
-    # k=0
-    # tmp=-v-2*w*np.cos(k)-4*2*td*np.cos(k)
-    # print(tmp)
-    # print(np.real(tb._hamiltonian))
-    # print('####')
+    # for i in range(len(tb.flattened_kpts[0,:])):
+    #     [kx,ky]=tb.flattened_kpts[::-1,i]
+    #     tmp=-v-w*np.exp(-1j*kx)-2*td*(np.cos(ky)+np.exp(-1j*kx)*np.cos(ky))
+    #     print(tmp)
+    #     print(tb._hamiltonian[i,1,0])
+    #     print('####')
     # exit()
->>>>>>> e3f6c4460c17734a30563a387a3ab2800fa31082
     greens_function_kq=GreensFunction(tb,energy_interval,resolution, k_axes=[0,1])
 
     del tb.eigenvectors
@@ -79,32 +74,17 @@ def main(alpha):
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-<<<<<<< HEAD
-mu=-3.2
-s=0
-w=1.2
-v=0.6
-td=0#.9
-V=0
-n_cells=11
-=======
 mu=-3.8
 s=0
 w=1.2
 v=0.6
-# w=v=0
 td=0.9
-# td=0
 V=0
-n_cells=21
->>>>>>> e3f6c4460c17734a30563a387a3ab2800fa31082
+n_cells=11
 
 fig,ax = plt.subplots(2,2)
 greens_function_kq=[]
-<<<<<<< HEAD
-=======
 title=['Continuum model','Lattice model']
->>>>>>> e3f6c4460c17734a30563a387a3ab2800fa31082
 for i,alpha in enumerate([True,False]):
     # greens_function_xy, greens_function_xq, greens_function_kq = main()
     greens_function_kq.append(main(alpha))

@@ -862,7 +862,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     def _bulk_hopping(self, amplitude, k, hop_vector):
         if (np.array(hop_vector)==np.zeros(self.n_dimensions)).all():
             return amplitude
-        return 2*amplitude*np.cos(np.dot(k,hop_vector))
+        return amplitude*np.exp(-1j*np.dot(k,hop_vector))
 
 #     def _bulk_momentum(self, k, func_k, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True):
 #         hopping_amplitude = func_k(k)
@@ -927,7 +927,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                     hopping_amplitude = lambda k : self._bulk_hopping(t, k, hop_vector)
                 add_time_reversal=False
                 tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
-                tmp += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=-k, atom_i=atom_f, atom_f=atom_i, orbital_i=orbital_f, orbital_f=orbital_i, hop_vector=hop_vector, spin_i=spin_f, spin_f=spin_i, add_time_reversal=add_time_reversal)
+                tmp += dagger(tmp)
                 self._hamiltonian[i] += tmp
 
     @property

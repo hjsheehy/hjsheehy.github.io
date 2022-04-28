@@ -1,0 +1,8 @@
+Self-consistent Hartree, Fock and Gorkov fields on an 
+$3x3$ 
+spinless Weyl-SSH lattice as a function of chemical potential 
+$\mu$ and multiorbital Hubbard attraction $U_v$.
+The absolute convergence factor is
+$0.0001$
+and an initial friction $0.6$ and 
+friction $0.7$ over subsequent iterations.
