@@ -26,7 +26,7 @@ def main(alpha):
     tb.set_hopping(-td,hop_vector=[0,-1],atom_i='B',atom_f='A',label='$t_d$')
     tb.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
     tb.set_hopping(-td,hop_vector=[1,-1],atom_i='B',atom_f='A',label='$t_d$')
-
+    
     # impurity_wall = [[0,i] for i in range(n_cells)]
     # tb.add_impurities(V,impurity_wall)
 
@@ -54,8 +54,8 @@ def main(alpha):
 
     # greens_function_xq=GreensFunction(tb,energy_interval,resolution, k_axes=[1])
 
-    print(np.real(tb._hamiltonian))
-    print('####')
+    # print(np.real(tb._hamiltonian))
+    # print('####')
     greens_function_kq=GreensFunction(tb,energy_interval,resolution, k_axes=[0,1])
 
     del tb.eigenvectors
@@ -69,17 +69,17 @@ def main(alpha):
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=3.2
+mu=-3.2
 s=0
 w=1.2
 v=0.6
-td=0.9
+td=0#.9
 V=0
-n_cells=3
+n_cells=11
 
 fig,ax = plt.subplots(1,2)
 greens_function_kq=[]
-for i,alpha in enumerate([False,True]):
+for i,alpha in enumerate([True,False]):
     # greens_function_xy, greens_function_xq, greens_function_kq = main()
     greens_function_kq.append(main(alpha))
 

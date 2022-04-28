@@ -802,6 +802,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if isinstance(hopping_amplitude, (int, float)):
             # scalar->spin pair
             hopping_amplitude=np.array([hopping_amplitude for i in range(self.n_spins)])
+        elif hopping_amplitude.size==1:
+            hopping_amplitude=np.array([hopping_amplitude for i in range(self.n_spins)])
         if np.shape(hopping_amplitude)==(self.n_spins) or np.shape(hopping_amplitude)==(self.n_spins,):
             # spin pair->spin matrix
             hopping_amplitude=np.diag(hopping_amplitude)
@@ -857,6 +859,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         return temp
 
     def _bulk_hopping(self, amplitude, k, hop_vector):
+        if np.all(np.array(hop_vector)==np.zeros(self.n_dimensions)) or type(hop_vector)==type(None):
+            return amplitude
         return 2*amplitude*np.sum(np.cos(np.multiply(k,hop_vector)))
 
 #     def _bulk_momentum(self, k, func_k, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, add_time_reversal=True):
@@ -889,14 +893,11 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 self._hamiltonian = np.zeros(dimensions)
             import types
             for i in range(self.n_total_kpts):
-                k=self.flattened_kpts[:,i]
+                k=self.flattened_kpts[::-1,i]
                 if type(hopping_amplitude) != types.FunctionType:
                     t = np.copy(hopping_amplitude)
                     del hopping_amplitude
-                    if type(hop_vector)!=type(None):
-                        hopping_amplitude = lambda k : self._bulk_hopping(t, k, hop_vector)
-                    else:
-                        hopping_amplitude = lambda k : t
+                    hopping_amplitude = lambda k : self._bulk_hopping(t, k, hop_vector)
                 tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
                 self._hamiltonian[i] += tmp
 
