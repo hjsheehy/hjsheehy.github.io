@@ -1,1 +1,4 @@
-Topological modes in the presence of an impurity. No additional topological effects seen.
+Topological modes in the presence of a single impurity. 
+No localisation of the quasiparticles around the impurity are seen.
+Compare with Figure \ref{fig:majorana_fermi_arc_impurity}
+--we observe an additional Bogoliubov-Fermi arc in a model with a wall of impurities

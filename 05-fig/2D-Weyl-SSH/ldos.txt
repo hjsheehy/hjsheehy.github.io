@@ -1,0 +1,2 @@
+The spectrum of the Weyl-SSH model integrated over the direction perpendicular to the SSH chains and summed over the atomic sites within the lattice cell.
+Zero-energy modes are observed at the edges, with a faint tail of density.

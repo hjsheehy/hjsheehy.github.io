@@ -82,12 +82,12 @@ def ldos_each_atom(greens_function):
     plt.savefig(output+'.pdf', bbox_inches = "tight")
     if caption:
         with open(output+'.txt', 'w') as f:
-            f.write(rf'''Local density of states with an impurity at the centre. 
+            f.write(rf'''The local density of states along a line parallel to the axis of the dimers through a central impurity. 
 The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
 with periodic boundary conditions along the vertical, and open boundary conditions
 along the horizontal.
 The impurity has coupling strength $V/t={V:.2f}$. 
-No additional topological features are seen.''')
+No additional zero-mode is seen.''')
 
 def real_space(greens_function):
     FIGNAME='ldos'
@@ -103,11 +103,12 @@ def real_space(greens_function):
     
     if caption:
         with open(output+'.txt', 'w') as f:
-            f.write(rf'''Local density of states integrated over the intracell atomic sites. 
+            f.write(rf'''The local density of states along a line parallel to the axis of the dimers through a central impurity. 
 The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
-with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t={V:.2f}$.''')
+with periodic boundary conditions along the axis perpendicular to the dimers, and open boundary conditions
+along the axis.
+The impurity has coupling strength $V/t={V:.2f}$. 
+No additional zero-mode is seen.''')
 
 def k_space(greens_function):
     FIGNAME='k_space'
@@ -124,8 +125,8 @@ def k_space(greens_function):
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''Band structure integrated over the axis of the SSH dimers, $k_x$, with
-open boundary conditions along the $x$ axis.
-An additional mode crosses zero energy at $k_y=\pm\pi$.''')
+open boundary conditions along the axis perpendicular to the dimers.
+No qualitative change in the spectrum is observed from the impurity-free model.''')
 
 def majorana_fermi_arc(greens_function):
     FIGNAME='majorana_fermi_arc'
@@ -133,11 +134,14 @@ def majorana_fermi_arc(greens_function):
     fig, ax = plt.subplots()
     
     majorana_energy=0
-    Bogoliubov_Fermi_arc_energy=0
     majorana_ky=2.12
+    Bogoliubov_Fermi_arc_energy=0
     Bogoliubov_Fermi_arc_ky=0.5
+    additional_mode_energy=0
+    additional_mode_ky=np.pi
     ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
     ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoliubov-Fermi arc')
+    ax = greens_function.plot_spectrum(ax, energy=additional_mode_energy, axes=['resolved',additional_mode_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='No additional mode')
     ax.set_title('')
     ax.legend()
 
@@ -147,6 +151,7 @@ def majorana_fermi_arc(greens_function):
     
     ins.scatter(majorana_ky,majorana_energy,c='r',s=10)
     ins.scatter(Bogoliubov_Fermi_arc_ky,Bogoliubov_Fermi_arc_energy,c='blue',s=20)
+    ins.scatter(additional_mode_ky,additional_mode_energy,c='g',s=20)
     ins.set_xlim([0,np.pi])
     ax.set_title('Quasiparticle spectrum')
 
@@ -157,7 +162,10 @@ def majorana_fermi_arc(greens_function):
     
     if caption:
         with open(output+'.txt', 'w') as f:
-            f.write(rf'''Topological modes in the presence of an impurity. No additional topological effects seen.''')
+            f.write(rf'''Topological modes in the presence of a single impurity. 
+No localisation of the quasiparticles around the impurity are seen.
+Compare with Figure \ref{{fig:majorana_fermi_arc_impurity}}
+--we observe an additional Bogoliubov-Fermi arc in a model with a wall of impurities''') 
 
 def fermi_surface(greens_function):
 
@@ -177,38 +185,58 @@ def fermi_surface(greens_function):
         with open(output+'.txt', 'w') as f:
             f.write(rf'''Fermi surface with a central impurity with coupling strength $V={V}$ and 
 chemical potential $\mu={mu}$, in the normal state.
-The hopping parameters are $t_d={td}, v={v}$ and $w={w}$.
 Notice density concentrated near $k_y\approx\pi/2$ corresponding to the Majorana mode,
 and density around $k_x\approx\pm\pi$ corresponding to the Fermi arc.
 ''')
 
-def qpi(greens_function):
+def ldos_mini(greens_function):
 
-    ldos=greens_function.local_density_of_states(energy='resolved', atom='A', anomalous=False)
+    fig, ax = plt.subplots()
+    ldos=greens_function.local_density_of_states(energy='resolved', atom='integrated', anomalous=False)
     # ldos=np.abs(np.fft.fft2(ldos,axes=[0,1]))
     ldos=np.fft.fftshift(ldos,axes=[0,1])
     # ldos=np.sum(ldos,axis=1)/greens_function._pieces[1]
-    ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(greens_function.n_cells)
-    print(np.shape(ldos))
+    # ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(greens_function.n_cells)
     vmin=np.min(ldos)
     vmax=np.max(ldos)
     print(vmin)
     print(vmax)
     vmin=0
     vmax=0.1
-    n=int(greens_function._pieces[0]/2)
+    n=11
     xmin,xmax=-n,n
     ymin,ymax=-n,n #greens_function.emin,greens_function.emax
     extent=[xmin,xmax,ymin,ymax]
-    plt.imshow(ldos[:,:,300].T,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
-    plt.show()
+    s=int(greens_function._pieces[0]/2)
 
-    exit()
-    FIGNAME='qpi'
+    ax.imshow(ldos[s-n:s+n+1,s-n:s+n+1,300].T,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
 
+    return ax
+
+    
+def qpi(greens_function):
+
+    n=11
     fig, ax = plt.subplots()
+    ldos=greens_function.local_density_of_states(energy='resolved', atom='integrated', anomalous=False)
+    s=int(greens_function._pieces[0]/2)
+    # ldos=np.abs(np.fft.fft2(ldos,axes=[0,1]))
+    ldos=np.fft.fftshift(ldos,axes=[0,1])
+    ldos=ldos[s-n:s+n+1,s-n:s+n+1,300].T
+    # ldos=np.sum(ldos,axis=1)/greens_function._pieces[1]
+    ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(greens_function.n_cells)
+    vmin=np.min(ldos)
+    vmax=np.max(ldos)
+    print(vmin)
+    print(vmax)
+    vmin=0
+    vmax=0.001
+    xmin,xmax=-n,n
+    ymin,ymax=-n,n #greens_function.emin,greens_function.emax
+    extent=[xmin,xmax,ymin,ymax]
 
-    ax = greens_function.plot_spectrum(ax, axes=['resolved',0],omega_min=-2,omega_max=2,vmin=0,vmax='default')
+    ax.imshow(ldos,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
+    FIGNAME='qpi'
 
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
@@ -218,6 +246,7 @@ def qpi(greens_function):
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''Local density of states integrated over the intracell atomic sites. 
+A subset 10x10 is cut around the impurity, to capture the small density around the impurity relative to the edge states.
 The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
 with periodic boundary conditions along the vertical, and open boundary conditions
 along the horizontal.
@@ -254,8 +283,8 @@ n_cells=41
 
 caption=True
 # ldos_each_atom(greens_function_xy)
-# real_space(greens_function_xy)
-# k_space(greens_function_kq)
-# majorana_fermi_arc(greens_function_xq)
+real_space(greens_function_xy)
+k_space(greens_function_kq)
+majorana_fermi_arc(greens_function_xq)
 fermi_surface(greens_function_kq)
 qpi(greens_function_xy)

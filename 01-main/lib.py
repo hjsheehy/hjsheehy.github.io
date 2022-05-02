@@ -492,6 +492,10 @@ class CrystalLattice():
     def atom_positions(self):
         return [atom.position for atom in self._atoms]
 
+    def atom_cartesian(self,atom):
+        fractional_coordinates = self.atom.position
+        return self.cartesian_coordinates(fractional_coordinates)
+
     @property
     def n_dimensions(self):
         return len(self.lattice_vectors)
@@ -980,7 +984,8 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     ################### diagonalisation ########################
     ############################################################
 
-    def solve(self):
+    def _set_tightbinding_ham(self):
+
         if len(self.impurities)==0:
             # automatic bulk calculation
             pass
@@ -990,6 +995,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self._onsite(impurity_potential, atom, orbital, spin, position_coordinates)
         for [hopping_amplitude,hop_vector,atom_i,atom_f,orbital_i,orbital_f,spin_i,spin_f,add_time_reversal,label] in self.hoppings:
             self._hopping(hopping_amplitude, hop_vector, atom_i, atom_f, orbital_i, orbital_f, spin_i, spin_f, add_time_reversal, label)
+
+    def solve(self):
+        self._set_tightbinding_ham()
 
         t = time.time()
         if type(self.kpts)==type(None):
@@ -1161,10 +1169,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         # hoppings
         if include_hoppings:
             for i,hopping in enumerate(self.hoppings):
-                A=self.atom(hopping[0]).position
-                B=self.atom(hopping[1]).position
-                B=B+np.dot(hopping[2],self.lattice_vectors)
-                if hopping[3]:
+                A=self.atom(hopping[2]).position
+                B=self.atom(hopping[3]).position
+                B=B+np.dot(hopping[1],self.lattice_vectors)
+                if hopping[-2]:
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
                 else:
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<-', 'ls': 'dashed'})
@@ -1628,7 +1636,7 @@ class BogoliubovdeGennes(TightBinding):
         gorkov=self._gorkov
 
         if self.bulk_calculation:
-            hamiltonian = np.zeros([self.n_total_kpts,2*n_dof,2*n_dof],dtype=complex)
+            hamiltonian = np.zeros([self.n_total_kpts,2*n_dof,2*n_dof],dtype=COMPLEX)
             hartree=np.einsum('ki,ij->kij', hartree, np.eye(hartree.shape[1], dtype=COMPLEX))
             hamiltonian[:,:n_dof,:n_dof]=self._tb_ham-hartree
             hamiltonian[:,n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(hartree))
@@ -1637,7 +1645,7 @@ class BogoliubovdeGennes(TightBinding):
             hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1],self._anomalous_indices[2]]=-np.conj(gorkov)
             hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1],self._hubbard_indices[2]]=gorkov
         else:
-            hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex)
+            hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=COMPLEX)
             hamiltonian[:n_dof,:n_dof]=self._tb_ham-np.diag(hartree)
             hamiltonian[n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(np.diag(hartree)))
             hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1]]=-fock
@@ -1975,6 +1983,7 @@ class BogoliubovdeGennes(TightBinding):
     def solve(self,reshape=True):
         """Decorates self.solve() with self._set_mean_field_hamiltonian()"""
 
+        self._set_tightbinding_ham()
         self._set_mean_field_hamiltonian()
 
         t = time.time()
@@ -2037,6 +2046,7 @@ class BogoliubovdeGennes(TightBinding):
 
         t = time.time()
 
+        self._set_tightbinding_ham()
         self._set_mean_field_hamiltonian()
 
         iteration = iter(self)

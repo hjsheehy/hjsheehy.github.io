@@ -1,0 +1,6 @@
+Two-dimensional multiorbital Weyl SSH model.
+Along the $\hat{x}$-direction, atomic sites A and B within the unit cell form an SSH chain, with intracell hopping $v$ and intercell hopping $w$. 
+An additional interchain hopping parameter couples the chains into a two-dimensional stack. 
+Following Rosenberg and Manousakis, we study a diagonal hopping $t_d$, which is a Type II extension of the SSH model in the classification according to Bo-Hung [CITE: Two-Dimensional Extended
+Su-Schrieffer-Heeger Model; Masters Thesis; Chen, Bo-Hung; July 2018].
+The basis for the lattice is given by the vectors $b_0$ and $b_1$.

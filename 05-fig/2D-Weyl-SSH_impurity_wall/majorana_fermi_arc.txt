@@ -1,2 +1,1 @@
-Topological modes and an additional mode $k_y=\pi$. 
-The nature of the additional mode is to be investigated.
+The majorana quasiparticle exhibits some pinning around the impurity wall and an additional arc mode exists at $k_y=\pi$, whose nature is to be investigated.

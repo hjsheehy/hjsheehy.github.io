@@ -1,5 +1,4 @@
 Fermi surface with a central impurity with coupling strength $V=1.21$ and 
 chemical potential $\mu=0.0$, in the normal state.
-The hopping parameters are $t_d=0.9, v=0.6$ and $w=1.2$.
 Notice density concentrated near $k_y\approx\pi/2$ corresponding to the Majorana mode,
 and density around $k_x\approx\pm\pi$ corresponding to the Fermi arc.

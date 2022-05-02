@@ -1,0 +1,6 @@
+Local density of states integrated over the intracell atomic sites. 
+A subset 10x10 is cut around the impurity, to capture the small density around the impurity relative to the edge states.
+The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal.
+The impurity has coupling strength $V/t=1.21$.
