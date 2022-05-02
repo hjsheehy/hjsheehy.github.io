@@ -210,7 +210,8 @@ def ldos_mini(greens_function):
     s=int(greens_function._pieces[0]/2)
 
     ax.imshow(ldos[s-n:s+n+1,s-n:s+n+1,300].T,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
-
+    plt.show()
+    exit()
     return ax
 
     
