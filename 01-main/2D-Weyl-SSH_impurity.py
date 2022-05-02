@@ -165,7 +165,8 @@ def majorana_fermi_arc(greens_function):
             f.write(rf'''Topological modes in the presence of a single impurity. 
 No localisation of the quasiparticles around the impurity are seen.
 Compare with Figure \ref{{fig:majorana_fermi_arc_impurity}}
---we observe an additional Bogoliubov-Fermi arc in a model with a wall of impurities''') 
+--we observe an additional Bogoliubov-Fermi arc in a model with a wall of impurities.
+Note that the axis perpendicular to the dimers has been integrated over in the spectral density plot.''') 
 
 def fermi_surface(greens_function):
 
@@ -189,70 +190,39 @@ Notice density concentrated near $k_y\approx\pi/2$ corresponding to the Majorana
 and density around $k_x\approx\pm\pi$ corresponding to the Fermi arc.
 ''')
 
-def ldos_mini(greens_function):
-
-    fig, ax = plt.subplots()
-    ldos=greens_function.local_density_of_states(energy='resolved', atom='integrated', anomalous=False)
-    # ldos=np.abs(np.fft.fft2(ldos,axes=[0,1]))
-    ldos=np.fft.fftshift(ldos,axes=[0,1])
-    # ldos=np.sum(ldos,axis=1)/greens_function._pieces[1]
-    # ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(greens_function.n_cells)
-    vmin=np.min(ldos)
-    vmax=np.max(ldos)
-    print(vmin)
-    print(vmax)
-    vmin=0
-    vmax=0.1
-    n=11
-    xmin,xmax=-n,n
-    ymin,ymax=-n,n #greens_function.emin,greens_function.emax
-    extent=[xmin,xmax,ymin,ymax]
-    s=int(greens_function._pieces[0]/2)
-
-    ax.imshow(ldos[s-n:s+n+1,s-n:s+n+1,300].T,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
-    plt.show()
-    exit()
-    return ax
-
-    
 def qpi(greens_function):
 
-    n=11
-    fig, ax = plt.subplots()
-    ldos=greens_function.local_density_of_states(energy='resolved', atom='integrated', anomalous=False)
-    s=int(greens_function._pieces[0]/2)
-    # ldos=np.abs(np.fft.fft2(ldos,axes=[0,1]))
-    ldos=np.fft.fftshift(ldos,axes=[0,1])
-    ldos=ldos[s-n:s+n+1,s-n:s+n+1,300].T
-    # ldos=np.sum(ldos,axis=1)/greens_function._pieces[1]
-    ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(greens_function.n_cells)
-    vmin=np.min(ldos)
-    vmax=np.max(ldos)
-    print(vmin)
-    print(vmax)
-    vmin=0
-    vmax=0.001
-    xmin,xmax=-n,n
-    ymin,ymax=-n,n #greens_function.emin,greens_function.emax
-    extent=[xmin,xmax,ymin,ymax]
-
-    ax.imshow(ldos,origin='lower',vmin=vmin,vmax=vmax,extent=extent)
     FIGNAME='qpi'
 
-    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+    fig, ax = plt.subplots(1, 2)
+    
+    n=int(n_cells/2-3)
+    omega=0
+    i=0
+    greens_function.cmap = 'viridis'
+    ax[i]=greens_function.plot_ldos(ax[i],energy=0,atom='integrated',vmin=0,vmax=0.1)
+    ax[i].set_title(rf'$\text{{LDOS}}(\omega={omega})$')
+    i=1
+    greens_function.cmap = 'plasma'
+    ax[i]=greens_function.plot_qpi(ax[i],energy=0,atom='integrated',vmin=0,vmax=0.002)
+    ax[i].set_title(rf'$\text{{QPI}}(\omega={omega})$')
+
+    # fig.suptitle(greens_function.title)
+    # fig.supxlabel(greens_function.xlabel)
+    # fig.supylabel(greens_function.ylabel)
+    fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
-    
     if caption:
         with open(output+'.txt', 'w') as f:
-            f.write(rf'''Local density of states integrated over the intracell atomic sites. 
-A subset 10x10 is cut around the impurity, to capture the small density around the impurity relative to the edge states.
-The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
+            f.write(rf'''The local density of states and quasiparticle interference pattern for
+an ${n_cells}\times{n_cells}$ cell
+Weyl-SSH model
 with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t={V:.2f}$.''')
-
+along the horizontal, with a central
+impurity with coupling strength $V/t={V:.2f}$. 
+The chemical potential is $\mu/t={mu:.2f}$.''')
 #############################################################################
 ################################# Main ######################################
 #############################################################################
@@ -284,8 +254,9 @@ n_cells=41
 
 caption=True
 # ldos_each_atom(greens_function_xy)
-real_space(greens_function_xy)
-k_space(greens_function_kq)
+# real_space(greens_function_xy)
+# k_space(greens_function_kq)
 majorana_fermi_arc(greens_function_xq)
-fermi_surface(greens_function_kq)
-qpi(greens_function_xy)
+# fermi_surface(greens_function_kq)
+# ldos_mini(greens_function_xy)
+# qpi(greens_function_xy)

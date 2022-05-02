@@ -1,6 +1,7 @@
-Local density of states integrated over the intracell atomic sites. 
-A subset 10x10 is cut around the impurity, to capture the small density around the impurity relative to the edge states.
-The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
+The local density of states and quasiparticle interference pattern for
+an $41\times41$ cell
+Weyl-SSH model
 with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t=1.21$.
+along the horizontal, with a central
+impurity with coupling strength $V/t=1.21$. 
+The chemical potential is $\mu/t=0.00$.

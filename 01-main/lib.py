@@ -2723,6 +2723,8 @@ class GreensFunction(BogoliubovdeGennes):
         self.n_energy=len(self.energy_interval)
 
         self._Berry_curvature = False
+
+        self.cmap = 'viridis'
         
         density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
         omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
@@ -3213,7 +3215,128 @@ If spin=None: trace spin, else spin polarised"""
         self.title=title
         ################################
 
-        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None)
+        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None, cmap=self.cmap)
+        return ax
+
+    def plot_qpi(self, ax, energy='resolved', axes=['resolved','resolved'], atom='integrated', anomalous=False, xmin='default', xmax='default', ymin='default', ymax='default', vmin='default', vmax='default',label=''):
+
+        ################################
+        from matplotlib.ticker import FuncFormatter, MultipleLocator
+        ldos=self.local_density_of_states(energy=energy, atom=atom, anomalous=anomalous)
+        # if not self.bulk_calculation:
+        ldos=np.fft.fftshift(ldos.T)
+        
+        if 'integrated' in axes:
+            axis_index=axes.index('integrated')
+        rlabels=[r'$x/|b_0|$',r'$y/|b_1|$',r'$z/|b_2|$']
+        klabels=[r'$k_x|b_0|$',r'$k_y/|b_1|$',r'$k_z/|b_2|$']
+        rrlabels=[r'$x$',r'$y$',r'$z$']
+        kklabels=[r'$k_x$',r'$k_y$',r'$k_z$']
+        k_axes=[True,True]
+        axes_labels=[]
+        coords=[]
+        integrated=[]
+        k=0
+        l=0
+        for i in range(self.n_dimensions):
+            if k_axes[i]:
+                axes_labels.append(klabels[i])
+                if type(axes[i])!=str:
+                    kklabels[i]=kklabels[i]+f'$={(axes[i])}$'
+                coords.append(kklabels[i])
+            else:
+                axes_labels.append(rlabels[i])
+                if type(axes[i])!=str:
+                    rrlabels[i]=rrlabels[i]+f'$={(axes[i])}$'
+                coords.append(rrlabels[i])
+            if axes[i]=='resolved':
+                if l==0:
+                    if k_axes[i]:
+                        xxmin,xxmax=-np.pi,np.pi
+                        if xmin=='default' and xmax=='default':
+                            xmin,xmax=xxmin,xxmax
+                            jx=0
+                        else:
+                            jx=1
+                    else:
+                        xxmin,xxmax=-self.centre[1-i],self.centre[1-i]
+                        if xmin=='default' and xmax=='default':
+                            xmin,xmax=xxmin,xxmax
+                        jx=1
+                    l+=1
+                elif l==1:
+                    if k_axes[i]:
+                        yymin,yymax=-np.pi,np.pi
+                        if ymin=='default' and ymax=='default':
+                            ymin,ymax=yymin,yymax
+                            jy=0
+                        else:
+                            jy=1
+                    else:
+                        yymin,yymax=-self.centre[1-i],self.centre[1-i]
+                        if ymin=='default' and ymax=='default':
+                            ymin,ymax=yymin,yymax
+                        jy=1
+            elif axes[i]=='integrated':
+                ldos=np.sum(ldos,i-k)
+                k+=1
+                if k_axes[i]:
+                    integrated.append(kklabels[i])
+                else:
+                    integrated.append(rrlabels[i])
+            else:
+                k_index = FindNearestValueOfArray(np.linspace(-np.pi,np.pi,self._pieces[i]),axes[i])-self.centre[i]
+                if i-k==0:
+                    ldos=ldos[k_index]
+                elif i-k==1:
+                    ldos=ldos[:,k_index]
+                elif i-k==2:
+                    ldos=ldos[:,:,k_index]
+
+        if vmin=='default':
+            vmin=np.min(ldos)
+        if vmax=='default':
+            vmax=np.max(ldos)
+
+        ax.set_xlim(xmin,xmax)
+        ax.set_ylim(ymin,ymax)
+        ax.set_xticks([xmin,0,xmax])
+        ax.set_yticks([ymin,0,ymax])
+        s=int(self._pieces[0]/2)
+        # ldos=ldos[s+xmin:s+xmax+1,s+xmin:s+xmax+1]
+        ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(self.n_cells)
+
+        if jx==0:
+            ax.set_xticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+        elif jx==1:
+            ax.set_xticklabels([f'${xmin}$',f'$0$',f'${xmax}$'])
+        if jy==0:
+            ax.set_yticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+        elif jy==1:
+            ax.set_yticklabels([f'${ymin}$',f'$0$',f'${ymax}$'])
+
+        ax.set_xlabel(axes_labels[0])
+        ax.set_ylabel(axes_labels[1])
+        self.xlabel=axes_labels[0]
+        self.ylabel=axes_labels[1]
+
+        title=''
+        coords=', '.join(coords)
+        if len(integrated)>0:
+            integrated=', '.join(integrated)
+            title=r'$\int\text{{d}}$'+integrated
+        title=title+r'$\left|\text{{FT}}\left[\text{{LDOS}}(\omega+i\epsilon)\right]\right|$'
+        colors=['r^-','bo-','g*-']
+        extent=[xmin,xmax,ymin,ymax]
+        if energy=='resolved':
+            title=title+f'$|_{{\epsilon={self.resolution}}}$'
+        else:
+            title=title+f'$|_{{\omega={energy}, \epsilon={self.resolution}}}$'
+        ax.set_title(title)
+        self.title=title
+        ################################
+
+        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None, cmap=self.cmap)
         return ax
 
 class PhaseDiagram():
