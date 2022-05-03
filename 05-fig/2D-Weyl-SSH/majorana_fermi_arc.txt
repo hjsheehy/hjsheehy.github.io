@@ -1,0 +1,4 @@
+The spectrum of the Majorana and Bogoliubov-Fermi arc quasiparticle modes, at zero-applied bias, with the vertical momentum specified by the (colour-coordinated) spectral plot.
+The quasiparticle density is plotted over the direction parallel to the SSH chains. 
+The Majorana mode (red) is localised at the edges. 
+The Bogoliubov-Fermi arc, in contrast, tails.

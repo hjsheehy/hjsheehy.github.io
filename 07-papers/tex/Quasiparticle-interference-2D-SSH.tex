@@ -72,7 +72,9 @@ As a function of $x$-position, we observe that indeed, the modes are spread non-
 
 \createfigure{2D-Weyl-SSH/majorana_fermi_arc}{majorana_fermi_arc}
 
-{\color{red} Mention Bo Huang's thesis results on the influence of the shape of the lattice on the topological modes.}
+We note that other hopping configurations are possible, leading either to topological modes along one pair of parallel edges, or along all edges; see 
+[Two-Dimensional Extended Su-Schrieffer-Heeger Model; Bo Hung; Masters Thesis; National Taiwan Normal University] 
+.
 
 \subsection{Interactions and mean-field solution}
 We add an interaction term to model multiorbital superconductivity within the unit-cell, $U_v$, and an interorbital intercell Coulomb repulsion term, $U_w$. The interacting contribution to the Hamiltonian is 
@@ -126,15 +128,25 @@ The impurity is located at the centre with coupling strength $V=1.21$.
 
 \createfigure{2D-Weyl-SSH_impurity_wall/ldos}{2D-SSH_ldos}
 \createfigure{2D-Weyl-SSH_impurity_wall/k_space}{2D-SSH_k_space}
-\createfigure{2D-Weyl-SSH_impurity_wall/majorana_fermi_arc}{majorana_fermi_arc}
+\createfigure{2D-Weyl-SSH_impurity_wall/majorana_fermi_arc}{majorana_fermi_arc_impurity}
 
 The $x$-axis is glued to periodic boundary conditions.
-\createfigure{2D-Weyl-SSH_impurity_wall_PBC/majorana_fermi_arc}{majorana_fermi_arc}
+\createfigure{2D-Weyl-SSH_impurity_wall_PBC/majorana_fermi_arc}{majorana_fermi_arc_impurity_PBC}
 
-Our investigation shows no interesting interplay between impurities and topological modes. 
-However, impurities can be used to generate quasiparticle-interference patterns as an experimental diagnosis of topological modes.
+Our investigation shows no interesting interplay between a single impurity and topological modes,
+however, impurities can be used to generate quasiparticle-interference patterns as an experimental diagnosis of topological modes.
+Moreover, a wall of impurities 
 
 \subsection{Quasiparticle-interference patterns for Majorana and Bogoliubov-Fermi arcs}
 
-
 \createfigure{2D-Weyl-SSH_impurity/fermi_surface}{fermi_surface}
+
+\createfigure{2D-Weyl-SSH_impurity/qpi}{qpi}
+
+\subsection{Future directions}
+\begin{itemize}
+    \item Phase diagram of self-consistent calculation of bulk Weyl-SSH model.
+    \item Think of a way to pair two (spinless) Weyl-SSH models, via some spin-coupling, such that a regime in which one spin-chain is superconducting and the other is normal can be engineered.
+    \item Publish code.
+    \item Present QPI results at {\it ExoSup}.
+\end{itemize}

@@ -1,5 +1,4 @@
-Local density of states integrated over the intracell atomic sites. 
+Local density of states integrated over the axis of the SSH dimers and summed over the intracell atomic sites show clearly that there exists an additional gapped mode due to the impurity wall. 
 The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
-with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t=1.21$.
+with periodic boundary conditions along the axis perpendicular to the dimers, and open boundary conditions parallel.
+The impurity wall has coupling strength $V/t=1.21$.

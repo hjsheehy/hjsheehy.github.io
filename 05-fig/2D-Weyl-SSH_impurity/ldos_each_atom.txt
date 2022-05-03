@@ -1,6 +1,6 @@
 The local density of states along a line parallel to the axis of the dimers through a central impurity. 
 The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
-with periodic boundary conditions along the axis perpendicular to the dimers, and open boundary conditions
-along the axis.
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal.
 The impurity has coupling strength $V/t=1.21$. 
 No additional zero-mode is seen.

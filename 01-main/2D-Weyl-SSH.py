@@ -57,15 +57,6 @@ def main():
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 # Plotting:
-
-def iterations(bdg):
-    gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])
-    # gorkov_w=bdg.gorkov(atom_i='B', atom_f='A', hop_vector=[1,0])
-
-    plt.plot(np.real(bdg._gorkov_iterations[0]))
-    plt.plot(np.real(bdg._gorkov_iterations[1]))
-    plt.show()
-    plt.close()
     
 def unit_cell(model):
     FIGNAME='unit_cell'
@@ -79,21 +70,16 @@ def unit_cell(model):
     # plt.close()
 
     with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
+        f.write(rf'''Two-dimensional multiorbital Weyl SSH model.
+Along the $\hat{{x}}$-direction, atomic sites A and B within the unit cell form an SSH chain, with intracell hopping $v$ and intercell hopping $w$. 
+An additional interchain hopping parameter couples the chains into a two-dimensional stack. 
+Following Rosenberg and Manousakis, we study a diagonal hopping $t_d$, which is a Type II extension of the SSH model in the classification according to Bo-Hung [CITE: Two-Dimensional Extended
+Su-Schrieffer-Heeger Model; Masters Thesis; Chen, Bo-Hung; July 2018].
+The basis for the lattice is given by the vectors $b_0$ and $b_1$.''')
 
 def ldos_each_atom(greens_function):
     FIGNAME='ldos_each_atom'
+    omega=0
 
     fig, ax = plt.subplots(1, 2, sharey='row')
     
@@ -116,17 +102,15 @@ def ldos_each_atom(greens_function):
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
     with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
+        f.write(rf'''The local density of states of a Weyl SSH model, that is, a spinless square lattice
+with ${n_cells}\times{n_cells}$
+lattice cells, with chemical potential $\mu/t={mu:.2f}$, zero shift $s=0$ and
+applied bias $\omega={omega}$ and 
+spectral resolution $\epsilon={greens_function.resolution}$.
+The SSH chains are in their topological phase $w={w}>v={v}$, with diagonal hopping
+$t_d={td}$, 
+which does gives rise to no topological modes perpendicular to the chains.
+Notice the zero bias density at the left edge for atom A and on the right for atom B, a signature of topological modes.
 ''')
 
 def real_space(greens_function):
@@ -142,17 +126,8 @@ def real_space(greens_function):
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
     with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
+        f.write(rf'''The spectrum of the Weyl-SSH model, in its normal state, integrated over the direction perpendicular to the SSH chains and summed over the atomic sites within the lattice cell.
+Zero-energy modes are observed at the edges, with a faint tail of density.
 ''')
 
 def k_space(greens_function):
@@ -168,17 +143,9 @@ def k_space(greens_function):
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
     with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
+        f.write(rf'''The spectrum of the Weyl-SSH model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites.
+Dirac nodes are observed, which pin Majorana zero-modes.
+Between the Dirac nodes is a line of zero-energy states, known as a Bogoliubov-Fermi arc.
 ''')
 
 def majorana_fermi_arc(greens_function):
@@ -210,17 +177,10 @@ def majorana_fermi_arc(greens_function):
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
     with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
+        f.write(rf'''The spectrum of the Majorana and Bogoliubov-Fermi arc quasiparticle modes, at zero-applied bias, with the vertical momentum specified by the (colour-coordinated) spectral plot.
+The quasiparticle density is plotted over the direction parallel to the SSH chains. 
+The Majorana mode (red) is localised at the edges. 
+The Bogoliubov-Fermi arc, in contrast, tails.
 ''')
 #############################################################################
 ################################# Main ######################################

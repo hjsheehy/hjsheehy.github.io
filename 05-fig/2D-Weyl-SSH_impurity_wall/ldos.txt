@@ -1,6 +1,6 @@
 Local density of states with an impurity at the centre. 
 The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
-with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t=1.21$. 
-No additional topological features are seen.
+with periodic boundary conditions perpendicular to the axis of the dimers, and open boundary conditions
+along the axis parallel.
+The impurity wall runs perpendicular to the axis and through the middle, with coupling strength $V/t=1.21$. 
+Additional modes are seen although at such weak coupling, it is not clear whether they are gapped.

@@ -492,6 +492,10 @@ class CrystalLattice():
     def atom_positions(self):
         return [atom.position for atom in self._atoms]
 
+    def atom_cartesian(self,atom):
+        fractional_coordinates = self.atom.position
+        return self.cartesian_coordinates(fractional_coordinates)
+
     @property
     def n_dimensions(self):
         return len(self.lattice_vectors)
@@ -985,7 +989,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     ############################################################
     ################### diagonalisation ########################
     ############################################################
-    def set_hamiltonian(self):
+
+    def _set_tightbinding_ham(self):
+
         if len(self.impurities)==0:
             # automatic bulk calculation
             pass
@@ -997,8 +1003,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             self._hopping(hopping_amplitude, hop_vector, atom_i, atom_f, orbital_i, orbital_f, spin_i, spin_f, add_time_reversal, label)
 
     def solve(self):
+
         if type(self._hamiltonian)==type(None):
-            self.set_hamiltonian()
+            self._set_tightbinding_ham()
+
         t = time.time()
         if type(self.kpts)==type(None):
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
@@ -1169,10 +1177,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         # hoppings
         if include_hoppings:
             for i,hopping in enumerate(self.hoppings):
-                A=self.atom(hopping[0]).position
-                B=self.atom(hopping[1]).position
-                B=B+np.dot(hopping[2],self.lattice_vectors)
-                if hopping[3]:
+                A=self.atom(hopping[2]).position
+                B=self.atom(hopping[3]).position
+                B=B+np.dot(hopping[1],self.lattice_vectors)
+                if hopping[-2]:
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<->', 'ls': 'dashed'})
                 else:
                     ax.annotate(text='', xytext=B,xy=A,arrowprops={'arrowstyle': '<-', 'ls': 'dashed'})
@@ -1638,7 +1646,7 @@ class BogoliubovdeGennes(TightBinding):
         gorkov=self._gorkov
 
         if self.bulk_calculation:
-            hamiltonian = np.zeros([self.n_total_kpts,2*n_dof,2*n_dof],dtype=complex)
+            hamiltonian = np.zeros([self.n_total_kpts,2*n_dof,2*n_dof],dtype=COMPLEX)
             hartree=np.einsum('ki,ij->kij', hartree, np.eye(hartree.shape[1], dtype=COMPLEX))
             hamiltonian[:,:n_dof,:n_dof]=self._tb_ham-hartree
             hamiltonian[:,n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(hartree))
@@ -1647,7 +1655,7 @@ class BogoliubovdeGennes(TightBinding):
             hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1],self._anomalous_indices[2]]=-np.conj(gorkov)
             hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1],self._hubbard_indices[2]]=gorkov
         else:
-            hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=complex)
+            hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=COMPLEX)
             hamiltonian[:n_dof,:n_dof]=self._tb_ham-np.diag(hartree)
             hamiltonian[n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(np.diag(hartree)))
             hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1]]=-fock
@@ -1989,7 +1997,7 @@ class BogoliubovdeGennes(TightBinding):
         """Decorates self.solve() with self._set_mean_field_hamiltonian()"""
 
         if type(self._hamiltonian)==type(None):
-            self.set_hamiltonian()
+            self._set_tightbinding_ham()
 
         self._set_mean_field_hamiltonian()
 
@@ -2053,6 +2061,7 @@ class BogoliubovdeGennes(TightBinding):
 
         t = time.time()
 
+        self._set_tightbinding_ham()
         self._set_mean_field_hamiltonian()
 
         iteration = iter(self)
@@ -2729,6 +2738,8 @@ class GreensFunction(BogoliubovdeGennes):
         self.n_energy=len(self.energy_interval)
 
         self._Berry_curvature = False
+
+        self.cmap = 'viridis'
         
         density_matrix = np.einsum('...,...->...',model.eigenvectors,np.conj(model.eigenvectors),optimize=True)
         omegas = np.array(self.energy_interval, dtype=COMPLEX) + 1.0j*self.resolution
@@ -3219,7 +3230,128 @@ If spin=None: trace spin, else spin polarised"""
         self.title=title
         ################################
 
-        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None)
+        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None, cmap=self.cmap)
+        return ax
+
+    def plot_qpi(self, ax, energy='resolved', axes=['resolved','resolved'], atom='integrated', anomalous=False, xmin='default', xmax='default', ymin='default', ymax='default', vmin='default', vmax='default',label=''):
+
+        ################################
+        from matplotlib.ticker import FuncFormatter, MultipleLocator
+        ldos=self.local_density_of_states(energy=energy, atom=atom, anomalous=anomalous)
+        # if not self.bulk_calculation:
+        ldos=np.fft.fftshift(ldos.T)
+        
+        if 'integrated' in axes:
+            axis_index=axes.index('integrated')
+        rlabels=[r'$x/|b_0|$',r'$y/|b_1|$',r'$z/|b_2|$']
+        klabels=[r'$k_x|b_0|$',r'$k_y/|b_1|$',r'$k_z/|b_2|$']
+        rrlabels=[r'$x$',r'$y$',r'$z$']
+        kklabels=[r'$k_x$',r'$k_y$',r'$k_z$']
+        k_axes=[True,True]
+        axes_labels=[]
+        coords=[]
+        integrated=[]
+        k=0
+        l=0
+        for i in range(self.n_dimensions):
+            if k_axes[i]:
+                axes_labels.append(klabels[i])
+                if type(axes[i])!=str:
+                    kklabels[i]=kklabels[i]+f'$={(axes[i])}$'
+                coords.append(kklabels[i])
+            else:
+                axes_labels.append(rlabels[i])
+                if type(axes[i])!=str:
+                    rrlabels[i]=rrlabels[i]+f'$={(axes[i])}$'
+                coords.append(rrlabels[i])
+            if axes[i]=='resolved':
+                if l==0:
+                    if k_axes[i]:
+                        xxmin,xxmax=-np.pi,np.pi
+                        if xmin=='default' and xmax=='default':
+                            xmin,xmax=xxmin,xxmax
+                            jx=0
+                        else:
+                            jx=1
+                    else:
+                        xxmin,xxmax=-self.centre[1-i],self.centre[1-i]
+                        if xmin=='default' and xmax=='default':
+                            xmin,xmax=xxmin,xxmax
+                        jx=1
+                    l+=1
+                elif l==1:
+                    if k_axes[i]:
+                        yymin,yymax=-np.pi,np.pi
+                        if ymin=='default' and ymax=='default':
+                            ymin,ymax=yymin,yymax
+                            jy=0
+                        else:
+                            jy=1
+                    else:
+                        yymin,yymax=-self.centre[1-i],self.centre[1-i]
+                        if ymin=='default' and ymax=='default':
+                            ymin,ymax=yymin,yymax
+                        jy=1
+            elif axes[i]=='integrated':
+                ldos=np.sum(ldos,i-k)
+                k+=1
+                if k_axes[i]:
+                    integrated.append(kklabels[i])
+                else:
+                    integrated.append(rrlabels[i])
+            else:
+                k_index = FindNearestValueOfArray(np.linspace(-np.pi,np.pi,self._pieces[i]),axes[i])-self.centre[i]
+                if i-k==0:
+                    ldos=ldos[k_index]
+                elif i-k==1:
+                    ldos=ldos[:,k_index]
+                elif i-k==2:
+                    ldos=ldos[:,:,k_index]
+
+        if vmin=='default':
+            vmin=np.min(ldos)
+        if vmax=='default':
+            vmax=np.max(ldos)
+
+        ax.set_xlim(xmin,xmax)
+        ax.set_ylim(ymin,ymax)
+        ax.set_xticks([xmin,0,xmax])
+        ax.set_yticks([ymin,0,ymax])
+        s=int(self._pieces[0]/2)
+        # ldos=ldos[s+xmin:s+xmax+1,s+xmin:s+xmax+1]
+        ldos=np.abs(np.fft.fftn(ldos,axes=[0,1]))/np.sqrt(self.n_cells)
+
+        if jx==0:
+            ax.set_xticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+        elif jx==1:
+            ax.set_xticklabels([f'${xmin}$',f'$0$',f'${xmax}$'])
+        if jy==0:
+            ax.set_yticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
+        elif jy==1:
+            ax.set_yticklabels([f'${ymin}$',f'$0$',f'${ymax}$'])
+
+        ax.set_xlabel(axes_labels[0])
+        ax.set_ylabel(axes_labels[1])
+        self.xlabel=axes_labels[0]
+        self.ylabel=axes_labels[1]
+
+        title=''
+        coords=', '.join(coords)
+        if len(integrated)>0:
+            integrated=', '.join(integrated)
+            title=r'$\int\text{{d}}$'+integrated
+        title=title+r'$\left|\text{{FT}}\left[\text{{LDOS}}(\omega+i\epsilon)\right]\right|$'
+        colors=['r^-','bo-','g*-']
+        extent=[xmin,xmax,ymin,ymax]
+        if energy=='resolved':
+            title=title+f'$|_{{\epsilon={self.resolution}}}$'
+        else:
+            title=title+f'$|_{{\omega={energy}, \epsilon={self.resolution}}}$'
+        ax.set_title(title)
+        self.title=title
+        ################################
+
+        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None, cmap=self.cmap)
         return ax
 
 class PhaseDiagram():

@@ -1,0 +1,7 @@
+The local density of states and quasiparticle interference pattern for
+an $41\times41$ cell
+Weyl-SSH model
+with periodic boundary conditions along the vertical, and open boundary conditions
+along the horizontal, with a central
+impurity with coupling strength $V/t=1.21$. 
+The chemical potential is $\mu/t=0.00$.

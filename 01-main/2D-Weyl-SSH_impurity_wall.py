@@ -104,17 +104,17 @@ def real_space(greens_function):
         with open(output+'.txt', 'w') as f:
             f.write(rf'''Local density of states with an impurity at the centre. 
 The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
-with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t={V:.2f}$. 
-No additional topological features are seen.''')
+with periodic boundary conditions perpendicular to the axis of the dimers, and open boundary conditions
+along the axis parallel.
+The impurity wall runs perpendicular to the axis and through the middle, with coupling strength $V/t={V:.2f}$. 
+Additional modes are seen although at such weak coupling, it is not clear whether they are gapped.''')
 
 def k_space(greens_function):
     FIGNAME='k_space'
 
     fig, ax = plt.subplots()
 
-    ax = greens_function.plot_spectrum(ax, axes=['integrated','resolved'],omega_min=-2,omega_max=2,vmin=0,vmax=80)
+    ax = greens_function.plot_spectrum(ax, axes=['integrated','resolved'],omega_min=-2,omega_max=2,vmin=0,vmax=40)
 
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
@@ -123,11 +123,10 @@ def k_space(greens_function):
     
     if caption:
         with open(output+'.txt', 'w') as f:
-            f.write(rf'''Local density of states integrated over the intracell atomic sites. 
+            f.write(rf'''Local density of states integrated over the axis of the SSH dimers and summed over the intracell atomic sites show clearly that there exists an additional gapped mode due to the impurity wall. 
 The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
-with periodic boundary conditions along the vertical, and open boundary conditions
-along the horizontal.
-The impurity has coupling strength $V/t={V:.2f}$.''')
+with periodic boundary conditions along the axis perpendicular to the dimers, and open boundary conditions parallel.
+The impurity wall has coupling strength $V/t={V:.2f}$.''')
 
 def majorana_fermi_arc(greens_function):
     FIGNAME='majorana_fermi_arc'
@@ -163,8 +162,7 @@ def majorana_fermi_arc(greens_function):
     
     if caption:
         with open(output+'.txt', 'w') as f:
-            f.write(rf'''Topological modes and an additional mode $k_y=\pi$. 
-The nature of the additional mode is to be investigated.''')
+            f.write(rf'''The majorana quasiparticle exhibits some pinning around the impurity wall and an additional arc mode exists at $k_y=\pi$, whose nature is to be investigated.''')
 #############################################################################
 ################################# Main ######################################
 #############################################################################
