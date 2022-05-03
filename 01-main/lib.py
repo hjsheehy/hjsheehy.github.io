@@ -985,8 +985,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
     ############################################################
     ################### diagonalisation ########################
     ############################################################
-
-    def solve(self):
+    def set_hamiltonian(self):
         if len(self.impurities)==0:
             # automatic bulk calculation
             pass
@@ -997,6 +996,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         for [hopping_amplitude,hop_vector,atom_i,atom_f,orbital_i,orbital_f,spin_i,spin_f,add_time_reversal,label] in self.hoppings:
             self._hopping(hopping_amplitude, hop_vector, atom_i, atom_f, orbital_i, orbital_f, spin_i, spin_f, add_time_reversal, label)
 
+    def solve(self):
+        if type(self._hamiltonian)==type(None):
+            self.set_hamiltonian()
         t = time.time()
         if type(self.kpts)==type(None):
             self.eigenvalues,self.eigenvectors = la.eigh(self._hamiltonian, overwrite_a=True)
@@ -1601,6 +1603,8 @@ class BogoliubovdeGennes(TightBinding):
         try: 
             self._tb_ham
         except:
+            if type(self._hamiltonian)==type(None):
+                self.set_hamiltonian()
             self._tb_ham = self._hamiltonian
         
         n_dof = self.n_dof
@@ -1947,9 +1951,12 @@ class BogoliubovdeGennes(TightBinding):
         temp_hartree=[]
         temp_fock=[]
         temp_gorkov=[]
-
+        
         for index in self._hartree_indices:
-            temp_hartree.append(complex(self._hartree[index]))
+            if self.bulk_calculation:
+                temp_hartree.append(complex(self._hartree[0,index]))
+            else:
+                temp_hartree.append(complex(self._hartree[index]))
         
         for index in self._fock_indices:
             for i,hubbard_index in enumerate(hubbard_indices):
@@ -1980,6 +1987,9 @@ class BogoliubovdeGennes(TightBinding):
 
     def solve(self,reshape=True):
         """Decorates self.solve() with self._set_mean_field_hamiltonian()"""
+
+        if type(self._hamiltonian)==type(None):
+            self.set_hamiltonian()
 
         self._set_mean_field_hamiltonian()
 

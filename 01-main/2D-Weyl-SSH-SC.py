@@ -24,7 +24,7 @@ Use two args: independent variables x and z"""
 
     bdg.set_kpts([n_cells,n_cells])
 
-    # bdg.cut(n_cells, axes=0, glue_edgs=False)
+    # bdg.cut(n_cells, axes=0, glue_edgs=True)
     # bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
@@ -210,18 +210,18 @@ friction ${iter_friction}$ over subsequent iterations.
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=2.7
+mu=-3.7
 s=0.0
 td=0.9
 v=0.6
 w=1.2
-Uv=3.6
+Uv=-15.6
 Uw=0
 rho=-2.2
 rho_shift=0.1
 phi_v=0.1
 phi_w=0
-chi_v=1.2
+chi_v=2.2
 chi_w=0
 V=0
 n_cells=11
@@ -229,7 +229,8 @@ n_cells=11
 
 bdg = model_Uv(mu,Uv)
 
-bdg.self_consistent_calculation(friction=0.2, max_iterations=400, absolute_convergence_factor=0.00001)
+bdg.self_consistent_calculation(friction=0.9, max_iterations=400, absolute_convergence_factor=0.0001)
+print(bdg._gorkov)
 exit()
 
 # Convergence plot
