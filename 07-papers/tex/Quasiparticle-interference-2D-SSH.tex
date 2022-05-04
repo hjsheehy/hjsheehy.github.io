@@ -1,4 +1,12 @@
-\section{Quasiparticle-interference results for a two-dimensional superconducting multiorbital Weyl SSH model}
+\title{Quasiparticle-interference results for a two-dimensional superconducting multiorbital Weyl SSH model}
+\author{Henry Sheehy}
+\date{ \today }
+  
+\maketitle
+  
+\tableofcontents
+
+\section{Introduction}
 The emergence of topological superconductivity in a two-dimensional (2D) Weyl system, 
 composed of stacked Su-Schrieffer-Heeger (SSH) chains was studied by Rosenberg and Manousakis [CITE: Rosenberg, Aryal PRB 100 104522 (2019)].
 They showed that an attractive Hubbard interaction between spinful electrons leads to a topological trivial supercondictor.
@@ -9,7 +17,7 @@ We then investigate the model with an impurity, self-consistently, in the mean-f
 We show the expected quasiparticle-interference, superconducting gap spectrum and local density of states in such a system.
 Later, we also wish to investigate $v=w=t_d$, for the purposes of spontaneous Pierls or Jahn-Teller distortion (what is this? CDW?), as well as a system with periodic-boundary conditions and a wall of impurities.
 
-\subsection{Reproducing results}
+\section{Reproducing results}
 The Hamiltonian is given by
 \begin{eqnarray}
     \hat{\mathcal{H}}_{0}&=&
@@ -76,7 +84,7 @@ We note that other hopping configurations are possible, leading either to topolo
 [Two-Dimensional Extended Su-Schrieffer-Heeger Model; Bo Hung; Masters Thesis; National Taiwan Normal University] 
 .
 
-\subsection{Interactions and mean-field solution}
+\section{Interactions and mean-field solution}
 We add an interaction term to model multiorbital superconductivity within the unit-cell, $U_v$, and an interorbital intercell Coulomb repulsion term, $U_w$. The interacting contribution to the Hamiltonian is 
 \begin{equation}
     \hat{\mathcal{H}}_{ I }=
@@ -119,7 +127,7 @@ Note the sign of the Gorkov terms due Fermionic anticommutation.
 
 For simplicity and because we are in particular interested in the multiorbital pairing due to $U_v$, we neglect the intercell interaction $U_w$.
 
-\subsection{Results with impurities}
+\section{Results with impurities}
 The impurity is located at the centre with coupling strength $V=1.21$.
 
 \createfigure{2D-Weyl-SSH_impurity/ldos}{2D-SSH_ldos}
@@ -137,16 +145,23 @@ Our investigation shows no interesting interplay between a single impurity and t
 however, impurities can be used to generate quasiparticle-interference patterns as an experimental diagnosis of topological modes.
 Moreover, a wall of impurities 
 
-\subsection{Quasiparticle-interference patterns for Majorana and Bogoliubov-Fermi arcs}
+\section{Quasiparticle-interference patterns for Majorana and Bogoliubov-Fermi arcs}
 
 \createfigure{2D-Weyl-SSH_impurity/fermi_surface}{fermi_surface}
 
 \createfigure{2D-Weyl-SSH_impurity/qpi}{qpi}
 
-\subsection{Future directions}
+\section{Future directions}
 \begin{itemize}
     \item Phase diagram of self-consistent calculation of bulk Weyl-SSH model.
     \item Think of a way to pair two (spinless) Weyl-SSH models, via some spin-coupling, such that a regime in which one spin-chain is superconducting and the other is normal can be engineered.
     \item Publish code.
     \item Present QPI results at {\it ExoSup}.
 \end{itemize}
+
+\section{Finance}
+\begin{itemize}
+    \item Applying to teach at Brighton College?
+    \item Possibility of beginning funding applications?
+\end{itemize}
+
