@@ -700,7 +700,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 if type(spin)==type(None):
                     spin_tensor=onsite*np.eye(2)
                 elif type(spin)!=int:
+                    spin_tensor=np.zeros(2)
                     spin=self.spin(spin)
+                    spin_tensor[spin]=onsite
+                    spin_tensor=np.diag(spin_tensor)
                 else:
                     spin_tensor=np.zeros(2)
                     spin_tensor[spin]=onsite
@@ -1649,19 +1652,19 @@ class BogoliubovdeGennes(TightBinding):
             hamiltonian = np.zeros([self.n_total_kpts,2*n_dof,2*n_dof],dtype=COMPLEX)
             hartree=np.einsum('ki,ij->kij', hartree, np.eye(hartree.shape[1], dtype=COMPLEX))
             hamiltonian[:,:n_dof,:n_dof]=self._tb_ham-hartree
-            hamiltonian[:,n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(hartree))
-            hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1],self._hubbard_indices[2]]=-fock
-            hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1],self._anomalous_indices[2]]=-(-np.conj(fock))
+            hamiltonian[:,n_dof:,n_dof:]=-np.conj(self._tb_ham-hartree)
+            hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1],self._hubbard_indices[2]]=+fock
+            hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1],self._anomalous_indices[2]]=-(+np.conj(fock))
             hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1],self._anomalous_indices[2]]=-np.conj(gorkov)
-            hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1],self._hubbard_indices[2]]=gorkov
+            hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1],self._hubbard_indices[2]]=-gorkov
         else:
             hamiltonian = np.zeros([2*n_dof,2*n_dof],dtype=COMPLEX)
             hamiltonian[:n_dof,:n_dof]=self._tb_ham-np.diag(hartree)
             hamiltonian[n_dof:,n_dof:]=-(np.conj(self._tb_ham)-np.conj(np.diag(hartree)))
-            hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1]]=-fock
-            hamiltonian[self._anomalous_indices[0],self._anomalous_indices[1]]=-(-np.conj(fock))
+            hamiltonian[self._hubbard_indices[0],self._hubbard_indices[1]]=+fock
+            hamiltonian[self._anomalous_indices[0],self._anomalous_indices[1]]=-(+np.conj(fock))
             hamiltonian[self._hubbard_indices[0],self._anomalous_indices[1]]=-np.conj(gorkov)
-            hamiltonian[self._anomalous_indices[0],self._hubbard_indices[1]]=gorkov
+            hamiltonian[self._anomalous_indices[0],self._hubbard_indices[1]]=-gorkov
         self._hamiltonian = hamiltonian
 
     def reset_hartree(self):
@@ -1851,14 +1854,14 @@ class BogoliubovdeGennes(TightBinding):
             tmp1a=tmp1a[:,:self.n_dof]
             w=w[:,:self.n_dof]
             if T==0:
-                trace_density = np.einsum('kin,kin->ki',v[:,:self.n_dof,:self.n_dof],np.conj(v[:,:self.n_dof,:self.n_dof]),optimize=True)
-                density = np.einsum('in,in->i',tmp0,tmp1,optimize=True)
+                trace_density = -np.einsum('kin,kin->ki',v[:,:self.n_dof,:self.n_dof],np.conj(v[:,:self.n_dof,:self.n_dof]),optimize=True)
+                density = -np.einsum('in,in->i',tmp0,tmp1,optimize=True)
                 anomalous_density = -np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
             else:
                 # Fermi function:
                 f = 1/(np.exp(w/T)+1)
-                trace_density = np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
-                density = np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
+                trace_density = -np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
+                density = -np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
                 anomalous_density = -np.einsum('in,in,n->i',tmp0,tmp1a,f,optimize=True)
         else:
             tmp0=v[self._hubbard_indices[0]]
@@ -1869,8 +1872,8 @@ class BogoliubovdeGennes(TightBinding):
             tmp1a=tmp1a[:,:self.n_dof]
             w=w[:self.n_dof]
             if T==0:
-                trace_density = np.einsum('in,in->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),optimize=True)
-                density = np.einsum('in,in->i',tmp0,tmp1,optimize=True)
+                trace_density = -np.einsum('in,in->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),optimize=True)
+                density = -np.einsum('in,in->i',tmp0,tmp1,optimize=True)
                 anomalous_density = -np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
 
             # Nonzero temperature thermal density matrix:
@@ -1878,8 +1881,8 @@ class BogoliubovdeGennes(TightBinding):
             else:
                 # Fermi function:
                 f = 1/(np.exp(w/T)+1)
-                trace_density = np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
-                density = np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
+                trace_density = -np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
+                density = -np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
                 anomalous_density = -np.einsum('in,in,n->i',tmp0,tmp1a,f,optimize=True)
 
             # print(trace_density)
@@ -1900,24 +1903,27 @@ class BogoliubovdeGennes(TightBinding):
         else:
             hartree = +np.einsum('ij,j->i',self._hubbard_u,trace_density,optimize=True)
             fock    = -np.multiply(self.U_entries,density)
-            gorkov  = np.multiply(self.U_entries,anomalous_density)
+            gorkov  = +np.multiply(self.U_entries,anomalous_density)
         return np.real_if_close(hartree), np.real_if_close(fock), np.real_if_close(gorkov)
 
     def calculate_free_energy(self, trace_density, density, anomalous_density):
+        
 
         if self.bulk_calculation:
-            self.Eg.append(np.real(np.sum(self.eigenvalues[:,:self.n_dof] + np.diagonal(self._hamiltonian,axis1=1,axis2=2)[:,:self.n_dof])/(self.n_dof*self.n_total_kpts)))
+            n_dof = self.n_dof*self.n_total_kpts
+            self.Eg.append(np.real(np.sum(self.eigenvalues[:,:self.n_dof] + np.diagonal(self._hamiltonian,axis1=1,axis2=2)[:,:self.n_dof])/n_dof))
             if self.temperature==0:
                 self.f_mf.append(self.Eg[-1])
             else:
-                self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:,:self.n_dof]/self.temperature)))/self.n_dof))
+                self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:,:self.n_dof]/self.temperature)))/n_dof))
 
         else:
-            self.Eg.append(np.real(np.sum(self.eigenvalues[:self.n_dof] + np.diagonal(self._hamiltonian)[:self.n_dof])/self.n_dof))
+            n_dof = self.n_dof
+            self.Eg.append(np.real(np.sum(self.eigenvalues[:self.n_dof] + np.diagonal(self._hamiltonian)[:self.n_dof])/n_dof))
             if self.temperature==0:
                 self.f_mf.append(self.Eg[-1])
             else:
-                self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:self.n_dof]/self.temperature)))/self.n_dof))
+                self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:self.n_dof]/self.temperature)))/n_dof))
         
         h=np.sum(self._hartree*trace_density)
         h+=h
@@ -1926,7 +1932,7 @@ class BogoliubovdeGennes(TightBinding):
         g=np.sum(self._gorkov*anomalous_density)
         g+=np.conj(g)
 
-        self.V_mf.append(np.real(-(h+f+g)/self.n_dof))
+        self.V_mf.append(np.real((h+f+g)/n_dof))
 
         if self.bulk_calculation:
             h=np.einsum('kij,ki,kj->',self._hubbard_u,trace_density,trace_density,optimize=True)
@@ -1937,7 +1943,7 @@ class BogoliubovdeGennes(TightBinding):
             f=np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
             g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
 
-        self.V.append(np.real(-(h-f+g)/self.n_dof))
+        self.V.append(np.real((h-f+g)/n_dof))
 
         self.free_energy.append(self.f_mf[-1]+self.V[-1]-self.V_mf[-1])
 
@@ -1968,13 +1974,15 @@ class BogoliubovdeGennes(TightBinding):
         
         for index in self._fock_indices:
             for i,hubbard_index in enumerate(hubbard_indices):
-                if np.array_equal(index,hubbard_index):
+                if np.array_equal(index[-2:-1],hubbard_index[-2:-1]):
                     temp_fock.append(self._fock[i])
+                    break # selects first value
 
         for index in self._gorkov_indices:
             for i,hubbard_index in enumerate(hubbard_indices):
-                if np.array_equal(index,hubbard_index):
+                if np.array_equal(index[-2:-1],hubbard_index[-2:-1]):
                     temp_gorkov.append(self._gorkov[i])
+                    break # selects first value
 
         self._hartree_iterations.append(temp_hartree)
         self._fock_iterations.append(temp_fock)
@@ -2119,7 +2127,12 @@ class BogoliubovdeGennes(TightBinding):
     
     @property
     def hartree_array(self):
-        temp=np.reshape(self._hartree,self._extended_dimensions,'F')
+        if self.bulk_calculation:
+            n=self.n_dof
+            dim=self._extended_dimensions[2:]
+            temp = np.reshape(self._hartree,self.n_kpts+self._extended_dimensions, 'F')
+        else:
+            temp=np.reshape(self._hartree,self._extended_dimensions,'F')
         return np.real_if_close(temp)
 
     @property
@@ -2157,6 +2170,7 @@ class BogoliubovdeGennes(TightBinding):
         if type(spin)==type(None):
             hartree=np.sum(hartree,-1)
         else:
+            spin=self.spin(spin)
             hartree=hartree[...,spin]
         hartree=np.sum(hartree[...,indices],-1)
 
