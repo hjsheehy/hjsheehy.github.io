@@ -1,0 +1,3 @@
+The spectrum of the simple $\text{NiC}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. The SSH dimers are in their topological state with $\mu=0.0, v=1.2, w=0.6, t_d=0.9$.
+Dirac nodes are observed, which pin Majorana zero-modes.
+Between the Dirac nodes is a line of zero-energy states, known as a Bogoliubov-Fermi arc.

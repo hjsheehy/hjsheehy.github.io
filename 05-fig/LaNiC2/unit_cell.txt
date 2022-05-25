@@ -1,0 +1,3 @@
+Planar model of the $\text{NiC}_2$ planes of $\text{LaNiC}_2$.
+Along the $\hat{{x}}$-direction, atomic sites A and B within the unit cell form an SSH chain, with intracell hopping $v$ and intercell hopping $w$. 
+An additional interchain hopping parameter $t_d$ couples the chains into a two-dimensional stack. 

@@ -1,11 +1,11 @@
 from lib import *
 
 filename=sys.argv[0].split('.')[0]
-DATA_Uv=os.path.join(DATA,filename+'_Uv')
+DATA_Us=os.path.join(DATA,filename+'_Us')
 DATA_s=os.path.join(DATA,filename+'_s')
 DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
-for directory in [DATA_Uv,DATA_s,FIG]:
+for directory in [DATA_Us,DATA_s,FIG]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -18,11 +18,12 @@ Use two args: independent variables x and z"""
     bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
     bdg.add_atom(A)
     bdg.n_spins=2
-
-    # bdg.set_kpts([n_cells,n_cells])
-
-    bdg.cut(n_cells, axes=0, glue_edgs=True)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    
+    if bulk_calculation:
+        bdg.set_kpts([n_cells,n_cells])
+    else:
+        bdg.cut(n_cells, axes=0, glue_edgs=True)
+        bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu)
 
     bdg.set_hopping(-t,hop_vector=[1,0],label='$t$')
@@ -35,7 +36,6 @@ Use two args: independent variables x and z"""
 
     bdg.set_hubbard_u(-Us,spin_i='up',spin_f='dn')
     
-    _print=True
     bdg.record_hartree(location=[0,0], spin='up', _print=_print)
     bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
     bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
@@ -43,7 +43,7 @@ Use two args: independent variables x and z"""
 
     return bdg
 
-def model_Us(mu,Us):
+def model_Us(Us,mu):
     return model(mu,Us,rho_shift)
 
 def model_rho_shift(mu,rho_shift):
@@ -57,14 +57,14 @@ def dependent_variables(bdg):
     fock=bdg.gorkov(spin_i='up', spin_f='dn', hop_vector=[0,0])[0,0]
     gorkov=bdg.gorkov(spin_i='up', spin_f='dn', hop_vector=[0,0])[0,0]
 
-    return [hartree_up, hartree_dn, fock_v, gorkov_v]
+    return [hartree_up, hartree_dn, fock, gorkov]
 
 def process(*args):
     """A function which processes the bdg model, returning greens functions"""
 
     bdg = model(*args)
 
-    bdg.self_consistent_calculation(friction=0.9, max_iterations=400, absolute_convergence_factor=0.00001)
+    bdg.self_consistent_calculation(friction=friction, max_iterations=400, absolute_convergence_factor=absolute_convergence_factor)
 
     energy_interval=np.linspace(-4,4,601)
     resolution=0.05
@@ -129,48 +129,89 @@ def plot_iterations(bdg):
     fig.supylabel(ylabel)
     plt.tight_layout()
     
-    # print('Hartree A:')
-    # print(bdg._hartree_iterations[0,-1])
-    # print('Hartree B:')
-    # print(bdg._hartree_iterations[1,-1])
-    # print('Fock v:')
-    # print(bdg._fock_iterations[0,-1])
-    # print('Gorkov v:')
-    # print(bdg._gorkov_iterations[0,-1])
 
-    # FIGNAME=filename
-    plt.show()
+    FIGNAME='Stoner_renormalisation'
 
-    # output=os.path.join(FIG,FIGNAME)
+    output=os.path.join(FIG,FIGNAME)
 
-    # plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
 
-    # with open(output+'.txt', 'w') as f:
-    #     f.write(rf'''Renormalisation of the Hartree, Fock and Gorkov fields on a 
-    #     2-dimensional spinless Weyl-SSH lattice with 
-# attractive intracell Hubbard U, pairing fermions on sites A and B. 
-# The fields are calculated self-consistently, with absolute convergence factor 
-# ${absolute_convergence_factor}$
-# and an initial friction ${init_friction}$ and 
-# friction ${iter_friction}$ over subsequent iterations.
-# The lattice is ${n_cells}x{n_cells}$ cells squared.
-# ''')
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''Renormalisation of the Hartree, Fock and Gorkov fields on a 
+        {n_cells}x{n_cells} Hubbard model with onsite repulsion $U={Us}$.
+attractive intracell Hubbard U, pairing fermions on sites A and B. 
+The fields are calculated self-consistently, with absolute convergence factor 
+${absolute_convergence_factor}$ and friction
+${friction}$.
+''')
 
-def plot_phase_diagram_Uv(phase_diagram_Uv):
+def plot_initial_renormalisation(friction,max_iterations,absolute_convergence_factor,dataname,filename,title):
+
+    markers=['o','+','^','x','.']
+    s=3
+
+    bdg = np.load(dataname+'.npz', allow_pickle=True)
+
+    fig, [ax1, ax3] = plt.subplots(2,1,sharex='col')
+
+    # color = 'tab:black'
+    ax1.tick_params(axis='y')
+    ax1.plot(bdg._fock_iterations[0],c='k',marker=markers[2],markersize=s,label=f'$\Phi$')
+    ax1.plot(bdg._gorkov_iterations[0],c='cyan',marker=markers[3],markersize=s,label=f'$\Delta$')
+    ax1.legend()
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:red'
+    ax2.set_ylabel('Free energy', color=color)  # we already handled the x-label with ax1
+    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.plot(bdg.free_energy,c='r',marker=markers[4],markersize=s,label=f'Free energy')
+
+    ax3.plot(bdg._hartree_iterations[0],c='b',marker=markers[0],markersize=s,label=r'$\phi_{\uparrow}$')
+    ax3.plot(bdg._hartree_iterations[1],c='g',marker=markers[1],markersize=s,label=r'$\phi_{\downarrow}$')
+    ax3.legend()
+    # plt.plot(np.real(bdg._gorkov_iterations[1]))
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
+    xlabel=r'Iterations'
+    ylabel=r'Amplitude of fields'
+    fig.suptitle(title)
+    fig.supxlabel(xlabel)
+    fig.supylabel(ylabel)
+    plt.tight_layout()
+
+    FIGNAME=filename
+
+    output=os.path.join(FIG,FIGNAME)
+
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''Renormalisation of the Hartree, Fock and Gorkov fields on a 
+        2-dimensional spinless Weyl-SSH lattice with 
+attractive intracell Hubbard U, pairing fermions on sites A and B. 
+The fields are calculated self-consistently, with absolute convergence factor 
+${absolute_convergence_factor}$
+and an initial friction ${init_friction}$ and 
+friction ${iter_friction}$ over subsequent iterations.
+The lattice is ${n_cells}x{n_cells}$ cells squared.
+''')
+
+def plot_phase_diagram_Us(phase_diagram_Us):
     fig, ax = plt.subplots(1,1)
-    ax=phase_diagram_Uv.plot_phase_diagram(ax)
+    ax = phase_diagram_Us.plot_phase_diagram(ax,field_index=1,second_field_index=2)
+    ax.set_xlabel(r'$U_s$')
+    ax.set_ylabel(r'$M$')
     ax.legend()
+    ax.get_legend().set_title(r'$\mu$')
 
-    FIGNAME='Self-consistent_convergence_mu_Uv'
+    FIGNAME='Self-consistent_convergence_mu_Us'
 
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an 
-${n_cells}x{n_cells}$ 
-spinless Weyl-SSH lattice as a function of chemical potential 
-$\mu$ and multiorbital Hubbard attraction $U_v$.
+${n_cells}x{n_cells}$ lattice as a function of Coulomb repulsion U for 
+various chemical potentials $\mu$.
 The absolute convergence factor is
 ${absolute_convergence_factor}$
 and an initial friction ${init_friction}$ and 
@@ -200,49 +241,52 @@ friction ${iter_friction}$ over subsequent iterations.
 #############################################################################
 mu=4.8
 t=1
-Us=-5.8
-rho=-4.15
-rho_shift=1.15
-phi=0.
+Us=3.1
+rho=-2.4
+rho_shift=1.4
+phi=0#.3
 chi=0#3.4
-n_cells=11
+n_cells=21
 
+friction=0
+absolute_convergence_factor=0.00001
 
+bulk_calculation=False
+
+_print=False
 bdg = model_Us(mu,Us)
+bdg.self_consistent_calculation(friction=friction, max_iterations=400, absolute_convergence_factor=absolute_convergence_factor)
 
-bdg.self_consistent_calculation(friction=0.8, max_iterations=400, absolute_convergence_factor=0.0001)
-# exit()
-
-hartree_up=bdg.hartree(spin='up')[0,0]
-hartree_dn=bdg.hartree(spin='dn')[0,0]
-M=hartree_up-hartree_dn
+hartree_up=bdg.hartree(spin='up')
+hartree_dn=bdg.hartree(spin='dn')
+M=(hartree_up-hartree_dn)[0,0]
 print(M)
-# exit()
-# Convergence plot
 plot_iterations(bdg)
+plt.show()
 exit()
 
-# Phase diagram mu,Uv/s
-rho_shift=0.4
-rho=-2.13378
-phi_v=0.06427
-chi_v=0.828633
-init_friction=0.6
-iter_friction=0.7
+# Phase diagram Us, mu
+rho_shift=3.443
+rho=0.13378
+phi=0#.6427
+chi=0#1.828633
+init_friction=0.9
+iter_friction=0.9
 init_max_iterations=400
 iter_max_iterations=200
 absolute_convergence_factor=0.0001
 
-muu=np.arange(-4,4.1,0.1)[::-1]
-Uvv=np.arange(1.1,6.5,1.1)[::-1]
-phase_diagram_Uv=PhaseDiagram(model_Uv)
-phase_diagram_Uv.directory=DATA_Uv
-phase_diagram_Uv.filename=filename
-phase_diagram_Uv.initial_name='initial_convergence_Uv'
-phase_diagram_Uv.initial_title=f'Self-consistent convergence\n$U_v={Uvv[0]:.2f},\, \mu={muu[0]:.2f},\, s={s},\,$'+rf'$\text{{friction}}={init_friction}$'
-phase_diagram_Uv.phase_diagram(muu,dependent_variables,Uvv,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation)
-plot_phase_diagram_Uv(phase_diagram_Uv)
-
+_print=False
+Uss=np.arange(0.01,6,0.01)[::-1]
+muu=np.arange(0,5,1.6)[::-1]
+phase_diagram_Us=PhaseDiagram(model_Us)
+phase_diagram_Us.directory=DATA_Us
+phase_diagram_Us.filename=filename
+phase_diagram_Us.initial_name='initial_convergence_Us'
+phase_diagram_Us.initial_title=f'Self-consistent convergence\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'+rf'$\text{{friction}}={init_friction}$'
+phase_diagram_Us.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation)
+plot_phase_diagram_Us(phase_diagram_Us)
+exit()
 
 Uv=3.6
 ss=np.arange(0,2,0.44)[::-1]

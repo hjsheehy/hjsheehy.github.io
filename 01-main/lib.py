@@ -1854,14 +1854,14 @@ class BogoliubovdeGennes(TightBinding):
             tmp1a=tmp1a[:,:self.n_dof]
             w=w[:,:self.n_dof]
             if T==0:
-                trace_density = -np.einsum('kin,kin->ki',v[:,:self.n_dof,:self.n_dof],np.conj(v[:,:self.n_dof,:self.n_dof]),optimize=True)
-                density = -np.einsum('in,in->i',tmp0,tmp1,optimize=True)
+                trace_density = np.einsum('kin,kin->ki',v[:,:self.n_dof,:self.n_dof],np.conj(v[:,:self.n_dof,:self.n_dof]),optimize=True)
+                density = np.einsum('in,in->i',tmp0,tmp1,optimize=True)
                 anomalous_density = -np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
             else:
                 # Fermi function:
                 f = 1/(np.exp(w/T)+1)
-                trace_density = -np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
-                density = -np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
+                trace_density = np.einsum('in,in,n->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),f,optimize=True)
+                density = np.einsum('in,in,n->i',tmp0,tmp1,f,optimize=True)
                 anomalous_density = -np.einsum('in,in,n->i',tmp0,tmp1a,f,optimize=True)
         else:
             tmp0=v[self._hubbard_indices[0]]
@@ -1872,8 +1872,8 @@ class BogoliubovdeGennes(TightBinding):
             tmp1a=tmp1a[:,:self.n_dof]
             w=w[:self.n_dof]
             if T==0:
-                trace_density = -np.einsum('in,in->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),optimize=True)
-                density = -np.einsum('in,in->i',tmp0,tmp1,optimize=True)
+                trace_density = np.einsum('in,in->i',v[:self.n_dof,:self.n_dof],np.conj(v[:self.n_dof,:self.n_dof]),optimize=True)
+                density = np.einsum('in,in->i',tmp0,tmp1,optimize=True)
                 anomalous_density = -np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
 
             # Nonzero temperature thermal density matrix:
@@ -1896,10 +1896,11 @@ class BogoliubovdeGennes(TightBinding):
         if self.bulk_calculation:
             hartree = +np.einsum('kij,kj->ki',self._hubbard_u,trace_density,optimize=True)
             fock    = -np.multiply(self.U_entries,density)
-            gorkov  = np.multiply(self.U_entries,anomalous_density)
-            hartree=np.mean(np.abs(hartree))*np.ones(np.shape(hartree))*np.sign(hartree)
+            gorkov  = +np.multiply(self.U_entries,anomalous_density)
+            # hartree=np.mean(np.abs(hartree))*np.ones(np.shape(hartree))*np.sign(hartree)
             fock=np.mean(np.abs(fock))*np.ones(np.shape(fock))*np.sign(fock)
             gorkov=np.mean(np.abs(gorkov))*np.ones(np.shape(gorkov))*np.sign(gorkov)
+            hartree=np.mean(hartree,0)
         else:
             hartree = +np.einsum('ij,j->i',self._hubbard_u,trace_density,optimize=True)
             fock    = -np.multiply(self.U_entries,density)
@@ -1932,7 +1933,7 @@ class BogoliubovdeGennes(TightBinding):
         g=np.sum(self._gorkov*anomalous_density)
         g+=np.conj(g)
 
-        self.V_mf.append(np.real((h+f+g)/n_dof))
+        self.V_mf.append(-np.real((h+f+g)/n_dof))
 
         if self.bulk_calculation:
             h=np.einsum('kij,ki,kj->',self._hubbard_u,trace_density,trace_density,optimize=True)
@@ -1942,9 +1943,11 @@ class BogoliubovdeGennes(TightBinding):
             h=np.einsum('ij,i,j->',self._hubbard_u,trace_density,trace_density,optimize=True)
             f=np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
             g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
-
-        self.V.append(np.real((h-f+g)/n_dof))
-
+        
+        self.V.append(-np.real((h-f+g)/n_dof))
+        # print(self.U_entries[0])
+        # print(anomalous_density[0])
+        # exit()
         self.free_energy.append(self.f_mf[-1]+self.V[-1]-self.V_mf[-1])
 
         if self.print_V:
@@ -2092,11 +2095,11 @@ class BogoliubovdeGennes(TightBinding):
                 if self.bulk_calculation:
                     hartree_old=hartree_old.flatten()
                     hartree=self._hartree.flatten()
-                    a=np.array([hartree_old,fock_old,gorkov_old])
-                    b=np.array([hartree,self._fock,self._gorkov])
+                    a=np.concatenate([hartree_old,fock_old,gorkov_old])
+                    b=np.concatenate([hartree,self._fock,self._gorkov])
                 else:
-                    a=np.array([hartree_old,fock_old,gorkov_old])
-                    b=np.array([self._hartree,self._fock,self._gorkov])
+                    a=np.concatenate([hartree_old,fock_old,gorkov_old])
+                    b=np.concatenate([self._hartree,self._fock,self._gorkov])
                 absolute_error=np.abs(a-b)
                 argmax=np.argmax(absolute_error)
                 argmax=np.unravel_index(argmax, a.shape)
@@ -2137,16 +2140,26 @@ class BogoliubovdeGennes(TightBinding):
 
     @property
     def fock_array(self):
-        extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
-        temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
+        if self.bulk_calculation:
+            temp=np.zeros([self.n_total_kpts,self.n_dof,self.n_dof],dtype=COMPLEX)
+            extended_dimensions=self._extended_dimensions[self.n_dimensions:]
+            extended_dimensions=self.n_kpts+extended_dimensions+extended_dimensions
+        else:
+            extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
+            temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
         temp[self._hubbard_indices]=self._fock
         temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
     
     @property
     def gorkov_array(self):
-        extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
-        temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
+        if self.bulk_calculation:
+            temp=np.zeros([self.n_total_kpts,self.n_dof,self.n_dof],dtype=COMPLEX)
+            extended_dimensions=self._extended_dimensions[self.n_dimensions:]
+            extended_dimensions=self.n_kpts+extended_dimensions+extended_dimensions
+        else:
+            extended_dimensions=np.append(self._extended_dimensions,self._extended_dimensions)
+            temp=np.zeros([self.n_dof,self.n_dof],dtype=COMPLEX)
         temp[self._hubbard_indices]=self._gorkov
         temp=np.reshape(temp,extended_dimensions,'F')
         return np.real_if_close(temp)
@@ -2177,7 +2190,6 @@ class BogoliubovdeGennes(TightBinding):
         return hartree
 
     def _field_indexing(self, field_array, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=[0,0], spin_i=None, spin_f=None):
-
         if type(hop_vector)==type(None):
             hop_vector=[0,0]
 
@@ -2216,14 +2228,15 @@ class BogoliubovdeGennes(TightBinding):
         else:
             raise ValueError('Both orbital_i and orbital_f must be None or both must be type either int or str!')
         
-        l=self.n_dimensions+2
-        for axis in range(len(hop_vector)):
-            field_array=np.roll(field_array,hop_vector[axis],axis=l+axis)
+        if not self.bulk_calculation:
+            l=self.n_dimensions+2
+            for axis in range(len(hop_vector)):
+                field_array=np.roll(field_array,hop_vector[axis],axis=l+axis)
 
-        for i in range(self.n_dimensions):
-            field_array=np.diagonal(field_array,axis1=0,axis2=l-i)
-        for i in range(self.n_dimensions):
-            field_array=np.moveaxis(field_array, -1, 0)
+            for i in range(self.n_dimensions):
+                field_array=np.diagonal(field_array,axis1=0,axis2=l-i)
+            for i in range(self.n_dimensions):
+                field_array=np.moveaxis(field_array, -1, 0)
 
         field_array=np.array([[field_array[...,indices_f[j],spins_f[i],indices_i[j],spins_i[i]] for i in range(len(spins_f))] for j in range(len(indices_i))] )
 
@@ -2921,9 +2934,6 @@ If spin=None: trace spin, else spin polarised"""
     def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', anomalous=False):
         return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, anomalous=anomalous)
 
-    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, anomalous=anomalous)
-
     def staggered_density(self, atom_i, atom_f, energy=None):
         A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
         B=self.local_density_of_states(energy=energy, atom=atom_f, orbital=None, spin=None)
@@ -2955,17 +2965,8 @@ If spin=None: trace spin, else spin polarised"""
         magnetism=magnetism/self.n_cells
         return magnetism
 
-    def spectrum(self, locations, orbital, spins=None):
-        self._query_dos()
-        temp = self._dos
-        if type(spin)==type(None):
-            temp = np.sum(temp,-2)
-        else:
-            temp = temp[...,spin,:]
-        temp = temp[..., orbital,:]
-        location=locations[0]
-        temp = np.array([temp[(*location, ...)] for location in locations])
-        return temp
+    def spectrum(self, sites='integrated', atom='integrated',orbital='integrated', spin='integrated', anomalous=False):
+        return self.density_of_states(sites=sites,atom=atom, orbital=orbital, spin=spin, energy='resolved', anomalous=anomalous)
 
     #############################
     ####### Check these:  #######
@@ -3024,6 +3025,52 @@ If spin=None: trace spin, else spin polarised"""
         ldos=np.abs(ldos)
 
         return gaussian
+
+    def plot_energy_spectrum(self, ax, sites='integrated', atom='integrated', orbital='integrated', spin='integrated', xmin='default', xmax='default', ymin='default', ymax='default', label=''):
+
+        from matplotlib.ticker import FuncFormatter, MultipleLocator
+        spectrum=self.spectrum(sites, atom, orbital, spin)
+
+        if xmin=='default':
+            xmin=self.emin
+            print(f'xmin={xmin:.2f}')
+        if xmax=='default':
+            xmax=self.emax
+            print(f'xmax={xmax:.2f}')
+
+        if ymin=='default':
+            ymin=np.min(spectrum)
+            print(f'ymin={ymin:.2f}')
+        if ymax=='default':
+            ymax=np.max(spectrum)
+            print(f'ymax={ymax:.2f}')
+
+        ax.set_xlim(xmin,xmax)
+        ax.set_xticks([xmin,0,xmax])
+        ax.set_xticklabels([f'${xmin}$',f'$0$',f'${xmax}$'])
+        if ymin==0:
+            ax.set_ylim(ymin,ymax)
+            ax.set_yticks([ymin,ymax])
+            ax.set_yticklabels([f'$0$',f'High'])
+        else:
+            ax.set_ylim(ymin,0,ymax)
+            ax.set_yticks([ymin,0,ymax])
+            ax.set_yticklabels([f'Low',f'$0$',f'High'])
+        xlabel='$\omega$'
+        ylabel='Amplitude'
+        title=f'Spectrum$(\omega+i\epsilon)|_{{\epsilon={self.resolution}}}$'
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        self.xlabel=xlabel
+        self.ylabel=ylabel
+        self.title=title
+
+        # ax.set_xlim(omega_min,omega_max)
+        # ax.set_xticks([omega_min,0,omega_max])
+        ax.plot(self.energy_interval,spectrum)
+
+        return ax
 
     def plot_spectrum(self, ax, energy='resolved', axes=['resolved','integrated'], atom='integrated', xmin='default', xmax='default', omega_min='default', omega_max='default', vmin='default', vmax='default',label=''):
 
@@ -3103,8 +3150,12 @@ If spin=None: trace spin, else spin polarised"""
             ax.set_xticklabels([f'$-\pi$',f'$0$',f'$\pi$'])
         elif j==1:
             ax.set_xticklabels([f'${xmin}$',f'$0$',f'${xmax}$'])
-        ax.set_xlabel(axes_labels[axis_index])
-        ax.set_ylabel('$\omega$')
+        xlabel=axes_labels[axis_index]
+        ylabel='$\omega$'
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        self.xlabel=xlabel
+        self.ylabel=ylabel
 
         title=''
         coords=', '.join(coords)
@@ -3128,6 +3179,7 @@ If spin=None: trace spin, else spin polarised"""
             self._plot_index+=1
             ax.set_ylabel('Spectral density')
         ax.set_title(title)
+        self.title=title
 
         return ax
 
@@ -3397,6 +3449,8 @@ class PhaseDiagram():
         self.initial_name='initial_convergence'
         self.initial_title=''
         self.filename=''
+        self.xlabel='Independent variable'
+        self.ylabel='Dependent variable'
 
     def _extract_dependent_vars(self, init_bdg, dependent_variables, friction, max_iterations, absolute_convergence_factor, *args):
         """A self-consistent calculation for independent variables *args=x,z.
@@ -3466,33 +3520,41 @@ class PhaseDiagram():
                 xxx.append(x)
             else: 
                 break
-
-        name=f'{z:.2f}_{xx[0]:.2f}'
+        if min(xx)==xx[0]:
+            name=f'{z:.2f}_fwd'
+        else:
+            name=f'{z:.2f}_rev'
         name=os.path.join(self.directory,name)
         xxx=np.array(xxx)
         yy=np.array(yy)
         with open(name+'.npz', 'wb') as f:
             cPickle.dump([xxx,yy,z], f)
 
-    def plot_phase_diagram(self,ax,field_index=3):
+    def plot_phase_diagram(self,ax,field_index=3,second_field_index=None):
+        """Field index 0 is the free energy"""
         names=glob.glob(os.path.join(self.directory,'*'+'.npz'))
         names_x=np.array([float(name.split('/')[-1].split('_')[0]) for name in names])
-        names_y=np.array([float(name.split('_')[-1].split('.')[0]) for name in names])
-        names_z=names_x-names_y/1000000
-        names=[x for _, x in sorted(zip(names_z, names))]
+        names_y=np.array([str(name.split('_')[-1].split('.')[0]) for name in names])
+        names=[x for _, x in sorted(zip(names_x, names))]
         n=len(names)
         markers=['>','<']
-        color = iter(cm.gist_rainbow(np.linspace(0, 1, int(n/2))))
+        color = cm.gist_rainbow(np.linspace(0, 1, int(n/2)))
         s=4
-        for name in names:
+        i=0
+        for j,name in enumerate(names):
             [x,y,z] = np.load(name, allow_pickle=True)
             x=np.array(x)
             y=np.array(y)
             x=x[:len(y[:,0])]
-            if x[0]==min(x):
-                c = lighten_color(c,amount=0.3)
-                ax.plot(x,y[:,field_index],marker=markers[0],markersize=s,color=c,label=f'${z:.2f}$')
+            if names_y[j]=='fwd':
+                c = color[i]
+                marker=markers[0]
             else:
-                c = next(color)
-                ax.plot(x,y[:,field_index],marker=markers[1],markersize=s,color=c,label=f'${z:.2f}$')
+                c = lighten_color(color[i],amount=0.3)
+                marker=markers[1]
+                i+=1
+            if type(second_field_index)==type(None):
+                ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$')
+            else:
+                ax.plot(x,y[:,field_index]-y[:,second_field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$')
         return ax

@@ -1,0 +1,68 @@
+\title{Simplified model of the NiC2 planes in LaNiC2}
+\author{Henry Sheehy}
+\date{ \today }
+  
+\maketitle
+  
+\tableofcontents
+\newpage
+
+\section{Model}
+Jorge described a simplified model of the $\text{NiC}_2$ planes in $\text{LaNiC}_2$, which is depicted in Figure \ref{fig:unit_cell}.
+In $k$-space the model is described by the following tightbinding Hamiltonian
+\begin{equation}
+    \mathcal{H}= -\mu\mathbb{1}_2+\mathcal{T},
+\end{equation}
+where $\mu$ is the chemical potential, $\mathbb{1}_2$ is the $2\times2$ identity matrix and $\mathcal{T}$ is the hopping matrix
+\begin{equation}
+    \mathcal{T}= \alpha \sigma_+ +\beta \sigma_- +\text{h.c.},
+\end{equation}
+$\sigma_\pm$ are the Pauli raising and lowering matrices, $\alpha$ and $\beta$ parameterise the hopping
+\begin{eqnarray}
+    \alpha &=& -v-w e^{-ik_x}-2t_d\cos{(k_y)}e^{-i k_x},\\
+    \beta &=& -2t_d\cos{(k_y)},
+\end{eqnarray}
+where $v$ is the intradimer hopping, $w$ is the interdimer hopping and $t_d$ is a diagonal hopping which stacks the SSH chains.
+In particular, note that the SSH model is topological only when $w>v$, however, in the model Jorge describes, $v>w$.
+
+\createfigure{LaNiC2/unit_cell}{unit_cell}
+
+\newpage
+\section{Bandstructure}
+The eigenvalues of the Hamiltonian are
+\begin{equation}
+    E_\pm = \pm\sqrt{\alpha^*+\beta} \sqrt{\alpha+\beta^*},
+\end{equation}
+which are plotted in Figure \ref{fig:topological_bandstructure} for the set of parameters
+$(\mu, v, w, t_d) = (0, 0.6, 1.2, 0.9)$,
+i.e.
+the SSH topological phase.
+In the trivial phase, 
+$(\mu, v, w, t_d) = (0, 1.2, 0.6, 0.9)$,
+the band structure looks as Figure \ref{fig:trivial_bandstructure}.
+At $\mu=0$, the bands are seen to cross at zero-energy, possibly  Dirac node.
+
+% \createfigure{LaNiC2/topological_bandstructure}{topological_bandstructure}
+% \createfigure{LaNiC2/trivial_bandstructure}{trivial_bandstructure}
+
+\createfigure{LaNiC2/bandstructure_phase_transition}{bandstructure_phase_transition}
+
+\newpage
+\section{Finite size results: ubiquitous topological modes}
+Performing a finite size calculation with $41\times41$ sites, with periodic boundary conditions perpendicular to the axis of the SSH dimers, and open-boundary conditions along their axis, we expected to observe topological features, namely Majorana and Bogoliubov-Weyl modes,
+due to the simple model's simiarities to a recently studied model [CITE: Rosenberg and Manousakis arXiv:2203.12004v1].
+However, in addition to similar modes obeserved in both models' topological phases 
+(see Figure \ref{fig:k_space_topological}),
+in our simple model
+we surprisingly observe the same topological features in the parameter regime corresponding to the trival phase of the SSH model,
+see Figure \ref{fig:k_space_trivial}.
+
+\createfigure{LaNiC2/k_space_topological}{k_space_topological}
+
+\createfigure{LaNiC2/k_space_trivial}{k_space_trivial}
+
+Crossing the phase transition, we observe no change in the bandstructure Figure \ref{fig:bandstructure_phase_transition}, so the transition appears to be topological.
+
+\createfigure{LaNiC2/phase_diagram_closed}{phase_diagram_closed}
+
+\createfigure{LaNiC2/phase_diagram_open}{phase_diagram_open}

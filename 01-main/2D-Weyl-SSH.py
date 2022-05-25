@@ -8,6 +8,15 @@ for directory in [FIG]:
         os.makedirs(directory)
 
 def main():
+    A=Atom([0,0],'A')
+    B=Atom([0.5,0],'B')
+    A.add_orbital('s')
+    B.add_orbital('s')
+    lattice_vectors=[[1,0],[0,1]]
+    bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
+    bdg.add_atom(A)
+    bdg.add_atom(B)
+    bdg.n_spins=1
     bdg.cut(n_cells, axes=0, glue_edgs=False)
     bdg.cut(n_cells, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
@@ -55,6 +64,40 @@ def main():
     with open(DATA, 'wb') as f:
         cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
+
+def main_tb(v,td,glue_edgs):
+    A=Atom([0,0],'A')
+    B=Atom([0.5,0],'B')
+    A.add_orbital('s')
+    B.add_orbital('s')
+    lattice_vectors=[[1,0],[0,1]]
+    tb=TightBinding(lattice_vectors,'2D-Weyl-SSH')
+    tb.add_atom(A)
+    tb.add_atom(B)
+    tb.n_spins=1
+    tb.cut(n_cells, axes=0, glue_edgs=glue_edgs)
+    tb.cut(n_cells, axes=1, glue_edgs=True)
+    tb.set_onsite(-mu+s,atom='A')
+    tb.set_onsite(-mu-s,atom='B')
+
+    tb.set_hopping(-v,hop_vector=[0,0],atom_i='A',atom_f='B',label='$v$')
+    tb.set_hopping(-w,hop_vector=[-1,0],atom_i='A',atom_f='B',label='$w$')
+    tb.set_hopping(-td,hop_vector=[0,1],atom_i='B',atom_f='A',label='$t_d$')
+    tb.set_hopping(-td,hop_vector=[0,-1],atom_i='B',atom_f='A',label='$t_d$')
+    tb.set_hopping(-td,hop_vector=[1,1],atom_i='B',atom_f='A',label='$t_d$')
+    tb.set_hopping(-td,hop_vector=[1,-1],atom_i='B',atom_f='A',label='$t_d$')
+
+    tb.solve()
+
+    energy_interval=np.linspace(-4,4,601)
+    resolution=0.05
+
+    greens_function_kq=GreensFunction(tb,energy_interval,resolution, k_axes=[0,1])
+
+    del tb.eigenvectors
+    del tb.eigenvalues
+
+    return greens_function_kq
 
 # Plotting:
     
@@ -182,18 +225,104 @@ The quasiparticle density is plotted over the direction parallel to the SSH chai
 The Majorana mode (red) is localised at the edges. 
 The Bogoliubov-Fermi arc, in contrast, tails.
 ''')
+
+def k_space_phase_diagram(CALCULATE):
+    
+    FIGNAMES=['phase_diagram_closed','phase_diagram_open']
+    glue_edgss=[True,False]
+
+    for i in range(2):
+        FIGNAME=FIGNAMES[i]
+        glue_edgs=glue_edgss[i]
+
+        r=c=4
+        vv=[0,0.6,1.1,1.2,1.3,2.4]
+        tdd=[0,0.6,1.1,1.2,1.3,2.4]
+        
+        if CALCULATE:
+            greens_list=[]
+            for td in tdd:
+                green_list=[]
+                for v in vv:
+                    greens_function_kq = main_tb(v,td,glue_edgs)
+                    green_list.append(greens_function_kq)
+                greens_list.append(green_list)
+
+            with open(DATA+FIGNAME+'.npz', 'wb') as f:
+                cPickle.dump([tdd,vv,greens_list], f)
+        else:
+            [tdd,vv,greens_list]=np.load(DATA+FIGNAME+'.npz', allow_pickle=True)
+
+        fig, axs = plt.subplots(len(vv),len(tdd))
+
+        bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+        for i in range(len(vv)):
+            for j in range(len(tdd)):
+                k=len(vv)-i-1
+                greens_function = greens_list[j][k]
+                td,v=tdd[j],vv[k]
+                axs[i,j] = greens_function.plot_spectrum(axs[i,j], axes=['integrated','resolved'],omega_min=-2,omega_max=2,vmin=0,vmax=20, atom='integrated')
+                axs[i,j].set_title('')
+                axs[i,j].set_xlabel('')
+                axs[i,j].set_ylabel('')
+                if i!=len(vv)-1:
+                    axs[i,j].set_xticks([])
+                if j!=0:
+                    axs[i,j].set_yticks([])
+                if j==len(tdd)-1:
+                    axs[i,j].yaxis.set_label_position("right")
+                    axs[i,j].set_ylabel(rf'${v}$')
+                    if i==len(vv)-1:
+                        axs[i,j].set_ylabel(rf'$v/w={v}$')
+                if i==0:
+                    axs[i,j].xaxis.set_label_position("top")
+                    axs[i,j].set_xlabel(rf'${td}$')
+                    if j==0:
+                        axs[i,j].set_xlabel(rf'$t_d={td}$')
+                        
+
+        fig.suptitle(greens_function.title)
+        fig.supxlabel(greens_function.xlabel)
+        fig.supylabel(greens_function.ylabel)
+        fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
+        plt.subplots_adjust(wspace=0.3, hspace=0.25)
+        # plt.tight_layout()
+
+        OUTPUT=os.path.join(FIG,FIGNAME)
+        plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+        
+        if glue_edgs:
+            with open(OUTPUT+'.txt', 'w') as f:
+                f.write(rf'''The spectrum of the simple Weyl-SSH model in the normal state, in k-space, integrated over the direction along the ssh chains and summed over the atomic sites.
+The model consists of an ${n_cells}\times{n_cells}$ lattice, with closed boundary conditions.
+The chemical potential is $\mu={mu}$, the interdimer hopping is fixed $w={w}$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.'''+r'''
+Compare with the model with open boundary conditions Fig \ref{fig:phase_diagram_open}, and notice the universality when comparing to the $\text{NiC}_2$ model Fig \ref{fig:phase_diagram_closed}, \ref{fig:phase_diagram_open}.
+''')
+        else:
+            with open(OUTPUT+'.txt', 'w') as f:
+                f.write(r'''The model and quantities depicted as in Fig \ref{fig:weyl_phase_diagram_closed}, but with the boundary conditions open.
+We observe the diagonal hopping $t_d$ has the effect of {\it squeezing} the topological modes into a narrower interval $\mathcal{I}\subset[-\pi,\pi]$. 
+At the conventional SSH topological transition point $v=w$, the narrow interval transitions to its complement interval $\mathcal{I}^c$.
+''')
+
+def spectrum(greens_function):
+    FIGNAME='spectrum'
+
+    fig, ax = plt.subplots()
+
+    ax = greens_function.plot_energy_spectrum(ax, sites='integrated',atom='integrated',xmin=-2,xmax=2,ymin=0,ymax=1000)
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+    plt.tight_layout()
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''The spectrum of the Weyl-SSH model in the normal state with open-boundary conditions, summed over the atomic sites. The parameters are $\mu={mu}, v={v}, w={w}$ and $t_d={td}$. We observe the topological mode as a density peak within the band gap.
+''')
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-A=Atom([0,0],'A')
-B=Atom([0.5,0],'B')
-A.add_orbital('s')
-B.add_orbital('s')
-lattice_vectors=[[1,0],[0,1]]
-bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
-bdg.add_atom(A)
-bdg.add_atom(B)
-bdg.n_spins=1
 mu=0.0
 s=0.0
 td=0.9
@@ -205,7 +334,7 @@ rho=0
 phi=0
 chi=0
 V=0
-n_cells=41
+n_cells=43
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
@@ -216,4 +345,6 @@ n_cells=41
 # ldos_each_atom(greens_function_xy)
 # real_space(greens_function_xy)
 # k_space(greens_function_kq)
-majorana_fermi_arc(greens_function_xq)
+# majorana_fermi_arc(greens_function_xq)
+k_space_phase_diagram(CALCULATE=False)
+spectrum(greens_function_kq)

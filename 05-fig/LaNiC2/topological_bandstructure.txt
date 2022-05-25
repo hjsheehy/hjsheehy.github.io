@@ -1,0 +1,1 @@
+Bandstructure of the $\text{NiC}_2$ planes in the topological phase, with $\text{LaNiC}_2$ with $(\mu,v,w,t_d)=(0,0.6,1.2,0.9)$. At $E=0$, a band-crossing occurs.

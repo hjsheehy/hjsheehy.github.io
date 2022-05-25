@@ -1,0 +1,1 @@
+Bandstructure of the $\text{NiC}_2$ planes in $\text{LaNiC}_2$ as the SSH dimers cross their topological phase transition, with $(\mu,v,t_d)=(0,1.2,0.9)$. At $E=0$, a band-crossing occurs.

@@ -1,0 +1,8 @@
+The local density of states of a Weyl SSH model, that is, a spinless square lattice
+with $41\times41$
+lattice cells, with chemical potential $\mu/t=0.00$, zero shift $s=0$ and
+spectral resolution $\epsilon=0.05$.
+The SSH chains are in their topological phase $w=1.2>v=0.6$, with diagonal hopping
+$t_d=0.9$, 
+which does gives rise to no topological modes perpendicular to the chains.
+Notice the zero bias density at the left edge for atom A and on the right for atom B, a signature of topological modes.

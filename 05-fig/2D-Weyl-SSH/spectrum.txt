@@ -1,0 +1,1 @@
+The spectrum of the Weyl-SSH model in the normal state with open-boundary conditions, summed over the atomic sites. The parameters are $\mu=0.0, v=0.6, w=1.2$ and $t_d=0.9$. We observe the topological mode as a density peak within the band gap.
