@@ -211,6 +211,146 @@ at the conventional ssh topological transition point $v=w$, the narrow interval 
 notice the universality with the $\text{nic}_2$ model fig \ref{fig:weyl_phase_diagram_open}, \ref{fig:weyl_phase_diagram_closed}.
 ''')
 
+def strong_V_phase_diagram(CALCULATE):
+    
+    FIGNAMES=['strong_V_phase_diagram']
+    glue_edgss=[True]
+    V=100
+    VV=np.linspace(-V,V,49,endpoint=True)
+    VV=np.around(VV,2)
+    length=int(n_cells/2)
+
+    for ii in range(len(FIGNAMES)):
+        FIGNAME=FIGNAMES[ii]
+        glue_edgs=glue_edgss[ii]
+
+        r=c=4
+        
+        if CALCULATE:
+            greens_list=[]
+            for V in VV:
+                greens_function_kq = main(V,length,glue_edgs,td,v)
+                greens_list.append(greens_function_kq)
+            with open(DATA+FIGNAME+'.npz', 'wb') as f:
+                cPickle.dump([VV,greens_list], f)
+        else:
+            [VV,greens_list]=np.load(DATA+FIGNAME+'.npz', allow_pickle=True)
+        
+        N=int(np.sqrt(len(VV)))
+        fig, axs = plt.subplots(N,N)
+
+        bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+        k=0
+        for i in range(N):
+            for j in range(N):
+                greens_function = greens_list[::-1][k]
+                V=VV[::-1][k]
+                axs[i,j] = greens_function.plot_spectrum(axs[i,j], axes=['integrated','resolved'],omega_min=-0.8,omega_max=0.8,vmin=0,vmax=10, atom='integrated')
+                axs[i,j].set_title('')
+                axs[i,j].set_xlabel('')
+                axs[i,j].set_ylabel('')
+                props = dict(boxstyle='round', facecolor='w', alpha=0.5)
+                textstr=rf'${V}$'
+                if k==0:
+                    textstr=rf'$V={V}$'
+                # place a text box in upper left in axes coords
+                axs[i,j].text(0.5, 0.9, textstr, transform=axs[i,j].transAxes,
+                        verticalalignment='top', horizontalalignment='center', bbox=props)
+
+                if i!=N-1:
+                    axs[i,j].set_xticks([])
+                if j!=0:
+                    axs[i,j].set_yticks([])
+
+                k+=1
+
+        fig.suptitle(greens_function.title)
+        fig.supxlabel(greens_function.xlabel)
+        fig.supylabel(greens_function.ylabel)
+        fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
+        plt.subplots_adjust(wspace=0.3, hspace=0.25)
+        # plt.tight_layout()
+
+        OUTPUT=os.path.join(FIG,FIGNAME)
+        plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+        
+        # with open(OUTPUT+'.txt', 'w') as f:
+        #     f.write(rf'''the spectrum of the simple $\text{{nic}}_2$ model in the normal state, in k-space, integrated over the direction along the ssh chains and summed over the atomic sites.
+# the model consists of an ${n_cells}\times{n_cells}$ lattice, with closed boundary conditions.
+# the chemical potential is $\mu={mu}$, the interdimer hopping is fixed $w={w}$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.'''+r'''
+# compare with the model with open boundary conditions fig \ref{fig:phase_diagram_open}.
+# ''')
+
+def weak_V_phase_diagram(CALCULATE):
+    
+    FIGNAMES=['weak_V_phase_diagram']
+    glue_edgss=[True]
+    V=2
+    VV=np.linspace(-V,V,49,endpoint=True)
+    VV=np.around(VV,2)
+    length=int(n_cells/2)
+
+    for ii in range(len(FIGNAMES)):
+        FIGNAME=FIGNAMES[ii]
+        glue_edgs=glue_edgss[ii]
+
+        r=c=4
+        
+        if CALCULATE:
+            greens_list=[]
+            for V in VV:
+                greens_function_kq = main(V,length,glue_edgs,td,v)
+                greens_list.append(greens_function_kq)
+            with open(DATA+FIGNAME+'.npz', 'wb') as f:
+                cPickle.dump([VV,greens_list], f)
+        else:
+            [VV,greens_list]=np.load(DATA+FIGNAME+'.npz', allow_pickle=True)
+        
+        N=int(np.sqrt(len(VV)))
+        fig, axs = plt.subplots(N,N)
+
+        bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+        k=0
+        for i in range(N):
+            for j in range(N):
+                greens_function = greens_list[::-1][k]
+                V=VV[::-1][k]
+                axs[i,j] = greens_function.plot_spectrum(axs[i,j], axes=['integrated','resolved'],omega_min=-0.8,omega_max=0.8,vmin=0,vmax=10, atom='integrated')
+                axs[i,j].set_title('')
+                axs[i,j].set_xlabel('')
+                axs[i,j].set_ylabel('')
+                props = dict(boxstyle='round', facecolor='w', alpha=0.5)
+                textstr=rf'${V}$'
+                if k==0:
+                    textstr=rf'$V={V}$'
+                # place a text box in upper left in axes coords
+                axs[i,j].text(0.5, 0.9, textstr, transform=axs[i,j].transAxes,
+                        verticalalignment='top', horizontalalignment='center', bbox=props)
+
+                if i!=N-1:
+                    axs[i,j].set_xticks([])
+                if j!=0:
+                    axs[i,j].set_yticks([])
+
+                k+=1
+
+        fig.suptitle(greens_function.title)
+        fig.supxlabel(greens_function.xlabel)
+        fig.supylabel(greens_function.ylabel)
+        fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
+        plt.subplots_adjust(wspace=0.3, hspace=0.25)
+        # plt.tight_layout()
+
+        OUTPUT=os.path.join(FIG,FIGNAME)
+        plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+        
+        # with open(OUTPUT+'.txt', 'w') as f:
+        #     f.write(rf'''the spectrum of the simple $\text{{nic}}_2$ model in the normal state, in k-space, integrated over the direction along the ssh chains and summed over the atomic sites.
+# the model consists of an ${n_cells}\times{n_cells}$ lattice, with closed boundary conditions.
+# the chemical potential is $\mu={mu}$, the interdimer hopping is fixed $w={w}$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.'''+r'''
+# compare with the model with open boundary conditions fig \ref{fig:phase_diagram_open}.
+# ''')
+
 #############################################################################
 ################################# Main ######################################
 #############################################################################
@@ -219,7 +359,9 @@ s=0.0
 td=0.9
 v=0.6
 w=1.2
-n_cells=43
+n_cells=41
 
 # k_space_phase_diagram(CALCULATE=False)
-w_v_phase_diagram(CALCULATE=True)
+# w_v_phase_diagram(CALCULATE=False)
+strong_V_phase_diagram(CALCULATE=False)
+weak_V_phase_diagram(CALCULATE=False)
