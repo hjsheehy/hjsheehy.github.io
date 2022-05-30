@@ -1,5 +1,5 @@
 The local density of states and quasiparticle interference pattern for
-an $41\times41$ cell
+an $43\times43$ cell
 Weyl-SSH model
 with periodic boundary conditions along the vertical, and open boundary conditions
 along the horizontal, with a central

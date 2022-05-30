@@ -1,1 +1,4 @@
-The spectrum of the simple $\text{NiC}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. The SSH dimers are in their trivial state with $\mu=0.0, v=0.6, w=1.2, t_d=0.9$. Curiously, Majorana modes remain, as well as the Bogoliubov-Fermi arc, with a $k=\pi$ phase difference.
+The spectrum of the simple $\text{NiC}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. 
+        The boundary conditions are open along the axis of the dimers and closed in the perpendicular direction.
+The SSH dimers are in their trivial state with $\mu=0.0, v=1.2, w=0.6, t_d=0.9$. 
+The Bogoliubov-Fermi arc links the Weyl nodes through the outside of the Brillouin zone.

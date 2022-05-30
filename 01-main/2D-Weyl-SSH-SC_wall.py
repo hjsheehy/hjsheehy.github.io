@@ -1,14 +1,15 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename+'.npz')
-FIG=os.path.join(FIG,filename)
-if not os.path.exists(FIG):
-    os.makedirs(FIG)
+FILENAME=sys.argv[0].split('.')[0]
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
+for directory in [FIG,DATA]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def main():
-    bdg.cut(n_cells, axes=0, glue_edgs=False)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.cut(nx, axes=0, glue_edgs=False)
+    bdg.cut(ny, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
@@ -72,7 +73,7 @@ def unit_cell(model):
     plt.tight_layout()
     model.plot_unit_cell(fig, ax, atoms='all', s=100)
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     # plt.close()
 
     with open(output+'.txt', 'w') as f:
@@ -110,7 +111,7 @@ def ldos_each_atom(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -136,7 +137,7 @@ def real_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -162,7 +163,7 @@ def k_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -204,7 +205,7 @@ def majorana_fermi_arc(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     # with open(output+'.txt', 'w') as f:
     #     f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -242,7 +243,7 @@ rho=0
 phi=0
 chi=0
 V=20
-n_cells=41
+n_cells=nx=ny=43
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 

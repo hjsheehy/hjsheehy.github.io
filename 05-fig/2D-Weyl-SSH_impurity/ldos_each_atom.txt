@@ -1,5 +1,5 @@
 The local density of states along a line parallel to the axis of the dimers through a central impurity. 
-The chemical potential is $\mu/t=0.00$ and the lattice is $41\times41$
+The chemical potential is $\mu/t=0.00$ and the lattice is $43\times43$
 with periodic boundary conditions along the vertical, and open boundary conditions
 along the horizontal.
 The impurity has coupling strength $V/t=1.21$. 

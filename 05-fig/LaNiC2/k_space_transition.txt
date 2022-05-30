@@ -1,5 +1,3 @@
 The spectrum of the simple $\text{NiC}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. 
 The boundary conditions are open along the axis of the dimers and closed in the perpendicular direction.
-The SSH dimers are in their topological state with $\mu=0.0, v=0.6, w=1.2, t_d=0.9$.
-The Weyl nodes pin Majorana zero-modes, between which runs
-a Bogoliubov-Fermi arc through the centre of the Brillouin zone.
+The SSH dimers are at their topological transition point with $\mu=0.0, v=w=1.2, t_d=0.9$.

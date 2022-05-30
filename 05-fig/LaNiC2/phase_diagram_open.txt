@@ -1,4 +1,8 @@
-The model and quantities depicted as in Fig \ref{fig:phase_diagram_closed}, but with the boundary conditions closed.
-We observe the diagonal hopping $t_d$ has the effect of {\it squeezing} the topological modes into a narrower interval $\mathcal{I}\subset[-\pi,\pi]$. 
-At the conventional SSH topological transition point $v=w$, the narrow interval transitions to its complement interval $\mathcal{I}^c$.
-Notice the universality with the $\text{NiC}_2$ model Fig \ref{fig:weyl_phase_diagram_open}, \ref{fig:weyl_phase_diagram_closed}.
+The model and quantities depicted as in Figure \ref{fig:phase_diagram_closed}, but with the boundary conditions closed.
+We observe the diagonal hopping $t_d$ has the effect of creating a boundary in the Brillouin zone, between its centre and its outside, narrowing the centre with increasing $t_d$.
+In the conventional SSH model, the topological transition point, $v=w$, is a metallic phase, between a trivial insulator and a Majorana topological insulator.
+In this 2D model, the transition point $w=v$ is a topological insulator with a pair of Majorana Dirac cones {\color{red}check this}, which move towards the centre of the Brillouin zone with increasing $t_d$, a second order transition, with the Dirac nodes merging at $t_d\to\infty$.
+The inside of the Brillouin zone, between the Dirac cones, exhibits a Fermi arc in the SSH topological phase, $v<w$.
+The transition, $v=w$, is a first-order transition; the Fermi arc splits into two, one sharply moving up the spectrum, into the bulk, as the other moves downwards, which is a Majorana topological insulting phase.
+The SSH trivial phase, $v>w$, becomes non-trivial in 2D; with the Fermi arc in the opposite side of the Brillouin zone.
+Notice the universality with the $\text{NiC}_2$ model Figure \ref{fig:weyl_phase_diagram_open}, \ref{fig:weyl_phase_diagram_closed}.

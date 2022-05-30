@@ -13,3 +13,4 @@ COMPLEX='complex64'
 # COMPLEX='complex128'
 
 LATEX_WIDTH=4.7747
+DPI=500

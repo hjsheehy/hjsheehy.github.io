@@ -1,16 +1,15 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename)
-FIG=os.path.join(FIG,filename)
-for directory in [FIG]:
+FILENAME=sys.argv[0].split('.')[0]
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
+for directory in [FIG,DATA]:
     if not os.path.exists(directory):
         os.makedirs(directory)
-DATA=DATA+'.npz'
 
 def main():
-    bdg.cut(n_cells, axes=0, glue_edgs=True)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.cut(nx, axes=0, glue_edgs=True)
+    bdg.cut(ny, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
@@ -53,8 +52,6 @@ def main():
     del bdg.eigenvectors
     del bdg.eigenvalues
 
-    with open(DATA, 'wb') as f:
-        cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 # Plotting:
@@ -80,11 +77,11 @@ def ldos_each_atom(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''The local density of states of a spinless square lattice tight-binding
-    model at $\mu/t={mu:.2f}$ with ${n_cells}\times{n_cells}$
+    model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
     sites, a single orbital with an impurity at the centre with coupling
     strength $V/t={V:.2f}$. The impurity gives rise to Fridel's epon_cellsmous
     waves in the electron quasiparticle density. The electronic excitations
@@ -106,12 +103,12 @@ def real_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''The local density of states of a spinless square lattice tight-binding
-    model at $\mu/t={mu:.2f}$ with ${n_cells}\times{n_cells}$
+    model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
     sites, a single orbital with an impurity at the centre with coupling
     strength $V/t={V:.2f}$. The impurity gives rise to Fridel's epon_cellsmous
     waves in the electron quasiparticle density. The electronic excitations
@@ -133,12 +130,12 @@ def k_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''The local density of states of a spinless square lattice tight-binding
-    model at $\mu/t={mu:.2f}$ with ${n_cells}\times{n_cells}$
+    model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
     sites, a single orbital with an impurity at the centre with coupling
     strength $V/t={V:.2f}$. The impurity gives rise to Fridel's epon_cellsmous
     waves in the electron quasiparticle density. The electronic excitations
@@ -156,7 +153,7 @@ def majorana_fermi_arc(greens_function):
     fig, ax = plt.subplots()
     
     majorana_energy=0
-    majorana_ky=2.12
+    majorana_ky=2.06
     Bogoliubov_Fermi_arc_energy=0
     Bogoliubov_Fermi_arc_ky=0.5
     additional_mode_energy=0
@@ -180,7 +177,7 @@ def majorana_fermi_arc(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
@@ -210,11 +207,13 @@ rho=0
 phi=0
 chi=0
 V=1.21
-n_cells=41
+n_cells=nx=ny=43
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+# with open(os.path.join(DATA,'main.npz'), 'wb') as f:
+#     cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
 
-[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
+[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(os.path.join(DATA,'main.npz'), allow_pickle=True)
 
 caption=True
 # ldos_each_atom(greens_function_xy)

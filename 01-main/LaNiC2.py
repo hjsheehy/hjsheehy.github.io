@@ -1,11 +1,12 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename)
-FIG=os.path.join(FIG,filename)
-for directory in [FIG]:
+FILENAME=sys.argv[0].split('.')[0]
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
+for directory in [FIG,DATA]:
     if not os.path.exists(directory):
         os.makedirs(directory)
+
 
 def main(v,td,glue_edgs):
     A=Atom([0,0],'A')
@@ -18,8 +19,8 @@ def main(v,td,glue_edgs):
     tb.add_atom(B)
     tb.n_spins=1
     
-    tb.cut(n_cells, axes=0, glue_edgs=glue_edgs)
-    tb.cut(n_cells, axes=1, glue_edgs=True)
+    tb.cut(nx, axes=0, glue_edgs=glue_edgs)
+    tb.cut(ny, axes=1, glue_edgs=True)
     # tb.set_kpts([n_cells,n_cells])
     tb.set_onsite(-mu+s,atom='A')
     tb.set_onsite(-mu-s,atom='B')
@@ -43,8 +44,6 @@ def main(v,td,glue_edgs):
     del tb.eigenvectors
     del tb.eigenvalues
 
-    # with open(DATA+'.npz', 'wb') as f:
-    #     cPickle.dump([greens_function_kq, tb], f)
     return greens_function_kq, tb
 
 # Plotting:
@@ -57,7 +56,7 @@ def unit_cell(model):
     plt.tight_layout()
     model.plot_unit_cell(fig, ax, atoms='all', s=100)
     OUTPUT=os.path.join(FIG,FIGNAME)
-    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
     # plt.close()
 
     with open(OUTPUT+'.txt', 'w') as f:
@@ -95,11 +94,11 @@ def ldos_each_atom(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     OUTPUT=os.path.join(FIG,FIGNAME)
-    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(OUTPUT+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a Weyl SSH model, that is, a spinless square lattice
-with ${n_cells}\times{n_cells}$
+with ${nx}\times{ny}$
 lattice cells, with chemical potential $\mu/t={mu:.2f}$, zero shift $s=0$ and
 spectral resolution $\epsilon={greens_function.resolution}$.
 The SSH chains are in their topological phase $w={w}>v={v}$, with diagonal hopping
@@ -118,10 +117,13 @@ def k_space_trivial(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     OUTPUT=os.path.join(FIG,FIGNAME)
-    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(OUTPUT+'.txt', 'w') as f:
-        f.write(rf'''The spectrum of the simple $\text{{NiC}}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. The SSH dimers are in their trivial state with $\mu={mu}, v={v}, w={w}, t_d={td}$. Curiously, Majorana modes remain, as well as the Bogoliubov-Fermi arc, with a $k=\pi$ phase difference.
+        f.write(rf'''The spectrum of the simple $\text{{NiC}}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. 
+        The boundary conditions are open along the axis of the dimers and closed in the perpendicular direction.
+The SSH dimers are in their trivial state with $\mu={mu}, v={v}, w={w}, t_d={td}$. 
+The Bogoliubov-Fermi arc links the Weyl nodes through the outside of the Brillouin zone.
 ''')
 
 def k_space_topological(greens_function):
@@ -134,28 +136,48 @@ def k_space_topological(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     OUTPUT=os.path.join(FIG,FIGNAME)
-    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(OUTPUT+'.txt', 'w') as f:
-        f.write(rf'''The spectrum of the simple $\text{{NiC}}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. The SSH dimers are in their topological state with $\mu={mu}, v={v}, w={w}, t_d={td}$.
-Dirac nodes are observed, which pin Majorana zero-modes.
-Between the Dirac nodes is a line of zero-energy states, known as a Bogoliubov-Fermi arc.
+        f.write(rf'''The spectrum of the simple $\text{{NiC}}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. 
+The boundary conditions are open along the axis of the dimers and closed in the perpendicular direction.
+The SSH dimers are in their topological state with $\mu={mu}, v={v}, w={w}, t_d={td}$.
+The Weyl nodes pin Majorana zero-modes, between which runs
+a Bogoliubov-Fermi arc through the centre of the Brillouin zone.
 ''')
 
-def k_space_phase_diagram(calculate):
+def k_space_transition(greens_function):
+    FIGNAME='k_space_transition'
+
+    fig, ax = plt.subplots()
+
+    ax = greens_function.plot_spectrum(ax, axes=['integrated','resolved'],omega_min=-2,omega_max=2,vmin=0,vmax=80, atom='integrated')
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
+    plt.tight_layout()
+    OUTPUT=os.path.join(FIG,FIGNAME)
+    plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
+
+    with open(OUTPUT+'.txt', 'w') as f:
+        f.write(rf'''The spectrum of the simple $\text{{NiC}}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites. 
+The boundary conditions are open along the axis of the dimers and closed in the perpendicular direction.
+The SSH dimers are at their topological transition point with $\mu={mu}, v=w={w}, t_d={td}$.
+''')
+
+def k_space_phase_diagram(CALCULATE):
     
-    fignames=['phase_diagram_closed','phase_diagram_open']
-    glue_edgss=[true,false]
+    FIGNAMES=['phase_diagram_closed','phase_diagram_open']
+    glue_edgss=[True,False]
 
     for i in range(2):
-        figname=fignames[i]
+        FIGNAME=FIGNAMES[i]
         glue_edgs=glue_edgss[i]
 
         r=c=4
-        vv=[0,0.6,1.1,1.2,1.3,2.4]
-        tdd=[0,0.6,1.1,1.2,1.3,2.4]
+        vv=[0,0.6,1.1,1.2,1.3,2.4,10,100]
+        tdd=[0,0.6,1.1,1.2,1.3,2.4,10,100]
         
-        if calculate:
+        if CALCULATE:
             greens_list=[]
             for td in tdd:
                 green_list=[]
@@ -164,10 +186,10 @@ def k_space_phase_diagram(calculate):
                     green_list.append(greens_function_kq)
                 greens_list.append(green_list)
 
-            with open(data+figname+'.npz', 'wb') as f:
-                cpickle.dump([tdd,vv,greens_list], f)
+            with open(os.path.join(DATA,FIGNAME+'.npz'), 'wb') as f:
+                cPickle.dump([tdd,vv,greens_list], f)
         else:
-            [tdd,vv,greens_list]=np.load(data+figname+'.npz', allow_pickle=true)
+            [tdd,vv,greens_list]=np.load(os.path.join(DATA,FIGNAME+'.npz'), allow_pickle=True)
 
         fig, axs = plt.subplots(len(vv),len(tdd))
 
@@ -189,7 +211,7 @@ def k_space_phase_diagram(calculate):
                     axs[i,j].yaxis.set_label_position("right")
                     axs[i,j].set_ylabel(rf'${v}$')
                     if i==len(vv)-1:
-                        axs[i,j].set_ylabel(rf'$v/w={v}$')
+                        axs[i,j].set_ylabel(rf'$v={v}$')
                 if i==0:
                     axs[i,j].xaxis.set_label_position("top")
                     axs[i,j].set_xlabel(rf'${td}$')
@@ -200,26 +222,30 @@ def k_space_phase_diagram(calculate):
         fig.suptitle(greens_function.title)
         fig.supxlabel(greens_function.xlabel)
         fig.supylabel(greens_function.ylabel)
-        fig.set_size_inches(w=latex_width, h=1.2*latex_width) 
+        fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
         plt.subplots_adjust(wspace=0.3, hspace=0.25)
         # plt.tight_layout()
 
-        output=os.path.join(fig,figname)
-        plt.savefig(output+'.pdf', bbox_inches = "tight")
+        OUTPUT=os.path.join(FIG,FIGNAME)
+        plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
         
         if glue_edgs:
-            with open(output+'.txt', 'w') as f:
-                f.write(rf'''the spectrum of the simple $\text{{nic}}_2$ model in the normal state, in k-space, integrated over the direction along the ssh chains and summed over the atomic sites.
-the model consists of an ${n_cells}\times{n_cells}$ lattice, with closed boundary conditions.
-the chemical potential is $\mu={mu}$, the interdimer hopping is fixed $w={w}$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.'''+r'''
-compare with the model with open boundary conditions fig \ref{fig:phase_diagram_open}.
+            with open(OUTPUT+'.txt', 'w') as f:
+                f.write(rf'''The spectrum of the simple $\text{{NiC}}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites.
+The model consists of an ${nx}\times{ny}$ lattice, with closed boundary conditions.
+The chemical potential is $\mu={mu}$, the interdimer hopping is fixed $w={w}$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.'''+r'''
+Compare with the model with open boundary conditions Figure \ref{fig:phase_diagram_open}.
 ''')
         else:
-            with open(output+'.txt', 'w') as f:
-                f.write(r'''the model and quantities depicted as in fig \ref{fig:phase_diagram_closed}, but with the boundary conditions closed.
-we observe the diagonal hopping $t_d$ has the effect of {\it squeezing} the topological modes into a narrower interval $\mathcal{i}\subset[-\pi,\pi]$. 
-at the conventional ssh topological transition point $v=w$, the narrow interval transitions to its complement interval $\mathcal{i}^c$.
-notice the universality with the $\text{nic}_2$ model fig \ref{fig:weyl_phase_diagram_open}, \ref{fig:weyl_phase_diagram_closed}.
+            with open(OUTPUT+'.txt', 'w') as f:
+                f.write(r'''The model and quantities depicted as in Figure \ref{fig:phase_diagram_closed}, but with the boundary conditions closed.
+We observe the diagonal hopping $t_d$ has the effect of creating a boundary in the Brillouin zone, between its centre and its outside, narrowing the centre with increasing $t_d$.
+In the conventional SSH model, the topological transition point, $v=w$, is a metallic phase, between a trivial insulator and a Majorana topological insulator.
+In this 2D model, the transition point $w=v$ is a topological insulator with a pair of Majorana Dirac cones {\color{red}check this}, which move towards the centre of the Brillouin zone with increasing $t_d$, a second order transition, with the Dirac nodes merging at $t_d\to\infty$.
+The inside of the Brillouin zone, between the Dirac cones, exhibits a Fermi arc in the SSH topological phase, $v<w$.
+The transition, $v=w$, is a first-order transition; the Fermi arc splits into two, one sharply moving up the spectrum, into the bulk, as the other moves downwards, which is a Majorana topological insulting phase.
+The SSH trivial phase, $v>w$, becomes non-trivial in 2D; with the Fermi arc in the opposite side of the Brillouin zone.
+Notice the universality with the $\text{NiC}_2$ model Figure \ref{fig:weyl_phase_diagram_open}, \ref{fig:weyl_phase_diagram_closed}.
 ''')
 
 #############################################################################
@@ -227,23 +253,38 @@ notice the universality with the $\text{nic}_2$ model fig \ref{fig:weyl_phase_di
 #############################################################################
 mu=0.0
 s=0.0
-# td=0.9
-# v=0.6
+td=0.9
+v=0.6
 w=1.2
-n_cells=43
+n_cells=nx=ny=43
 
-# greens_function_kq, tb = main()
+k_space_phase_diagram(CALCULATE=True)
 
-# [greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
+glue_edgs=False
+greens_function_kq, tb = main(v,td,glue_edgs)
+with open(os.path.join(DATA,'topological.npz'), 'wb') as f:
+    cPickle.dump([greens_function_kq, tb], f)
 
-CALCULATE=False
-k_space_phase_diagram(CALCULATE)
-exit()
+[greens_function_kq, tb] = np.load(os.path.join(DATA,'topological.npz'), allow_pickle=True)
+
 # unit_cell(tb)
 # ldos_each_atom(greens_function_kq)
-k_space_trivial(greens_function_kq)
+k_space_topological(greens_function_kq)
 
 v=1.2
 w=0.6
-greens_function_kq, tb = main()
-k_space_topological(greens_function_kq)
+greens_function_kq, tb = main(v,td,glue_edgs)
+with open(os.path.join(DATA,'trivial.npz'), 'wb') as f:
+    cPickle.dump([greens_function_kq, tb], f)
+
+[greens_function_kq, tb] = np.load(os.path.join(DATA,'trivial.npz'), allow_pickle=True)
+k_space_trivial(greens_function_kq)
+
+v=1.2
+w=1.2
+greens_function_kq, tb = main(v,td,glue_edgs)
+with open(os.path.join(DATA,'transition.npz'), 'wb') as f:
+    cPickle.dump([greens_function_kq, tb], f)
+
+[greens_function_kq, tb] = np.load(os.path.join(DATA,'transition.npz'), allow_pickle=True)
+k_space_transition(greens_function_kq)

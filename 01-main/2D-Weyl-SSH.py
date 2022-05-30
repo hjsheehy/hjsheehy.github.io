@@ -1,9 +1,9 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename+'.npz')
-FIG=os.path.join(FIG,filename)
-for directory in [FIG]:
+FILENAME=sys.argv[0].split('.')[0]
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
+for directory in [FIG,DATA]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -17,8 +17,8 @@ def main():
     bdg.add_atom(A)
     bdg.add_atom(B)
     bdg.n_spins=1
-    bdg.cut(n_cells, axes=0, glue_edgs=False)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.cut(nx, axes=0, glue_edgs=False)
+    bdg.cut(ny, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
@@ -61,8 +61,6 @@ def main():
     del bdg.eigenvectors
     del bdg.eigenvalues
 
-    with open(DATA, 'wb') as f:
-        cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 def main_tb(v,td,glue_edgs):
@@ -109,7 +107,7 @@ def unit_cell(model):
     plt.tight_layout()
     model.plot_unit_cell(fig, ax, atoms='all', s=100)
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     # plt.close()
 
     with open(output+'.txt', 'w') as f:
@@ -142,11 +140,11 @@ def ldos_each_atom(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a Weyl SSH model, that is, a spinless square lattice
-with ${n_cells}\times{n_cells}$
+with ${nx}\times{ny}$
 lattice cells, with chemical potential $\mu/t={mu:.2f}$, zero shift $s=0$ and
 applied bias $\omega={omega}$ and 
 spectral resolution $\epsilon={greens_function.resolution}$.
@@ -166,7 +164,7 @@ def real_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The spectrum of the Weyl-SSH model, in its normal state, integrated over the direction perpendicular to the SSH chains and summed over the atomic sites within the lattice cell.
@@ -183,7 +181,7 @@ def k_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The spectrum of the Weyl-SSH model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites.
@@ -198,7 +196,7 @@ def majorana_fermi_arc(greens_function):
     
     majorana_energy=0
     Bogoliubov_Fermi_arc_energy=0
-    majorana_ky=2.12
+    majorana_ky=2.06
     Bogoliubov_Fermi_arc_ky=0.5
     ax = greens_function.plot_spectrum(ax, energy=majorana_energy, axes=['resolved',majorana_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Majorana')
     ax = greens_function.plot_spectrum(ax, energy=Bogoliubov_Fermi_arc_energy, axes=['resolved',Bogoliubov_Fermi_arc_ky], omega_min=0,omega_max='default',vmin=0,vmax=6,label='Bogoliubov-Fermi arc')
@@ -217,7 +215,7 @@ def majorana_fermi_arc(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The spectrum of the Majorana and Bogoliubov-Fermi arc quasiparticle modes, at zero-applied bias, with the vertical momentum specified by the (colour-coordinated) spectral plot.
@@ -236,8 +234,8 @@ def k_space_phase_diagram(CALCULATE):
         glue_edgs=glue_edgss[i]
 
         r=c=4
-        vv=[0,0.6,1.1,1.2,1.3,2.4]
-        tdd=[0,0.6,1.1,1.2,1.3,2.4]
+        vv=[0,0.3,0.6,1.1,1.2,1.3,2.4,5,10,50]
+        tdd=[0,0.3,0.6,1.1,1.2,1.3,2.4,5,10,50]
         
         if CALCULATE:
             greens_list=[]
@@ -248,10 +246,10 @@ def k_space_phase_diagram(CALCULATE):
                     green_list.append(greens_function_kq)
                 greens_list.append(green_list)
 
-            with open(DATA+FIGNAME+'.npz', 'wb') as f:
+            with open(os.path.join(DATA,FIGNAME+'.npz'), 'wb') as f:
                 cPickle.dump([tdd,vv,greens_list], f)
         else:
-            [tdd,vv,greens_list]=np.load(DATA+FIGNAME+'.npz', allow_pickle=True)
+            [tdd,vv,greens_list]=np.load(os.path.join(DATA,FIGNAME+'.npz'), allow_pickle=True)
 
         fig, axs = plt.subplots(len(vv),len(tdd))
 
@@ -289,20 +287,21 @@ def k_space_phase_diagram(CALCULATE):
         # plt.tight_layout()
 
         OUTPUT=os.path.join(FIG,FIGNAME)
-        plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
+        plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight", dpi=DPI)
         
         if glue_edgs:
             with open(OUTPUT+'.txt', 'w') as f:
-                f.write(rf'''The spectrum of the simple Weyl-SSH model in the normal state, in k-space, integrated over the direction along the ssh chains and summed over the atomic sites.
-The model consists of an ${n_cells}\times{n_cells}$ lattice, with closed boundary conditions.
+                f.write(rf'''The spectrum of the simple Weyl-SSH model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites.
+The model consists of an ${nx}\times{ny}$ lattice, with closed boundary conditions.
 The chemical potential is $\mu={mu}$, the interdimer hopping is fixed $w={w}$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.'''+r'''
 Compare with the model with open boundary conditions Fig \ref{fig:phase_diagram_open}, and notice the universality when comparing to the $\text{NiC}_2$ model Fig \ref{fig:phase_diagram_closed}, \ref{fig:phase_diagram_open}.
 ''')
         else:
             with open(OUTPUT+'.txt', 'w') as f:
                 f.write(r'''The model and quantities depicted as in Fig \ref{fig:weyl_phase_diagram_closed}, but with the boundary conditions open.
-We observe the diagonal hopping $t_d$ has the effect of {\it squeezing} the topological modes into a narrower interval $\mathcal{I}\subset[-\pi,\pi]$. 
-At the conventional SSH topological transition point $v=w$, the narrow interval transitions to its complement interval $\mathcal{I}^c$.
+We observe the diagonal hopping $t_d$ gives rise to two Dirac cones.
+In the SSH topological phase, a Bogliubov-Fermi arc connects them through the centre of the Brillouin zone.
+Then, in the SSH trivial phase, we find the Fermi arc instead passes through the edge of the Brillouin zone.
 ''')
 
 def spectrum(greens_function):
@@ -310,12 +309,12 @@ def spectrum(greens_function):
 
     fig, ax = plt.subplots()
 
-    ax = greens_function.plot_energy_spectrum(ax, sites='integrated',atom='integrated',xmin=-2,xmax=2,ymin=0,ymax=1000)
+    ax = greens_function.plot_energy_spectrum(ax, sites='integrated',atom='integrated',xmin=-2,xmax=2,ymin=0,ymax=2000)
 
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The spectrum of the Weyl-SSH model in the normal state with open-boundary conditions, summed over the atomic sites. The parameters are $\mu={mu}, v={v}, w={w}$ and $t_d={td}$. We observe the topological mode as a density peak within the band gap.
@@ -334,17 +333,20 @@ rho=0
 phi=0
 chi=0
 V=0
-n_cells=43
+n_cells=nx=ny=43
 
-# greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+CALCULATE=False
+if CALCULATE:
+    greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+    with open(os.path.join(DATA,'main.npz'), 'wb') as f:
+        cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
+else:
+    [greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(os.path.join(DATA,'main.npz'), allow_pickle=True)
 
-[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
-
-# plot_itertions(bdg)
-# unit_cell(bdg)
-# ldos_each_atom(greens_function_xy)
-# real_space(greens_function_xy)
-# k_space(greens_function_kq)
-# majorana_fermi_arc(greens_function_xq)
-k_space_phase_diagram(CALCULATE=False)
+unit_cell(bdg)
+ldos_each_atom(greens_function_xy)
+real_space(greens_function_xy)
+k_space(greens_function_kq)
+majorana_fermi_arc(greens_function_xq)
 spectrum(greens_function_kq)
+k_space_phase_diagram(CALCULATE=False)

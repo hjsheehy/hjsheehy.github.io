@@ -1,10 +1,10 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA_Uv=os.path.join(DATA,filename+'_Uv')
-DATA_s=os.path.join(DATA,filename+'_s')
-DATA=os.path.join(DATA,filename)
-FIG=os.path.join(FIG,filename)
+FILENAME=sys.argv[0].split('.')[0]
+DATA_Uv=os.path.join(DATA,FILENAME+'_Uv')
+DATA_s=os.path.join(DATA,FILENAME+'_s')
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
 for directory in [DATA_Uv,DATA_s,FIG]:
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -22,7 +22,7 @@ Use two args: independent variables x and z"""
     bdg.add_atom(B)
     bdg.n_spins=1
 
-    bdg.set_kpts([n_cells,n_cells])
+    bdg.set_kpts([nx,ny])
 
     # bdg.cut(n_cells, axes=0, glue_edgs=True)
     # bdg.cut(n_cells, axes=1, glue_edgs=True)
@@ -155,7 +155,7 @@ def plot_initial_renormalisation(friction,max_iterations,absolute_convergence_fa
 
     output=os.path.join(FIG,FIGNAME)
 
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''Renormalisation of the Hartree, Fock and Gorkov fields on a 
@@ -176,7 +176,7 @@ def plot_phase_diagram_Uv(phase_diagram_Uv):
     FIGNAME='Self-consistent_convergence_mu_Uv'
 
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an 
@@ -197,7 +197,7 @@ def plot_phase_diagram_s(phase_diagram_s):
     FIGNAME='Self-consistent_convergence_mu_s'
 
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an ${n_cells}x{n_cells}$ spinless Weyl-SSH lattice as a function of chemical potential $\mu={mu}$ and multiorbital rigid intracell shift $s$, with $U_v={Uv}$.
@@ -224,7 +224,7 @@ phi_w=0
 chi_v=2.2
 chi_w=0
 V=0
-n_cells=11
+n_cells=nx=ny=43
 
 
 bdg = model_Uv(mu,Uv)

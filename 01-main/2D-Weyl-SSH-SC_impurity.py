@@ -1,14 +1,15 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename+'.npz')
-FIG=os.path.join(FIG,filename)
-if not os.path.exists(FIG):
-    os.makedirs(FIG)
+FILENAME=sys.argv[0].split('.')[0]
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
+for directory in [FIG,DATA]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def main():
-    bdg.cut(n_cells, axes=0, glue_edgs=False)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.cut(nx, axes=0, glue_edgs=False)
+    bdg.cut(ny, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
@@ -51,82 +52,11 @@ def main():
     del bdg.eigenvectors
     del bdg.eigenvalues
 
-    with open(DATA, 'wb') as f:
+    with open(os.path.join(DATA,'main.npz', 'wb') as f:
         cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 # Plotting:
-
-def iterations(bdg):
-    gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])
-    # gorkov_w=bdg.gorkov(atom_i='B', atom_f='A', hop_vector=[1,0])
-
-    plt.plot(np.real(bdg._gorkov_iterations[0]))
-    plt.plot(np.real(bdg._gorkov_iterations[1]))
-    plt.show()
-    plt.close()
-    
-def unit_cell(model):
-    FIGNAME='unit_cell'
-
-    fig, ax = plt.subplots(1, 1)
-    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
-    plt.tight_layout()
-    model.plot_unit_cell(fig, ax, atoms='all', s=100)
-    output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
-    # plt.close()
-
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
-
-def ldos_each_atom(greens_function):
-    FIGNAME='ldos_each_atom'
-
-    fig, ax = plt.subplots(1, 2, sharey='row')
-    
-    bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-    n=int(n_cells/2-3)
-    for i,atom in enumerate(['A','B']):
-        ax[i]=greens_function.plot_ldos(ax[i],energy=0,atom=atom)
-        ax[i].set_title('')
-        ax[i].set_xlabel('')
-        ax[i].set_ylabel('')
-        ax[i].text(n, n, "Atom "+atom, ha="right", va="top", size=10,
-        bbox=bbox_props)
-
-    fig.suptitle(greens_function.title)
-    fig.supxlabel(greens_function.xlabel)
-    fig.supylabel(greens_function.ylabel)
-    fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
-    plt.tight_layout()
-    output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
-
-    with open(output+'.txt', 'w') as f:
-        f.write(rf'''The local density of states of a spinless square lattice tight-binding
-model at $\mu/t={mu:.2f}$ with ${nx}\times{ny}$
-sites, a single orbital with an impurity at the centre with coupling
-strength $V/t={V:.2f}$. The impurity gives rise to Fridel's eponymous
-waves in the electron quasiparticle density. The electronic excitations
-at zero temperature necessarily carry the Fermi energy, and hence the 
-wavefunction describing the excitations is of the Fermi wavelength. 
-The electronic charge distrbution is the square modulus of the
-wavefunction and hence takes on twice the periodicty or double the
-wavelength $\lambda_\text{{Friedel}}=\lambda_\text{{Fermi}}/2=
-{friedel_wavelength:.3}$. \\
-''')
 
 def real_space(greens_function):
     FIGNAME='ldos'
@@ -138,7 +68,7 @@ def real_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -164,7 +94,7 @@ def k_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -206,7 +136,7 @@ def majorana_fermi_arc(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
 
     # with open(output+'.txt', 'w') as f:
     #     f.write(rf'''The local density of states of a spinless square lattice tight-binding
@@ -244,15 +174,12 @@ rho=0
 phi=0
 chi=0
 V=1.21
-n_cells=15
+n_cells=nx=ny=43
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
 
-[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
+[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(os.path.join(DATA,'main.npz'), allow_pickle=True)
 
-# plot_itertions(bdg)
-# unit_cell(bdg)
-# ldos_each_atom(greens_function_xy)
-# real_space(greens_function_xy)
-# k_space(greens_function_kq)
+real_space(greens_function_xy)
+k_space(greens_function_kq)
 majorana_fermi_arc(greens_function_xq)

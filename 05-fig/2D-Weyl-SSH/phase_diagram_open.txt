@@ -1,3 +1,4 @@
 The model and quantities depicted as in Fig \ref{fig:weyl_phase_diagram_closed}, but with the boundary conditions open.
-We observe the diagonal hopping $t_d$ has the effect of {\it squeezing} the topological modes into a narrower interval $\mathcal{I}\subset[-\pi,\pi]$. 
-At the conventional SSH topological transition point $v=w$, the narrow interval transitions to its complement interval $\mathcal{I}^c$.
+We observe the diagonal hopping $t_d$ gives rise to two Dirac cones.
+In the SSH topological phase, a Bogliubov-Fermi arc connects them through the centre of the Brillouin zone.
+Then, in the SSH trivial phase, we find the Fermi arc instead passes through the edge of the Brillouin zone.

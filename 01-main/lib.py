@@ -1254,9 +1254,9 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         for x in range(self._pieces[0]):
             for y in range(self._pieces[1]):
                 for i,hopping in enumerate(self.hoppings):
-                    A=self.atom(hopping[0]).position
-                    B=self.atom(hopping[1]).position
-                    B=B+np.dot(hopping[2],self.lattice_vectors) 
+                    A=self.atom(hopping[2]).position
+                    B=self.atom(hopping[3]).position
+                    B=B+np.dot(hopping[1],self.lattice_vectors)
                     centre=[x,y]
                     centre=np.dot(centre,self.lattice_vectors)
                     A=A+centre
@@ -3169,7 +3169,7 @@ If spin=None: trace spin, else spin polarised"""
             ax.set_ylim(omega_min,omega_max)
             ax.set_yticks([omega_min,0,omega_max])
             extent=[xmin,xmax,self.emin,self.emax]
-            ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax,aspect='auto', interpolation=None)
+            ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax,aspect='auto', interpolation='none')
         else:
             title=title+f'$|_{{\omega={energy}, \epsilon={self.resolution}}}$'
             ax.set_ylim(vmin,vmax)
@@ -3295,8 +3295,7 @@ If spin=None: trace spin, else spin polarised"""
         ax.set_title(title)
         self.title=title
         ################################
-
-        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None, cmap=self.cmap)
+        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation='none', cmap=self.cmap)
         return ax
 
     def plot_qpi(self, ax, energy='resolved', axes=['resolved','resolved'], atom='integrated', anomalous=False, xmin='default', xmax='default', ymin='default', ymax='default', vmin='default', vmax='default',label=''):
@@ -3417,7 +3416,7 @@ If spin=None: trace spin, else spin polarised"""
         self.title=title
         ################################
 
-        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation=None, cmap=self.cmap)
+        ax.imshow(ldos, extent=extent, origin='lower', vmin=vmin, vmax=vmax, aspect='auto', interpolation='none', cmap=self.cmap)
         return ax
 
 class PhaseDiagram():

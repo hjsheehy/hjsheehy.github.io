@@ -1,5 +1,5 @@
 The local density of states of a Weyl SSH model, that is, a spinless square lattice
-with $41\times41$
+with $43\times43$
 lattice cells, with chemical potential $\mu/t=0.00$, zero shift $s=0$ and
 applied bias $\omega=0$ and 
 spectral resolution $\epsilon=0.05$.

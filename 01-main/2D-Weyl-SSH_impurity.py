@@ -1,16 +1,15 @@
 from lib import *
 
-filename=sys.argv[0].split('.')[0]
-DATA=os.path.join(DATA,filename)
-FIG=os.path.join(FIG,filename)
-for directory in [FIG]:
+FILENAME=sys.argv[0].split('.')[0]
+DATA=os.path.join(DATA,FILENAME)
+FIG=os.path.join(FIG,FILENAME)
+for directory in [FIG,DATA]:
     if not os.path.exists(directory):
         os.makedirs(directory)
-DATA=DATA+'.npz'
 
 def main():
-    bdg.cut(n_cells, axes=0, glue_edgs=False)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
+    bdg.cut(nx, axes=0, glue_edgs=False)
+    bdg.cut(ny, axes=1, glue_edgs=True)
     bdg.set_onsite(-mu+s,atom='A')
     bdg.set_onsite(-mu-s,atom='B')
 
@@ -53,8 +52,6 @@ def main():
     del bdg.eigenvectors
     del bdg.eigenvalues
 
-    with open(DATA, 'wb') as f:
-        cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 # Plotting:
@@ -79,11 +76,11 @@ def ldos_each_atom(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''The local density of states along a line parallel to the axis of the dimers through a central impurity. 
-The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
+The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${nx}\times{ny}$
 with periodic boundary conditions along the vertical, and open boundary conditions
 along the horizontal.
 The impurity has coupling strength $V/t={V:.2f}$. 
@@ -99,12 +96,12 @@ def real_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''The local density of states along a line parallel to the axis of the dimers through a central impurity. 
-The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${n_cells}\times{n_cells}$
+The chemical potential is $\mu/t={mu:.2f}$ and the lattice is ${nx}\times{ny}$
 with periodic boundary conditions along the axis perpendicular to the dimers, and open boundary conditions
 along the axis.
 The impurity has coupling strength $V/t={V:.2f}$. 
@@ -120,7 +117,7 @@ def k_space(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH/2) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
@@ -134,7 +131,7 @@ def majorana_fermi_arc(greens_function):
     fig, ax = plt.subplots()
     
     majorana_energy=0
-    majorana_ky=2.12
+    majorana_ky=2.06
     Bogoliubov_Fermi_arc_energy=0
     Bogoliubov_Fermi_arc_ky=0.5
     additional_mode_energy=0
@@ -158,7 +155,7 @@ def majorana_fermi_arc(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
@@ -180,7 +177,7 @@ def fermi_surface(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH*0.8) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     
     if caption:
         with open(output+'.txt', 'w') as f:
@@ -213,11 +210,11 @@ def qpi(greens_function):
     fig.set_size_inches(w=LATEX_WIDTH, h=0.6*LATEX_WIDTH) 
     plt.tight_layout()
     output=os.path.join(FIG,FIGNAME)
-    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     if caption:
         with open(output+'.txt', 'w') as f:
             f.write(rf'''The local density of states and quasiparticle interference pattern for
-an ${n_cells}\times{n_cells}$ cell
+an ${nx}\times{ny}$ cell
 Weyl-SSH model
 with periodic boundary conditions along the vertical, and open boundary conditions
 along the horizontal, with a central
@@ -246,17 +243,19 @@ rho=0
 phi=0
 chi=0
 V=1.21
-n_cells=41
+n_cells=nx=ny=43
 
 # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
+# with open(os.path.join(DATA,'main.npz'), 'wb') as f:
+#     cPickle.dump([greens_function_xy, greens_function_xq, greens_function_kq, bdg], f)
 
-[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(DATA, allow_pickle=True)
+[greens_function_xy, greens_function_xq, greens_function_kq, bdg] = np.load(os.path.join(DATA,'main.npz'), allow_pickle=True)
 
 caption=True
-# ldos_each_atom(greens_function_xy)
-# real_space(greens_function_xy)
-# k_space(greens_function_kq)
+ldos_each_atom(greens_function_xy)
+real_space(greens_function_xy)
+k_space(greens_function_kq)
 majorana_fermi_arc(greens_function_xq)
-# fermi_surface(greens_function_kq)
+fermi_surface(greens_function_kq)
 # ldos_mini(greens_function_xy)
-# qpi(greens_function_xy)
+qpi(greens_function_xy)

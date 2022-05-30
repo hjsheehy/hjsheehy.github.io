@@ -1,4 +1,4 @@
 The spectrum of the simple $\text{NiC}_2$ model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites.
 The model consists of an $43\times43$ lattice, with closed boundary conditions.
 The chemical potential is $\mu=0.0$, the interdimer hopping is fixed $w=1.2$, and the intradimer $v$ and interchain $t_d$ hoppings are varied.
-Compare with the model with open boundary conditions Fig \ref{fig:phase_diagram_open}.
+Compare with the model with open boundary conditions Figure \ref{fig:phase_diagram_open}.
