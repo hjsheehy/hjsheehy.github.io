@@ -648,9 +648,14 @@ class TightBinding(CrystalLattice, StatisticalMechanics):
 
         self._k_axes = [True for i in range(self.n_dimensions)]
 
+        self._minus_k_eigenvectors = None
+
     @property
     def n_kpts(self):
-        return list(np.shape(self.kpts[0]))
+        if self.n_dimensions==1:
+            return [len(self.kpts)]
+        else:
+            return list(np.shape(self.kpts[0]))
 
     @property
     def n_total_kpts(self):
@@ -1005,7 +1010,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         for [hopping_amplitude,hop_vector,atom_i,atom_f,orbital_i,orbital_f,spin_i,spin_f,add_time_reversal,label] in self.hoppings:
             self._hopping(hopping_amplitude, hop_vector, atom_i, atom_f, orbital_i, orbital_f, spin_i, spin_f, add_time_reversal, label)
 
-    def solve(self):
+    def solve(self, reshape=True):
 
         if type(self._hamiltonian)==type(None):
             self._set_tightbinding_ham()
@@ -1031,8 +1036,10 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         #     self.k_space=False
 
         self.exec_time = time.time() - t
+        
+        if reshape:
+            self._reshape_eigenvectors()
 
-        self._reshape_eigenvectors()
         return self.eigenvalues,self.eigenvectors
 
     def _reshape_eigenvectors(self):
@@ -1062,6 +1069,36 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
                 dim=np.append(self._extended_dimensions,[self.n_dof])
                 
                 self.eigenvectors = np.reshape(self.eigenvectors, dim, 'F')
+    
+    @property
+    def permute_to_minus_indices(self):
+        kpts=self.kpts
+        n_kpts=self.n_kpts
+        n_total_kpts=self.n_total_kpts
+        n_dimensions=self.n_dimensions
+        axes=np.arange(n_dimensions)
+        indices=np.indices(n_kpts)
+        i=1
+        minus_pts=[np.mod(-indices[j],n_kpts[j]) for j in range(n_dimensions)]
+        minus_pts=np.moveaxis(minus_pts,0,-1)[tuple(minus_pts)]
+        minus_pts=coordinates_to_indices(minus_pts,n_kpts)
+        minus_pts=minus_pts.flatten()
+        return minus_pts
+    
+    # @property
+    # def permutation_matrix(self):
+    #     n_total_kpts=self.n_total_kpts
+    #     indices=self.permute_to_minus_indices
+    #     matrix=np.zeros([n_total_kpts,n_total_kpts])
+    #     matrix[indices]=1
+    #     return matrix
+
+    @property
+    def minus_k_eigenvectors(self):
+        if type(self._minus_k_eigenvectors)==type(None):
+            indices=self.permute_to_minus_indices
+            self._minus_k_eigenvectors = self.eigenvectors[indices]
+        return self._minus_k_eigenvectors
   
     @property
     def axes(self):
@@ -1846,9 +1883,10 @@ class BogoliubovdeGennes(TightBinding):
         T=self.temperature
 
         if self.bulk_calculation:
+            v_minus=self.minus_k_eigenvectors
             tmp0=v[self._hubbard_indices[0],self._hubbard_indices[1]]
-            tmp1=np.conj(v[self._hubbard_indices[0],self._hubbard_indices[2]])
-            tmp1a=v[self._hubbard_indices[0],self._anomalous_indices[2]]
+            tmp1=np.conj(v_minus[self._hubbard_indices[0],self._hubbard_indices[2]])
+            tmp1a=v_minus[self._hubbard_indices[0],self._anomalous_indices[2]]
             tmp0=tmp0[:,:self.n_dof]
             tmp1=tmp1[:,:self.n_dof]
             tmp1a=tmp1a[:,:self.n_dof]
@@ -1897,7 +1935,9 @@ class BogoliubovdeGennes(TightBinding):
             hartree = +np.einsum('kij,kj->ki',self._hubbard_u,trace_density,optimize=True)
             fock    = -np.multiply(self.U_entries,density)
             gorkov  = +np.multiply(self.U_entries,anomalous_density)
+
             # hartree=np.mean(np.abs(hartree))*np.ones(np.shape(hartree))*np.sign(hartree)
+
             fock=np.mean(np.abs(fock))*np.ones(np.shape(fock))*np.sign(fock)
             gorkov=np.mean(np.abs(gorkov))*np.ones(np.shape(gorkov))*np.sign(gorkov)
             hartree=np.mean(hartree,0)

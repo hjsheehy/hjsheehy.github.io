@@ -3,4 +3,4 @@ Renormalisation of the Hartree, Fock and Gorkov fields on a
 attractive intracell Hubbard U, pairing fermions on sites A and B. 
 The fields are calculated self-consistently, with absolute convergence factor 
 $1e-05$ and friction
-$0$.
+$0.9$.

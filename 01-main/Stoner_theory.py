@@ -13,17 +13,21 @@ def model(mu,Us,rho_shift):
     """Creates a model for the phase diagram.
 Use two args: independent variables x and z"""
     A=Atom([0,0],'A')
+    A=Atom([0],'A')
     A.add_orbital('s')
     lattice_vectors=[[1,0],[0,1]]
+    lattice_vectors=[[1]]
     bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
     bdg.add_atom(A)
     bdg.n_spins=2
-    
+
     if bulk_calculation:
         bdg.set_kpts([n_cells,n_cells])
+        bdg.set_kpts([n_cells])
     else:
         bdg.cut(n_cells, axes=0, glue_edgs=True)
         bdg.cut(n_cells, axes=1, glue_edgs=True)
+    
     bdg.set_onsite(-mu)
 
     bdg.set_hopping(-t,hop_vector=[1,0],label='$t$')
@@ -35,7 +39,7 @@ Use two args: independent variables x and z"""
     bdg.set_gorkov(chi,spin_i='up',spin_f='dn')
 
     bdg.set_hubbard_u(-Us,spin_i='up',spin_f='dn')
-    
+
     bdg.record_hartree(location=[0,0], spin='up', _print=_print)
     bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
     bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
@@ -248,10 +252,10 @@ phi=0#.3
 chi=0#3.4
 n_cells=21
 
-friction=0
+friction=0.9
 absolute_convergence_factor=0.00001
 
-bulk_calculation=False
+bulk_calculation=True
 
 _print=False
 bdg = model_Us(mu,Us)
