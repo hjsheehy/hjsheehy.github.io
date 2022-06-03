@@ -30,20 +30,26 @@ Use two args: independent variables x and z"""
     
     bdg.set_onsite(-mu)
 
-    bdg.set_hopping(-t,hop_vector=[1,0],label='$t$')
-    bdg.set_hopping(-t,hop_vector=[0,1],label='$t$')
+    # bdg.set_hopping(-t,hop_vector=[1,0],label='$t$')
+    # bdg.set_hopping(-t,hop_vector=[0,1],label='$t$')
+    bdg.set_hopping(-t,hop_vector=[1],label='$t$')
 
-    bdg.set_hartree(rho+rho_shift,spin='up')
-    bdg.set_hartree(rho-rho_shift,spin='dn')
+    bdg.set_hartree(rho-rho_shift,spin='up')
+    bdg.set_hartree(rho+rho_shift,spin='dn')
     bdg.set_fock(phi,spin_i='up',spin_f='dn')
     bdg.set_gorkov(chi,spin_i='up',spin_f='dn')
 
     bdg.set_hubbard_u(-Us,spin_i='up',spin_f='dn')
 
-    bdg.record_hartree(location=[0,0], spin='up', _print=_print)
-    bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
-    bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
-    bdg.record_gorkov(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
+    # bdg.record_hartree(location=[0,0], spin='up', _print=_print)
+    # bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
+    # bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
+    # bdg.record_gorkov(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
+
+    bdg.record_hartree(location=[0], spin='up', _print=_print)
+    bdg.record_hartree(location=[0], spin='dn', _print=_print)
+    bdg.record_fock(location_i=[0], location_f=[0], spin_i='up', spin_f='dn',_print=_print)
+    bdg.record_gorkov(location_i=[0], location_f=[0], spin_i='up', spin_f='dn',_print=_print)
 
     return bdg
 
@@ -243,30 +249,47 @@ friction ${iter_friction}$ over subsequent iterations.
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=4.8
+mu=0.23
 t=1
-Us=3.1
-rho=-2.4
-rho_shift=1.4
+Us=1
+rho=0
+rho_shift=0.5
 phi=0#.3
-chi=0#3.4
-n_cells=21
+chi=0.2
+n_cells=181
 
-friction=0.9
+friction=0
 absolute_convergence_factor=0.00001
 
 bulk_calculation=True
 
 _print=False
-bdg = model_Us(mu,Us)
-bdg.self_consistent_calculation(friction=friction, max_iterations=400, absolute_convergence_factor=absolute_convergence_factor)
+bdg = model(mu,Us,rho_shift)
+
+def plot_eigevalues():
+    bdg._set_tightbinding_ham()
+    bdg._set_mean_field_hamiltonian()
+    bdg.solve()
+    x=bdg.kpts
+    y=bdg.eigenvalues
+    x,y = zip(*sorted(zip(x,y)))
+    plt.plot(x,y)
+    plt.show()
+
+bdg.self_consistent_calculation(friction=friction, max_iterations=1, absolute_convergence_factor=absolute_convergence_factor)
 
 hartree_up=bdg.hartree(spin='up')
 hartree_dn=bdg.hartree(spin='dn')
-M=(hartree_up-hartree_dn)[0,0]
-print(M)
-plot_iterations(bdg)
-plt.show()
+fock=bdg.fock(spin_i='up',spin_f='dn')
+gorkov=bdg.gorkov(spin_i='up',spin_f='dn')
+print(hartree_up[0])
+print(hartree_dn[0])
+print(fock[0])
+print(gorkov[0])
+# M=(hartree_up-hartree_dn)[0,0]
+# print(M)
+# plot_iterations(bdg)
+# plt.show()
 exit()
 
 # Phase diagram Us, mu

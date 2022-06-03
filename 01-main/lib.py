@@ -675,7 +675,8 @@ class TightBinding(CrystalLattice, StatisticalMechanics):
             self.kpts=np.mgrid[0:2*np.pi*(1-1/n_kpts[0]):n_kpts[0]*1j, 0:2*np.pi*(1-1/n_kpts[1]):n_kpts[1]*1j]
         if len(n_kpts)==3:
             self.kpts=np.mgrid[0:2*np.pi*(1-1/n_kpts[0]):n_kpts[0]*1j, 0:2*np.pi*(1-1/n_kpts[1]):n_kpts[1]*1j, 0:2*np.pi*(1-1/n_kpts[2]):n_kpts[1]*1j]
-
+        self.kpts=(self.kpts+ np.pi) % (2 * np.pi) - np.pi
+        self.dk=self.kpts[1]
         self.bulk_calculation=True
 
     def set_temperature(self,temperature):
@@ -1893,6 +1894,9 @@ class BogoliubovdeGennes(TightBinding):
             w=w[:,:self.n_dof]
             if T==0:
                 trace_density = np.einsum('kin,kin->ki',v[:,:self.n_dof,:self.n_dof],np.conj(v[:,:self.n_dof,:self.n_dof]),optimize=True)
+                print(np.shape(v))
+                print(np.shape(self._hubbard_u))
+                exit()
                 density = np.einsum('in,in->i',tmp0,tmp1,optimize=True)
                 anomalous_density = -np.einsum('in,in->i',tmp0,tmp1a,optimize=True)
             else:
@@ -1933,14 +1937,23 @@ class BogoliubovdeGennes(TightBinding):
         """Returns Hartree, Fock, Gorkov"""
         if self.bulk_calculation:
             hartree = +np.einsum('kij,kj->ki',self._hubbard_u,trace_density,optimize=True)
+            print(np.shape(density))
+            exit()
             fock    = -np.multiply(self.U_entries,density)
             gorkov  = +np.multiply(self.U_entries,anomalous_density)
 
             # hartree=np.mean(np.abs(hartree))*np.ones(np.shape(hartree))*np.sign(hartree)
 
-            fock=np.mean(np.abs(fock))*np.ones(np.shape(fock))*np.sign(fock)
-            gorkov=np.mean(np.abs(gorkov))*np.ones(np.shape(gorkov))*np.sign(gorkov)
-            hartree=np.mean(hartree,0)
+            # fock=np.mean(np.abs(fock))*np.ones(np.shape(fock))*np.sign(fock)
+            # gorkov=np.mean(np.abs(gorkov))*np.ones(np.shape(gorkov))*np.sign(gorkov)
+            # hartree=np.mean(hartree,0)
+
+            print(np.shape(fock))
+            fock=(self.dk/self.n_total_kpts)*np.sum(fock)*np.ones(np.shape(fock))*np.sign(fock)
+            print(np.shape(fock))
+            exit()
+            gorkov=(self.dk/self.n_total_kpts)*np.sum(gorkov)*np.ones(np.shape(gorkov))*np.sign(gorkov)
+            hartree=(self.dk/self.n_total_kpts)*np.sum(hartree)
         else:
             hartree = +np.einsum('ij,j->i',self._hubbard_u,trace_density,optimize=True)
             fock    = -np.multiply(self.U_entries,density)
