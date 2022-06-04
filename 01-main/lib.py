@@ -64,6 +64,24 @@ Pauli_minus = (Pauli_x-1.0j*Pauli_y)*(1./2.)
 Pauli_vec = np.dstack([Pauli_x, Pauli_y, Pauli_z])
 Pauli_vec = np.moveaxis(Pauli_vec,-1,0)
 
+def add_signal(a, b):
+    ai=0
+    intersection=np.intersect1d(a,b,return_indices=True)
+    bi=intersection[1]
+    print(bi)
+    exit()
+
+    assert ai >= 0
+    assert bi >= 0
+
+    al = len(a)
+    bl = len(b)
+    cl = max(ai + al, bi + bl)
+    c = 10000000000*np.ones([2,cl])
+    c[0, ai: ai + al] += a
+    c[1, bi: bi + bl] += b
+    return c
+
 ALL=slice(None)
 
 def dagger(array):
@@ -1637,8 +1655,8 @@ class BogoliubovdeGennes(TightBinding):
         self.__fock_index=0
         self.__gorkov_index=0
     
-    def set_friction(friction=0.7):
-        self.friction = 0.7
+    def set_friction(friction=0.95):
+        self.friction = friction
 
     def set_max_iterations(self,max_iterations=100):
         self.max_iterations = 1000
@@ -1840,7 +1858,7 @@ class BogoliubovdeGennes(TightBinding):
             self._gorkov_print_indices.append(self.__gorkov_index)
             self.__gorkov_index+=1
 
-    def set_friction(self,friction):
+    def set_friction(self,friction=0.95):
         self.friction = friction
 
     def set_max_iterations(self,max_iterations):
@@ -2115,7 +2133,7 @@ class BogoliubovdeGennes(TightBinding):
 
         return self.eigenvalues,self.eigenvectors
 
-    def self_consistent_calculation(self,friction=0.7,max_iterations=100,absolute_convergence_factor=0.00001):
+    def self_consistent_calculation(self,friction=0.95,max_iterations=100,absolute_convergence_factor=0.00001):
         """If dos=True, the density of states are calculated once the self consistent
         loop has converged."""
 
@@ -2165,6 +2183,7 @@ class BogoliubovdeGennes(TightBinding):
                 percent_error=np.floor(percent_error)
                 pbar.update(percent_error-pbar.n)
                 pbar.set_description("Iteration %s" % i)
+                self.friction=1-percent_error/100
 
                 if absolute_error<eps:
                     self.converged=True
@@ -3539,8 +3558,8 @@ class PhaseDiagram():
         n=len(xxx)*len(zz)
         j=0
         with tqdm.tqdm(total=n,desc='Simulation') as pbar:
-            for xx in xxx:
-                for z in zz:
+            for z in zz:
+                for xx in xxx:
                     if j==1:
                         initial_renormalisation_plot_function=None
                     self._phase_diagram(xx,dependent_variables,z,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor,initial_renormalisation_plot_function)
@@ -3557,7 +3576,7 @@ class PhaseDiagram():
                 bdg = self.model(x,z)
                 bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
                 if type(initial_renormalisation_plot_function)!=type(None):
-                    directory=os.path.join(DATA,self.filename+'_initial')
+                    directory=self.directory+'_initial'
                     filename=os.path.join(directory,self.initial_name)
                     if not os.path.exists(directory):
                         os.makedirs(directory)
@@ -3588,25 +3607,64 @@ class PhaseDiagram():
         names_x=np.array([float(name.split('/')[-1].split('_')[0]) for name in names])
         names_y=np.array([str(name.split('_')[-1].split('.')[0]) for name in names])
         names=[x for _, x in sorted(zip(names_x, names))]
+        names_y=[x for _, x in sorted(zip(names_x, names_y))]
+        names_x=[x for _, x in sorted(zip(names_x, names_x))]
         n=len(names)
-        markers=['>','<']
-        color = cm.gist_rainbow(np.linspace(0, 1, int(n/2)))
-        s=4
+        markers=['>','<','.']
+        color = cm.gist_rainbow(np.linspace(0, 1, int(n)))
+        xx=[]
+        yy=[]
+        zz=[]
+        fr=[]
+        free_energy=[]
+        
+
+        for k in range(int(len(names)/2)):
+            xxx=[]
+            for j in range(2):
+                i=2*k+j
+                name=names[i]
+                [x,y,z] = np.load(name, allow_pickle=True)
+                xxx.append(x)
+                yy.append(y)
+                zz.append(z)
+                fr.append(names_y[i])
+            print(add_signal(*xxx))
+            exit()
+            print(xxx)
+            print(zz)
+            print(fr)
+            for val in xxx:
+                exit()
+
+
+            x=np.array(x)
+            y=np.array(y)
+            x=x[:len(y[:,0])]
+            field_index=0 #free energy
+            y=y[:,field_index]
+            # print(y)
+        exit()
+
         i=0
+        s=3
+        markevery=1
         for j,name in enumerate(names):
             [x,y,z] = np.load(name, allow_pickle=True)
             x=np.array(x)
             y=np.array(y)
             x=x[:len(y[:,0])]
-            if names_y[j]=='fwd':
+            c = lighten_color(color[i],amount=0.3)
+            marker=markers[0]
+            if names_y[j]!='min':
                 c = color[i]
-                marker=markers[0]
-            else:
+                marker=markers[2]
+            if names_y[j]!='fwd':
                 c = lighten_color(color[i],amount=0.3)
                 marker=markers[1]
                 i+=1
             if type(second_field_index)==type(None):
-                ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$')
+                ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$',markevery=markevery)
             else:
-                ax.plot(x,y[:,field_index]-y[:,second_field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$')
+                ax.plot(x,y[:,field_index]-y[:,second_field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$', markevery=markevery)
         return ax

@@ -3,6 +3,6 @@ Renormalisation of the Hartree, Fock and Gorkov fields on a
 attractive intracell Hubbard U, pairing fermions on sites A and B. 
 The fields are calculated self-consistently, with absolute convergence factor 
 $0.0001$
-and an initial friction $0.9$ and 
-friction $0.9$ over subsequent iterations.
-The lattice is $11x11$ cells squared.
+and an initial friction $0.95$ and 
+friction $0.95$ over subsequent iterations.
+The lattice is $23x23$ cells squared.
