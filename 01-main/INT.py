@@ -276,6 +276,7 @@ absolute_convergence_factor=0.0001
 _print=False
 Uvv=np.arange(0.01,5,0.5)[::-1]
 muu=np.arange(-5.,5,1.1)[::-1]
+MUU=[3.5]
 
 phase_diagram_Uv=PhaseDiagram(model_Uv)
 phase_diagram_Uv.directory=DATA_Uv
