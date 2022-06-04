@@ -3619,32 +3619,32 @@ class PhaseDiagram():
         free_energy=[]
         
 
-        for k in range(int(len(names)/2)):
-            xxx=[]
-            for j in range(2):
-                i=2*k+j
-                name=names[i]
-                [x,y,z] = np.load(name, allow_pickle=True)
-                xxx.append(x)
-                yy.append(y)
-                zz.append(z)
-                fr.append(names_y[i])
-            print(add_signal(*xxx))
-            exit()
-            print(xxx)
-            print(zz)
-            print(fr)
-            for val in xxx:
-                exit()
+#         for k in range(int(len(names)/2)):
+#             xxx=[]
+#             for j in range(2):
+#                 i=2*k+j
+#                 name=names[i]
+#                 [x,y,z] = np.load(name, allow_pickle=True)
+#                 xxx.append(x)
+#                 yy.append(y)
+#                 zz.append(z)
+#                 fr.append(names_y[i])
+#             print(add_signal(*xxx))
+#             exit()
+#             print(xxx)
+#             print(zz)
+#             print(fr)
+#             for val in xxx:
+#                 exit()
 
 
-            x=np.array(x)
-            y=np.array(y)
-            x=x[:len(y[:,0])]
-            field_index=0 #free energy
-            y=y[:,field_index]
-            # print(y)
-        exit()
+#             x=np.array(x)
+#             y=np.array(y)
+#             x=x[:len(y[:,0])]
+#             field_index=0 #free energy
+#             y=y[:,field_index]
+#             # print(y)
+#         exit()
 
         i=0
         s=3
