@@ -1621,6 +1621,7 @@ class BogoliubovdeGennes(TightBinding):
         self._model='bdg'
 
         self.iterations=0
+        self.oscillating=False
 
         self._hartree=None
         self._fock=None
@@ -2177,13 +2178,36 @@ class BogoliubovdeGennes(TightBinding):
                 absolute_error=absolute_error[argmax]
                 a=np.abs(a[argmax])
                 b=np.abs(b[argmax])
-                a=abs(np.log10(abs(a-b)))
+                prob=abs(a-b)
+                result=np.where(prob > 0.0000000001, prob, -10)
+                a=abs(np.log10(result, out=result, where=result > 0))
                 b=abs(np.log10(eps))
                 percent_error=100*min(a,b)/max(a,b)
                 percent_error=np.floor(percent_error)
                 pbar.update(percent_error-pbar.n)
                 pbar.set_description("Iteration %s" % i)
-                self.friction=1-percent_error/100
+                # if i>4:
+                #     err=(self.free_energy[-1]-self.free_energy[-3])/((self.free_energy[-1]+self.free_energy[-3]))
+                #     print(err)
+                #     if err<0.000000000001:
+                #         self.oscillating=True
+                #         print('oscillating')
+                #     # else:
+                #     #     self.oscillating=False
+
+                #     if self.oscillating:
+                #         self.friction=0.95
+
+                #     else:
+                #         x=(self.max_iterations-i)/self.max_iterations
+                #         beta=3
+                #         y=1/(1+(x/(1-x))**beta)
+                #         self.friction=min(y,0.95)
+                if i>4:
+                    x=1-percent_error/100
+                    beta=3
+                    y=1/(1+(x/(1-x))**beta)
+                    self.friction=min(x,0.95)
 
                 if absolute_error<eps:
                     self.converged=True
@@ -3544,7 +3568,7 @@ class PhaseDiagram():
 
         return bdg, y
 
-    def phase_diagram(self,xx,dependent_variables,zz,include_reverse=True,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None):
+    def phase_diagram(self,xx,dependent_variables,zz,include_reverse=True,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None,plot_phase_diagram_function=None):
         
         xxx=[]
         if include_reverse:
@@ -3560,12 +3584,13 @@ class PhaseDiagram():
         with tqdm.tqdm(total=n,desc='Simulation') as pbar:
             for z in zz:
                 for xx in xxx:
-                    if j==1:
-                        initial_renormalisation_plot_function=None
+                    # if j==1:
+                        # initial_renormalisation_plot_function=None
                     self._phase_diagram(xx,dependent_variables,z,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor,initial_renormalisation_plot_function)
-                    j+=1
+                    # j+=1
+                    plot_phase_diagram_function(self)
 
-    def _phase_diagram(self,xx,extract_from_bdg,z,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None):
+    def _phase_diagram(self,xx,extract_from_bdg,z,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None,plot_phase_diagram=None):
 
         yy=[]
         ee=[]
@@ -3575,15 +3600,16 @@ class PhaseDiagram():
             if i==0: #inital
                 bdg = self.model(x,z)
                 bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
-                if type(initial_renormalisation_plot_function)!=type(None):
-                    directory=self.directory+'_initial'
-                    filename=os.path.join(directory,self.initial_name)
-                    if not os.path.exists(directory):
-                        os.makedirs(directory)
-                    with open(filename+'.npz', 'wb') as f:
-                        cPickle.dump(bdg, f)
-                    initial_renormalisation_plot_function(init_friction,init_max_iterations,absolute_convergence_factor,filename,self.initial_name,self.initial_title)
                 i+=1
+            if type(initial_renormalisation_plot_function)!=type(None):
+                directory=self.directory+'_initial'
+                filename=os.path.join(directory,self.initial_name)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+                with open(filename+'.npz', 'wb') as f:
+                    cPickle.dump(bdg, f)
+                initial_renormalisation_plot_function(init_friction,init_max_iterations,absolute_convergence_factor,filename,self.initial_name,self.initial_title)
+
             bdg, y = self._extract_dependent_vars(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
             if bdg.converged:
                 y.insert(0,bdg.free_energy[-1])
@@ -3646,23 +3672,23 @@ class PhaseDiagram():
 #             # print(y)
 #         exit()
 
-        i=0
         s=3
         markevery=1
         for j,name in enumerate(names):
+            i=list(set(names_x)).index(names_x[j])
             [x,y,z] = np.load(name, allow_pickle=True)
             x=np.array(x)
             y=np.array(y)
             x=x[:len(y[:,0])]
-            c = lighten_color(color[i],amount=0.3)
-            marker=markers[0]
-            if names_y[j]!='min':
+            if names_y[j]=='min':
                 c = color[i]
                 marker=markers[2]
-            if names_y[j]!='fwd':
+            elif names_y[j]=='rev':
                 c = lighten_color(color[i],amount=0.3)
                 marker=markers[1]
-                i+=1
+            elif names_y[j]=='fwd':
+                c = lighten_color(color[i],amount=0.3)
+                marker=markers[0]
             if type(second_field_index)==type(None):
                 ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$',markevery=markevery)
             else:

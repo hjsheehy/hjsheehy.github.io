@@ -5,7 +5,7 @@ DATA_Us=os.path.join(DATA,filename+'_Us')
 DATA_Delta=os.path.join(DATA,filename+'_Delta')
 DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
-for directory in [DATA_Us,FIG]:
+for directory in [DATA_Us,DATA_Delta,FIG]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -174,6 +174,8 @@ def plot_initial_renormalisation(friction,max_iterations,absolute_convergence_fa
 
     plt.savefig(output+'.pdf', bbox_inches = "tight")
 
+    plt.close()
+
     with open(output+'.txt', 'w') as f:
         f.write(rf'''Renormalisation of the Hartree, Fock and Gorkov fields on a 
         2-dimensional spinless Weyl-SSH lattice with 
@@ -194,7 +196,7 @@ def plot_phase_diagram_Us(phase_diagram_Us):
     ax2.set_ylabel('Free energy')
     ax2.set_xlabel(r'$U_s$')
 
-    ax1.legend()
+    ax1.legend(loc='upper left')
     ax1.get_legend().set_title(r'$\mu$')
 
     plt.subplots_adjust(hspace=.1)
@@ -205,6 +207,7 @@ def plot_phase_diagram_Us(phase_diagram_Us):
 
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.close()
 
     with open(output+'.txt', 'w') as f:
         f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an 
@@ -217,17 +220,31 @@ friction ${iter_friction}$ over subsequent iterations.
 ''')
 
 def plot_phase_diagram_Delta(phase_diagram_Delta):
-    fig, ax = plt.subplots(1,1)
-    ax=phase_diagram_Delta.plot_phase_diagram(ax)
-    ax.legend()
+    fig, [ax1,ax2] = plt.subplots(2,1,sharex=True)
+    ax1 = phase_diagram_Delta.plot_phase_diagram(ax1,field_index=3)
+    ax2 = phase_diagram_Delta.plot_phase_diagram(ax2,field_index=0)
 
-    FIGNAME='Self-consistent_convergence_nonzero_Delta'
+    ax1.set_ylabel(r'$\Delta$')
+    ax2.set_ylabel('Free energy')
+    ax2.set_xlabel(r'$U_s$')
+
+    ax1.legend(loc='upper left')
+    ax1.get_legend().set_title(r'$\mu$')
+
+    plt.subplots_adjust(hspace=.1)
+
+    FIGNAME='Self-consistent_convergence_Delta'
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
 
     output=os.path.join(FIG,FIGNAME)
     plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.close()
 
     with open(output+'.txt', 'w') as f:
-        f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an ${n_cells}x{n_cells}$ spinless Weyl-SSH lattice as a function of chemical potential $\mu={mu}$ and multiorbital rigid intracell shift $s$, with $U_s={Us}$.
+        f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an 
+${n_cells}x{n_cells}$ lattice as a function of Coulomb repulsion U for 
+various chemical potentials $\mu$.
 The absolute convergence factor is
 ${absolute_convergence_factor}$
 and an initial friction ${init_friction}$ and 
@@ -244,10 +261,10 @@ rho=-0.6
 rho_shift=0.5
 phi=0.6427
 chi=1.828633
-n_cells=23
+n_cells=11
 
-friction=0.9
-absolute_convergence_factor=0.0001
+friction=0.95
+absolute_convergence_factor=0.00001
 
 bulk_calculation=True
 
@@ -268,32 +285,34 @@ bdg = model(mu,Us,rho_shift)
 # Phase diagram Us, mu
 rho_shift=3.443
 rho=-3.53378
-phi=0.6427
-chi=1.828633
+phi=0 #0.6427
+chi=0 #1.828633
 init_friction=0.95
-iter_friction=0.95
+iter_friction=0.
 init_max_iterations=50
-iter_max_iterations=30
-absolute_convergence_factor=0.0001
+iter_max_iterations=50
+absolute_convergence_factor=0.00001
 
 _print=False
-Uss=np.arange(4.01,10,0.5)[::-1]
-muu=np.arange(0.2,5,1.1)[::-1]
+Uss=np.arange(-2,10,0.51)[::-1]
+muu=np.arange(-1,5.1,1.0)[::-1]
 
 phase_diagram_Us=PhaseDiagram(model_Us)
 phase_diagram_Us.directory=DATA_Us
 phase_diagram_Us.filename=filename
 phase_diagram_Us.initial_name='initial_convergence_Us'
 phase_diagram_Us.initial_title=f'Stoner mean-field theory\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
-# phase_diagram_Us.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation)
-plot_phase_diagram_Us(phase_diagram_Us)
+phase_diagram_Us.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Us)
 
-# phi=0.6427
-# chi=1.828633
-# phase_diagram_Delta=PhaseDiagram(model_Us)
-# phase_diagram_Delta.directory=DATA_Delta
-# phase_diagram_Delta.filename=filename
-# phase_diagram_Delta.initial_name='initial_convergence_nonzero_Delta'
-# phase_diagram_Delta.initial_title=f'Self-consistent convergence\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'+rf'$\text{{friction}}={init_friction}$'
-# # phase_diagram_Delta.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation)
-# plot_phase_diagram_Delta(phase_diagram_Delta)
+Uss=np.arange(-10,10,0.51)[::-1]
+muu=np.arange(-5,6,2.1)[::-1]
+phi=0.6427
+chi=4.828633
+rho=6
+rho_shift=2
+phase_diagram_Delta=PhaseDiagram(model_Us)
+phase_diagram_Delta.directory=DATA_Delta
+phase_diagram_Delta.filename=filename
+phase_diagram_Delta.initial_name='initial_convergence_Delta'
+phase_diagram_Delta.initial_title=f'Stoner theory with nonzero Gorkov pairing\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
+phase_diagram_Delta.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Delta)

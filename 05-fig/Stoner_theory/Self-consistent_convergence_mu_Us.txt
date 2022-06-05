@@ -1,7 +1,7 @@
 Self-consistent Hartree, Fock and Gorkov fields on an 
-$23x23$ lattice as a function of Coulomb repulsion U for 
+$11x11$ lattice as a function of Coulomb repulsion U for 
 various chemical potentials $\mu$.
 The absolute convergence factor is
-$0.0001$
+$1e-05$
 and an initial friction $0.95$ and 
-friction $0.95$ over subsequent iterations.
+friction $0.0$ over subsequent iterations.
