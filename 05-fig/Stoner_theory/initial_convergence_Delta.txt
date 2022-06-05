@@ -1,0 +1,8 @@
+Renormalisation of the Hartree, Fock and Gorkov fields on a 
+        2-dimensional spinless Weyl-SSH lattice with 
+attractive intracell Hubbard U, pairing fermions on sites A and B. 
+The fields are calculated self-consistently, with absolute convergence factor 
+$1e-05$
+and an initial friction $0$ and 
+friction $0.0$ over subsequent iterations.
+The lattice is $11x11$ cells squared.
