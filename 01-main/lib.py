@@ -1955,11 +1955,11 @@ class BogoliubovdeGennes(TightBinding):
     def _set_fields(self, trace_density, density, anomalous_density):
         """Returns Hartree, Fock, Gorkov"""
         if self.bulk_calculation:
-            hartree = +np.einsum('kij,kj->ki',self._hubbard_u,trace_density,optimize=True)
+            hartree = +np.einsum('kij,kj->ki',-self._hubbard_u,trace_density,optimize=True)
             print(np.shape(density))
             exit()
-            fock    = -np.multiply(self.U_entries,density)
-            gorkov  = +np.multiply(self.U_entries,anomalous_density)
+            fock    = -np.multiply(-self.U_entries,density)
+            gorkov  = +np.multiply(-self.U_entries,anomalous_density)
 
             # hartree=np.mean(np.abs(hartree))*np.ones(np.shape(hartree))*np.sign(hartree)
 
@@ -1974,9 +1974,9 @@ class BogoliubovdeGennes(TightBinding):
             gorkov=(self.dk/self.n_total_kpts)*np.sum(gorkov)*np.ones(np.shape(gorkov))*np.sign(gorkov)
             hartree=(self.dk/self.n_total_kpts)*np.sum(hartree)
         else:
-            hartree = +np.einsum('ij,j->i',self._hubbard_u,trace_density,optimize=True)
-            fock    = -np.multiply(self.U_entries,density)
-            gorkov  = +np.multiply(self.U_entries,anomalous_density)
+            hartree = +np.einsum('ij,j->i',-self._hubbard_u,trace_density,optimize=True)
+            fock    = -np.multiply(-self.U_entries,density)
+            gorkov  = +np.multiply(-self.U_entries,anomalous_density)
         return np.real_if_close(hartree), np.real_if_close(fock), np.real_if_close(gorkov)
 
     def calculate_free_energy(self, trace_density, density, anomalous_density):
@@ -2008,13 +2008,13 @@ class BogoliubovdeGennes(TightBinding):
         self.V_mf.append(-np.real((h+f+g)/n_dof))
 
         if self.bulk_calculation:
-            h=np.einsum('kij,ki,kj->',self._hubbard_u,trace_density,trace_density,optimize=True)
-            f=np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
-            g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
+            h=np.einsum('kij,ki,kj->',-self._hubbard_u,trace_density,trace_density,optimize=True)
+            f=np.einsum('i,i,i->',-self.U_entries,density,np.conj(density),optimize=True)
+            g=np.einsum('i,i,i->',-self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
         else:
-            h=np.einsum('ij,i,j->',self._hubbard_u,trace_density,trace_density,optimize=True)
-            f=np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
-            g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
+            h=np.einsum('ij,i,j->',-self._hubbard_u,trace_density,trace_density,optimize=True)
+            f=np.einsum('i,i,i->',-self.U_entries,density,np.conj(density),optimize=True)
+            g=np.einsum('i,i,i->',-self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
         
         self.V.append(-np.real((h-f+g)/n_dof))
         # print(self.U_entries[0])
@@ -2206,8 +2206,11 @@ class BogoliubovdeGennes(TightBinding):
                 if i>4:
                     x=1-percent_error/100
                     beta=3
-                    y=1/(1+(x/(1-x))**beta)
-                    self.friction=min(x,0.95)
+                    if 1-x<0.01:
+                        y=0
+                    else:
+                        y=1/(1+(x/(1-x))**beta)
+                    self.friction=min(y,0.95)
 
                 if absolute_error<eps:
                     self.converged=True
@@ -3627,7 +3630,7 @@ class PhaseDiagram():
         with open(name+'.npz', 'wb') as f:
             cPickle.dump([xxx,yy,z], f)
 
-    def plot_phase_diagram(self,ax,field_index=3,second_field_index=None):
+    def plot_phase_diagram(self,ax,field_index=3,minus_field_index=None,plus_field_index=None):
         """Field index 0 is the free energy"""
         names=glob.glob(os.path.join(self.directory,'*'+'.npz'))
         names_x=np.array([float(name.split('/')[-1].split('_')[0]) for name in names])
@@ -3672,7 +3675,7 @@ class PhaseDiagram():
 #             # print(y)
 #         exit()
 
-        s=3
+        s=1
         markevery=1
         for j,name in enumerate(names):
             i=list(set(names_x)).index(names_x[j])
@@ -3686,11 +3689,22 @@ class PhaseDiagram():
             elif names_y[j]=='rev':
                 c = lighten_color(color[i],amount=0.3)
                 marker=markers[1]
-            elif names_y[j]=='fwd':
+            if names_y[j]=='fwd':
                 c = lighten_color(color[i],amount=0.3)
                 marker=markers[0]
-            if type(second_field_index)==type(None):
-                ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$',markevery=markevery)
+                if type(minus_field_index)!=type(None):
+                    ax.plot(x,y[:,field_index]-y[:,minus_field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$', markevery=markevery)
+                elif type(plus_field_index)!=type(None):
+                    ax.plot(x,y[:,field_index]+y[:,plus_field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$', markevery=markevery)
+                else:
+                    ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$',markevery=markevery)
             else:
-                ax.plot(x,y[:,field_index]-y[:,second_field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$', markevery=markevery)
+                if type(minus_field_index)==type(None):
+                    ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,markevery=markevery)
+                else:
+                    ax.plot(x,y[:,field_index]-y[:,minus_field_index],marker=marker,markersize=s,color=c,markevery=markevery)
+                if type(plus_field_index)==type(None):
+                    ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,markevery=markevery)
+                else:
+                    ax.plot(x,y[:,field_index]+y[:,plus_field_index],marker=marker,markersize=s,color=c,markevery=markevery)
         return ax

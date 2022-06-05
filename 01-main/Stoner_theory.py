@@ -32,7 +32,7 @@ Use two args: independent variables x and z"""
     bdg.set_fock(phi,spin_i='up',spin_f='dn')
     bdg.set_gorkov(chi,spin_i='up',spin_f='dn')
 
-    bdg.set_hubbard_u(-Us,spin_i='up',spin_f='dn')
+    bdg.set_hubbard_u(Us,spin_i='up',spin_f='dn')
 
     bdg.record_hartree(location=[0,0], spin='up', _print=_print)
     bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
@@ -188,18 +188,24 @@ The lattice is ${n_cells}x{n_cells}$ cells squared.
 ''')
 
 def plot_phase_diagram_Us(phase_diagram_Us):
-    fig, [ax1,ax2] = plt.subplots(2,1,sharex=True)
-    ax1 = phase_diagram_Us.plot_phase_diagram(ax1,field_index=1,second_field_index=2)
-    ax2 = phase_diagram_Us.plot_phase_diagram(ax2,field_index=0)
+    fig, axs = plt.subplots(5,1,sharex=True)
+    axs[0] = phase_diagram_Us.plot_phase_diagram(axs[0],field_index=1,minus_field_index=2)
+    axs[1] = phase_diagram_Us.plot_phase_diagram(axs[1],field_index=1,plus_field_index=2)
+    axs[2] = phase_diagram_Us.plot_phase_diagram(axs[2],field_index=2)
+    axs[3] = phase_diagram_Us.plot_phase_diagram(axs[3],field_index=3)
+    axs[4] = phase_diagram_Us.plot_phase_diagram(axs[4],field_index=0)
 
-    ax1.set_ylabel(r'$\langle\hat{M}\rangle$')
-    ax2.set_ylabel('Free energy')
-    ax2.set_xlabel(r'$U_s$')
+    axs[0].set_ylabel(r'$\langle\hat{M}\rangle$')
+    axs[1].set_ylabel(r'$\sum_\sigma\phi_\sigma$')
+    axs[2].set_ylabel(r'$\Phi_{\uparrow\downarrow}$')
+    axs[3].set_ylabel(r'$\Delta_{\uparrow\downarrow}$')
+    axs[4].set_ylabel('Free energy')
+    axs[4].set_xlabel(r'$U_s$')
 
-    ax1.legend(loc='upper left')
-    ax1.get_legend().set_title(r'$\mu$')
+    axs[0].legend(loc='upper left')
+    axs[0].get_legend().set_title(r'$\mu$')
 
-    plt.subplots_adjust(hspace=.1)
+    # plt.subplots_adjust(hspace=.1)
 
     FIGNAME='Self-consistent_convergence_mu_Us'
 
@@ -220,20 +226,74 @@ friction ${iter_friction}$ over subsequent iterations.
 ''')
 
 def plot_phase_diagram_Delta(phase_diagram_Delta):
-    fig, [ax1,ax2] = plt.subplots(2,1,sharex=True)
-    ax1 = phase_diagram_Delta.plot_phase_diagram(ax1,field_index=3)
-    ax2 = phase_diagram_Delta.plot_phase_diagram(ax2,field_index=0)
+    fig, axs = plt.subplots(5,1,sharex=True)
+    axs[0] = phase_diagram_Delta.plot_phase_diagram(axs[0],field_index=1,minus_field_index=2)
+    axs[1] = phase_diagram_Delta.plot_phase_diagram(axs[1],field_index=1,plus_field_index=2)
+    axs[2] = phase_diagram_Delta.plot_phase_diagram(axs[2],field_index=2)
+    axs[3] = phase_diagram_Delta.plot_phase_diagram(axs[3],field_index=3)
+    axs[-1] = phase_diagram_Delta.plot_phase_diagram(axs[-1],field_index=0)
 
-    ax1.set_ylabel(r'$\Delta$')
-    ax2.set_ylabel('Free energy')
-    ax2.set_xlabel(r'$U_s$')
+    axs[0].set_ylabel(r'$\langle\hat{M}\rangle$')
+    axs[1].set_ylabel(r'$\sum_\sigma\phi_\sigma$')
+    axs[2].set_ylabel(r'$\Phi_{\uparrow\downarrow}$')
+    axs[3].set_ylabel(r'$\Delta_{\uparrow\downarrow}$')
+    axs[-1].set_ylabel('Free energy')
+    axs[-1].set_xlabel(r'$U_s$')
 
-    ax1.legend(loc='upper left')
-    ax1.get_legend().set_title(r'$\mu$')
+    axs[0].legend(loc='upper left')
+    axs[0].get_legend().set_title(r'$\mu$')
 
-    plt.subplots_adjust(hspace=.1)
+    # plt.subplots_adjust(hspace=1)
 
     FIGNAME='Self-consistent_convergence_Delta'
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
+
+    output=os.path.join(FIG,FIGNAME)
+    plt.savefig(output+'.pdf', bbox_inches = "tight")
+    plt.close()
+
+    with open(output+'.txt', 'w') as f:
+        f.write(rf'''Self-consistent Hartree, Fock and Gorkov fields on an 
+${n_cells}x{n_cells}$ lattice as a function of Coulomb repulsion U for 
+various chemical potentials $\mu$.
+The absolute convergence factor is
+${absolute_convergence_factor}$
+and an initial friction ${init_friction}$ and 
+friction ${iter_friction}$ over subsequent iterations.
+''')
+
+def plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta):
+    fig, axs = plt.subplots(5,2,sharex=True,sharey='row')
+    axs[0,0] = phase_diagram_Us.plot_phase_diagram(axs[0,0],field_index=1,minus_field_index=2)
+    axs[1,0] = phase_diagram_Us.plot_phase_diagram(axs[1,0],field_index=1,plus_field_index=2)
+    axs[2,0] = phase_diagram_Us.plot_phase_diagram(axs[2,0],field_index=2)
+    axs[3,0] = phase_diagram_Us.plot_phase_diagram(axs[3,0],field_index=3)
+    axs[4,0] = phase_diagram_Us.plot_phase_diagram(axs[4,0],field_index=0)
+
+    axs[0,0].set_ylabel(r'$\langle\hat{M}\rangle$')
+    axs[1,0].set_ylabel(r'$\sum_\sigma\phi_\sigma$')
+    axs[2,0].set_ylabel(r'$\Phi_{\uparrow\downarrow}$')
+    axs[3,0].set_ylabel(r'$\Delta_{\uparrow\downarrow}$')
+    axs[4,0].set_ylabel('Free energy')
+    # fig.suptitle(greens_function.title)
+    fig.supxlabel(r'$U_s$')
+
+    axs[0,1] = phase_diagram_Delta.plot_phase_diagram(axs[0,1],field_index=1,minus_field_index=2)
+    axs[1,1] = phase_diagram_Delta.plot_phase_diagram(axs[1,1],field_index=1,plus_field_index=2)
+    axs[2,1] = phase_diagram_Delta.plot_phase_diagram(axs[2,1],field_index=2)
+    axs[3,1] = phase_diagram_Delta.plot_phase_diagram(axs[3,1],field_index=3)
+    axs[-1,1] = phase_diagram_Delta.plot_phase_diagram(axs[-1,1],field_index=0)
+
+    axs[0,1].legend(loc='upper left', bbox_to_anchor=(1.05,1))
+    axs[0,1].get_legend().set_title(r'$\mu$')
+
+    axs[0,0].set_title('Initial magnetism')
+    axs[0,1].set_title('Initial BCS pairing')
+
+    # plt.subplots_adjust(hspace=.1)
+
+    FIGNAME='Self-consistent_convergence'
 
     fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
 
@@ -287,15 +347,17 @@ rho_shift=3.443
 rho=-3.53378
 phi=0 #0.6427
 chi=0 #1.828633
-init_friction=0.95
+init_friction=0
 iter_friction=0.
 init_max_iterations=50
-iter_max_iterations=50
+iter_max_iterations=20
 absolute_convergence_factor=0.00001
 
+plot_initial_renormalisation=None
+
 _print=False
-Uss=np.arange(-2,10,0.51)[::-1]
-muu=np.arange(-1,5.1,1.0)[::-1]
+Uss=np.arange(-10,10,0.51)[::-1]
+muu=np.arange(-5,5.1,1.0)[::-1]
 
 phase_diagram_Us=PhaseDiagram(model_Us)
 phase_diagram_Us.directory=DATA_Us
@@ -303,16 +365,19 @@ phase_diagram_Us.filename=filename
 phase_diagram_Us.initial_name='initial_convergence_Us'
 phase_diagram_Us.initial_title=f'Stoner mean-field theory\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
 phase_diagram_Us.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Us)
+# plot_phase_diagram_Us(phase_diagram_Us)
 
-Uss=np.arange(-10,10,0.51)[::-1]
-muu=np.arange(-5,6,2.1)[::-1]
-phi=0.6427
-chi=4.828633
-rho=6
-rho_shift=2
+iter_max_iterations=50
+rho=-6.53378
+rho_shift=0#.443
+phi=0
+chi=5.828633
 phase_diagram_Delta=PhaseDiagram(model_Us)
 phase_diagram_Delta.directory=DATA_Delta
 phase_diagram_Delta.filename=filename
 phase_diagram_Delta.initial_name='initial_convergence_Delta'
 phase_diagram_Delta.initial_title=f'Stoner theory with nonzero Gorkov pairing\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
 phase_diagram_Delta.phase_diagram(Uss,dependent_variables,muu,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Delta)
+# plot_phase_diagram_Delta(phase_diagram_Delta)
+
+plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta)

@@ -3,5 +3,5 @@ $11x11$ lattice as a function of Coulomb repulsion U for
 various chemical potentials $\mu$.
 The absolute convergence factor is
 $1e-05$
-and an initial friction $0.95$ and 
+and an initial friction $0$ and 
 friction $0.0$ over subsequent iterations.
