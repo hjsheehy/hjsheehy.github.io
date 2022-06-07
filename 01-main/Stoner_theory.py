@@ -191,8 +191,8 @@ def plot_phase_diagram_Us(phase_diagram_Us):
     fig, axs = plt.subplots(5,1,sharex=True)
     axs[0] = phase_diagram_Us.plot_phase_diagram(axs[0],field_index=1,minus_field_index=2)
     axs[1] = phase_diagram_Us.plot_phase_diagram(axs[1],field_index=1,plus_field_index=2)
-    axs[2] = phase_diagram_Us.plot_phase_diagram(axs[2],field_index=2)
-    axs[3] = phase_diagram_Us.plot_phase_diagram(axs[3],field_index=3)
+    axs[2] = phase_diagram_Us.plot_phase_diagram(axs[2],field_index=3)
+    axs[3] = phase_diagram_Us.plot_phase_diagram(axs[3],field_index=4)
     axs[4] = phase_diagram_Us.plot_phase_diagram(axs[4],field_index=0)
 
     axs[0].set_ylabel(r'$\langle\hat{M}\rangle$')
@@ -202,7 +202,7 @@ def plot_phase_diagram_Us(phase_diagram_Us):
     axs[4].set_ylabel('Free energy')
     axs[4].set_xlabel(r'$U_s$')
 
-    axs[0].legend(loc='upper left')
+    axs[0].legend(loc='upper left', bbox_to_anchor=(1.05,1))
     axs[0].get_legend().set_title(r'$\mu$')
 
     # plt.subplots_adjust(hspace=.1)
@@ -229,8 +229,8 @@ def plot_phase_diagram_Delta(phase_diagram_Delta):
     fig, axs = plt.subplots(5,1,sharex=True)
     axs[0] = phase_diagram_Delta.plot_phase_diagram(axs[0],field_index=1,minus_field_index=2)
     axs[1] = phase_diagram_Delta.plot_phase_diagram(axs[1],field_index=1,plus_field_index=2)
-    axs[2] = phase_diagram_Delta.plot_phase_diagram(axs[2],field_index=2)
-    axs[3] = phase_diagram_Delta.plot_phase_diagram(axs[3],field_index=3)
+    axs[2] = phase_diagram_Delta.plot_phase_diagram(axs[2],field_index=3)
+    axs[3] = phase_diagram_Delta.plot_phase_diagram(axs[3],field_index=4)
     axs[-1] = phase_diagram_Delta.plot_phase_diagram(axs[-1],field_index=0)
 
     axs[0].set_ylabel(r'$\langle\hat{M}\rangle$')
@@ -240,7 +240,7 @@ def plot_phase_diagram_Delta(phase_diagram_Delta):
     axs[-1].set_ylabel('Free energy')
     axs[-1].set_xlabel(r'$U_s$')
 
-    axs[0].legend(loc='upper left')
+    axs[0].legend(loc='upper left', bbox_to_anchor=(1.05,1))
     axs[0].get_legend().set_title(r'$\mu$')
 
     # plt.subplots_adjust(hspace=1)
@@ -267,8 +267,8 @@ def plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta):
     fig, axs = plt.subplots(5,2,sharex=True,sharey='row')
     axs[0,0] = phase_diagram_Us.plot_phase_diagram(axs[0,0],field_index=1,minus_field_index=2)
     axs[1,0] = phase_diagram_Us.plot_phase_diagram(axs[1,0],field_index=1,plus_field_index=2)
-    axs[2,0] = phase_diagram_Us.plot_phase_diagram(axs[2,0],field_index=2)
-    axs[3,0] = phase_diagram_Us.plot_phase_diagram(axs[3,0],field_index=3)
+    axs[2,0] = phase_diagram_Us.plot_phase_diagram(axs[2,0],field_index=3)
+    axs[3,0] = phase_diagram_Us.plot_phase_diagram(axs[3,0],field_index=4)
     axs[4,0] = phase_diagram_Us.plot_phase_diagram(axs[4,0],field_index=0)
 
     axs[0,0].set_ylabel(r'$\langle\hat{M}\rangle$')
@@ -321,7 +321,7 @@ rho=-0.6
 rho_shift=0.5
 phi=0.6427
 chi=1.828633
-n_cells=11
+n_cells=43
 
 friction=0.95
 absolute_convergence_factor=0.00001
@@ -344,20 +344,21 @@ bdg = model(mu,Us,rho_shift)
 
 # Phase diagram Us, mu
 rho_shift=3.443
-rho=-3.53378
+rho=-2.53378
 phi=0 #0.6427
 chi=0 #1.828633
 init_friction=0
-iter_friction=0.
+iter_friction=0
 init_max_iterations=50
 iter_max_iterations=20
-absolute_convergence_factor=0.00001
+absolute_convergence_factor=0.0001
 
 plot_initial_renormalisation=None
 
 _print=False
 Uss=np.arange(-10,10,0.51)[::-1]
 muu=np.arange(-5,5.1,1.0)[::-1]
+# muu=np.arange(-5,-3.1,1.0)[::-1]
 
 phase_diagram_Us=PhaseDiagram(model_Us)
 phase_diagram_Us.directory=DATA_Us

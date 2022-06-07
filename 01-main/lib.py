@@ -2203,7 +2203,14 @@ class BogoliubovdeGennes(TightBinding):
                 #         beta=3
                 #         y=1/(1+(x/(1-x))**beta)
                 #         self.friction=min(y,0.95)
-                if i>4:
+
+                count = np.count_nonzero(np.abs(self.free_energy-self.free_energy[-1]) < self.absolute_convergence_factor)
+                if count>5:
+                    self.oscillating=True
+                if self.oscillating:
+                    print('Repeating!')
+                    self.friction=0.95
+                elif i>4:
                     x=1-percent_error/100
                     beta=3
                     if 1-x<0.01:
@@ -3699,12 +3706,10 @@ class PhaseDiagram():
                 else:
                     ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,label=f'${z:.2f}$',markevery=markevery)
             else:
-                if type(minus_field_index)==type(None):
-                    ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,markevery=markevery)
-                else:
+                if type(minus_field_index)!=type(None):
                     ax.plot(x,y[:,field_index]-y[:,minus_field_index],marker=marker,markersize=s,color=c,markevery=markevery)
-                if type(plus_field_index)==type(None):
-                    ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,markevery=markevery)
-                else:
+                elif type(plus_field_index)!=type(None):
                     ax.plot(x,y[:,field_index]+y[:,plus_field_index],marker=marker,markersize=s,color=c,markevery=markevery)
+                else:
+                    ax.plot(x,y[:,field_index],marker=marker,markersize=s,color=c,markevery=markevery)
         return ax
