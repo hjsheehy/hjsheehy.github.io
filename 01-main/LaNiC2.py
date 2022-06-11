@@ -258,33 +258,33 @@ v=0.6
 w=1.2
 n_cells=nx=ny=43
 
-k_space_phase_diagram(CALCULATE=True)
+# k_space_phase_diagram(CALCULATE=True)
 
-glue_edgs=False
-greens_function_kq, tb = main(v,td,glue_edgs)
-with open(os.path.join(DATA,'topological.npz'), 'wb') as f:
-    cPickle.dump([greens_function_kq, tb], f)
+# glue_edgs=False
+# greens_function_kq, tb = main(v,td,glue_edgs)
+# with open(os.path.join(DATA,'topological.npz'), 'wb') as f:
+#     cPickle.dump([greens_function_kq, tb], f)
 
 [greens_function_kq, tb] = np.load(os.path.join(DATA,'topological.npz'), allow_pickle=True)
 
-# unit_cell(tb)
+unit_cell(tb)
 # ldos_each_atom(greens_function_kq)
-k_space_topological(greens_function_kq)
+# k_space_topological(greens_function_kq)
 
-v=1.2
-w=0.6
-greens_function_kq, tb = main(v,td,glue_edgs)
-with open(os.path.join(DATA,'trivial.npz'), 'wb') as f:
-    cPickle.dump([greens_function_kq, tb], f)
+# v=1.2
+# w=0.6
+# greens_function_kq, tb = main(v,td,glue_edgs)
+# with open(os.path.join(DATA,'trivial.npz'), 'wb') as f:
+#     cPickle.dump([greens_function_kq, tb], f)
 
-[greens_function_kq, tb] = np.load(os.path.join(DATA,'trivial.npz'), allow_pickle=True)
-k_space_trivial(greens_function_kq)
+# [greens_function_kq, tb] = np.load(os.path.join(DATA,'trivial.npz'), allow_pickle=True)
+# k_space_trivial(greens_function_kq)
 
-v=1.2
-w=1.2
-greens_function_kq, tb = main(v,td,glue_edgs)
-with open(os.path.join(DATA,'transition.npz'), 'wb') as f:
-    cPickle.dump([greens_function_kq, tb], f)
+# v=1.2
+# w=1.2
+# greens_function_kq, tb = main(v,td,glue_edgs)
+# with open(os.path.join(DATA,'transition.npz'), 'wb') as f:
+#     cPickle.dump([greens_function_kq, tb], f)
 
-[greens_function_kq, tb] = np.load(os.path.join(DATA,'transition.npz'), allow_pickle=True)
-k_space_transition(greens_function_kq)
+# [greens_function_kq, tb] = np.load(os.path.join(DATA,'transition.npz'), allow_pickle=True)
+# k_space_transition(greens_function_kq)

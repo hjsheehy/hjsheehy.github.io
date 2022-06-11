@@ -1,0 +1,4 @@
+Phase diagram of an impurity wall, perpendicular to the SSH dimers, of length $L$ and coupling strength $V$, and with closed boundary conditions. 
+The spectrum of the simple Weyl-SSH model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites.
+The model consists of an $43\times43$ lattice, with chemical potential $\mu=0.0$, interdimer $w=1.2$, intradimer $v=0.6$ and interchain $t_d=0.9$ hoppings.
+Compare with the model with open boundary conditions Fig \ref{fig:wall_phase_diagram_open}.

@@ -1,0 +1,2 @@
+Model and quantities depicted in Figure \ref{fig:V_phase_diagram_topological}, except with
+the interdimer hopping $v=1.8>w$, the trivial phase of the SSH model.

@@ -1,0 +1,2 @@
+The model and quantities depicted as in Fig \ref{fig:wall_phase_diagram_closed}, but with the boundary conditions open.
+We observe the topological mode due to the impurity is independent of the topological modees assoicated with the boundary conditions.

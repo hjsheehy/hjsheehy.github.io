@@ -1,7 +1,0 @@
-Self-consistent Hartree, Fock and Gorkov fields on an 
-$5x5$ lattice as a function of Coulomb repulsion U for 
-various chemical potentials $\mu$.
-The absolute convergence factor is
-$0.0001$
-and an initial friction $0.95$ and 
-friction $0.95$ over subsequent iterations.

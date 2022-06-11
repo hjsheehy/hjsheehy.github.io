@@ -5,4 +5,4 @@ The fields are calculated self-consistently, with absolute convergence factor
 $1e-05$
 and an initial friction $0$ and 
 friction $0$ over subsequent iterations.
-The lattice is $11x11$ cells squared.
+The lattice is $3x3$ cells squared.

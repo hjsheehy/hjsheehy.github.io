@@ -1,0 +1,7 @@
+Impurity wall. The spectrum of the Weyl-SSH model in the normal state, in k-space, integrated over the direction along the SSH chains and summed over the atomic sites, $43\times43$ cells, with closed boundary conditions.
+    The chemical potential is $\mu=0.0$, interdimer hopping $w=1.2$, intradimer $v=0.6$ and interchain $t_d=0.9$, corresponding to the topological phase of the SSH model.
+    The potential barrier is attractive with negative $V<0$ and repulsive with positive $V>0$.
+    For small $|V|\approx w$, a mode outside the Brillouin Zone leaves the bulk.
+    In particular, zero-energy modes exist at the edge of the Brillouin zone when $|V|=w$.
+    As $|V|>w$ increases, the mode moves into the centre of the Brillouin Zone, falling or rising with the sign of $V$, tending to the topological spectrum of the open-boundary model as $|V|\to\infty$.
+    

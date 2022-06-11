@@ -1,0 +1,2 @@
+Model and quantities depicted in Figure \ref{fig:V_phase_diagram_topological}, except with
+the interdimer hopping $v=w=1.2$, the topological transition point of the SSH model.

@@ -2,30 +2,30 @@ from lib import *
 
 filename=sys.argv[0].split('.')[0]
 DATA_Us=os.path.join(DATA,filename+'_Us')
+DATA_Us_larger=DATA_Us+'_larger'
 DATA_Delta=os.path.join(DATA,filename+'_Delta')
+DATA_Delta_larger=DATA_Delta+'_larger'
 DATA=os.path.join(DATA,filename)
 FIG=os.path.join(FIG,filename)
-for directory in [DATA_Us,DATA_Delta,FIG]:
+for directory in [DATA_Us,DATA_Delta,FIG,DATA_Us_larger,DATA_Delta_larger]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 def model(mu,Us,rho_shift):
     """Creates a model for the phase diagram.
 Use two args: independent variables x and z"""
-    A=Atom([0,0],'A')
+    A=Atom([0],'A')
     A.add_orbital('s')
-    lattice_vectors=[[1,0],[0,1]]
+    lattice_vectors=[[1]]
     bdg=BogoliubovdeGennes(lattice_vectors,'2D-Weyl-SSH')
     bdg.add_atom(A)
     bdg.n_spins=2
 
     bdg.cut(n_cells, axes=0, glue_edgs=True)
-    bdg.cut(n_cells, axes=1, glue_edgs=True)
     
     bdg.set_onsite(-mu)
 
-    bdg.set_hopping(-t,hop_vector=[1,0],label='$t$')
-    bdg.set_hopping(-t,hop_vector=[0,1],label='$t$')
+    bdg.set_hopping(-t,hop_vector=[1],label='$t$')
 
     bdg.set_hartree(rho+rho_shift,spin='up')
     bdg.set_hartree(rho-rho_shift,spin='dn')
@@ -34,10 +34,10 @@ Use two args: independent variables x and z"""
 
     bdg.set_hubbard_u(Us,spin_i='up',spin_f='dn')
 
-    bdg.record_hartree(location=[0,0], spin='up', _print=_print)
-    bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
-    bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
-    bdg.record_gorkov(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
+    bdg.record_hartree(location=[0], spin='up', _print=_print)
+    bdg.record_hartree(location=[0], spin='dn', _print=_print)
+    bdg.record_fock(location_i=[0], location_f=[0], spin_i='up', spin_f='dn',_print=_print)
+    bdg.record_gorkov(location_i=[0], location_f=[0], spin_i='up', spin_f='dn',_print=_print)
 
     return bdg
 
@@ -50,10 +50,10 @@ def model_rho_shift(mu,rho_shift):
 def dependent_variables(bdg):
     """The dependent variables to be extracted from the bdg model"""
 
-    hartree_up=bdg.hartree(spin='up')[0,0]
-    hartree_dn=bdg.hartree(spin='dn')[0,0]
-    fock=bdg.fock(spin_i='up', spin_f='dn', hop_vector=[0,0])[0,0]
-    gorkov=bdg.gorkov(spin_i='up', spin_f='dn', hop_vector=[0,0])[0,0]
+    hartree_up=bdg.hartree(spin='up')[0]
+    hartree_dn=bdg.hartree(spin='dn')[0]
+    fock=bdg.fock(spin_i='up', spin_f='dn', hop_vector=[0])[0]
+    gorkov=bdg.gorkov(spin_i='up', spin_f='dn', hop_vector=[0])[0]
 
     return [hartree_up, hartree_dn, fock, gorkov]
 
@@ -71,7 +71,7 @@ def process(*args):
 
     # greens_function_xq=GreensFunction(bdg,energy_interval,resolution, k_axes=[1])
 
-    greens_function_kq=GreensFunction(bdg,energy_interval,resolution, k_axes=[0,1])
+    greens_function_kq=GreensFunction(bdg,energy_interval,resolution, k_axes=[0])
 
     del bdg.eigenvectors
     del bdg.eigenvalues
@@ -104,8 +104,10 @@ def plot_iterations(bdg):
 
     # color = 'tab:black'
     ax1.tick_params(axis='y')
-    magnetism=bdg._hartree_iterations[0]-bdg._hartree_iterations[1]
-    ax1.plot(magnetism,c='g',marker=markers[1],markersize=s,label=r'$\hat{M}$', linestyle=linestyle)
+    # magnetism=bdg._hartree_iterations[0]-bdg._hartree_iterations[1]
+    # ax1.plot(magnetism,c='g',marker=markers[1],markersize=s,label=r'$\hat{M}$', linestyle=linestyle)
+    ax1.plot(bdg._hartree_iterations[0],c='g',marker=markers[1],markersize=s,label=r'$\phi_\uparrow$', linestyle=linestyle)
+    ax1.plot(bdg._hartree_iterations[1],c='g',marker=markers[1],markersize=s,label=r'$\phi_\downarrow$', linestyle=linestyle)
     ax1.plot(bdg._fock_iterations[0],c='k',marker=markers[2],markersize=s,label=r'$\Phi_{\uparrow\downarrow}$', linestyle=linestyle)
     ax1.plot(bdg._gorkov_iterations[0],c='cyan',marker=markers[3],markersize=s,label=r'$\Delta_{\uparrow\downarrow}$', linestyle=linestyle)
     ax1.legend()
@@ -211,21 +213,12 @@ def plot_phase_diagram_Us(phase_diagram_Us,FIGNAME):
     axs[-1].set_ylabel('Free energy')
     axs[-1].set_xlabel(r'$\mu$')
 
-    handles, labels = axs[0].get_legend_handles_labels()
-    handle_list, label_list = [], []
-    for handle, label in zip(handles, labels):
-        if label not in label_list:
-            handle_list.append(handle)
-            label_list.append(label)
-    axs[0].legend(handle_list, label_list,loc='upper left', bbox_to_anchor=(1.05,1))
+    axs[0].legend(loc='upper left', bbox_to_anchor=(1.05,1))
     axs[0].get_legend().set_title(r'$U_s$')
 
     # plt.subplots_adjust(hspace=.1)
 
     fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
-    title=r'''2D Stoner theory
-    Starting $\Delta=0$'''
-    fig.suptitle(title)
 
     OUTPUT=os.path.join(FIG,FIGNAME)
     if GIF:
@@ -266,21 +259,12 @@ def plot_phase_diagram_Delta(phase_diagram_Delta,FIGNAME):
     axs[-1].set_ylabel('Free energy')
     axs[-1].set_xlabel(r'$\mu$')
 
-    handles, labels = axs[0].get_legend_handles_labels()
-    handle_list, label_list = [], []
-    for handle, label in zip(handles, labels):
-        if label not in label_list:
-            handle_list.append(handle)
-            label_list.append(label)
-    axs[0].legend(handle_list, label_list,loc='upper left', bbox_to_anchor=(1.05,1))
+    axs[0].legend(loc='upper left', bbox_to_anchor=(1.05,1))
     axs[0].get_legend().set_title(r'$U_s$')
 
     # plt.subplots_adjust(hspace=1)
 
     fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
-    title=r'''2D Stoner theory
-    Starting $\Delta\not=0$'''
-    fig.suptitle(title)
 
     OUTPUT=os.path.join(FIG,FIGNAME)
     if GIF:
@@ -327,13 +311,7 @@ def plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta,FIGNAME):
     axs[3,1] = phase_diagram_Delta.plot_phase_diagram(axs[3,1],field_index=4,absolute=True)
     axs[-1,1] = phase_diagram_Delta.plot_phase_diagram(axs[-1,1],field_index=0)
 
-    handles, labels = axs[0,0].get_legend_handles_labels()
-    handle_list, label_list = [], []
-    for handle, label in zip(handles, labels):
-        if label not in label_list:
-            handle_list.append(handle)
-            label_list.append(label)
-    axs[0,0].legend(handle_list, label_list,loc='upper left', bbox_to_anchor=(2.25,1))
+    axs[0,0].legend(loc='upper left', bbox_to_anchor=(2.25,1))
     axs[0,0].get_legend().set_title(r'$U_s$')
 
     axs[0,0].set_title(r'Initial $\Delta_{\uparrow\downarrow},\Phi_{\uparrow\downarrow}=0$')
@@ -342,8 +320,6 @@ def plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta,FIGNAME):
     # plt.subplots_adjust(hspace=.1)
 
     fig.set_size_inches(w=LATEX_WIDTH, h=1.2*LATEX_WIDTH) 
-    title=r'''2D Stoner theory'''
-    fig.suptitle(title)
 
     OUTPUT=os.path.join(FIG,FIGNAME)
     plt.savefig(OUTPUT+'.pdf', bbox_inches = "tight")
@@ -362,35 +338,48 @@ friction ${iter_friction}$ over subsequent iterations.
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=0.23
+mu=3.7
 t=1
-Us=3.3
-rho=-0.6
-rho_shift=0.5
-phi=0.6427
-chi=1.828633
-n_cells=23
+Us=2.8
+rho=2.4
+rho_shift=0
+phi=0
+chi=5.0
+n_cells=11
 
-friction=0.95
+friction=0
 absolute_convergence_factor=0.00001
 
 bulk_calculation=True
 
 _print=False
-bdg = model(mu,Us,rho_shift)
-
+# bdg = model(mu,Us,rho_shift)
+# bdg.squeeze=False
+# # bdg.print_V=True
+# # bdg.print_V_mf=True
+# # bdg.print_Eg=True
+# # bdg.print_free_energy=True
 # bdg.self_consistent_calculation(friction=friction, max_iterations=100, absolute_convergence_factor=absolute_convergence_factor)
+
+# print(bdg.hartree(spin='up'))
+# print(bdg.hartree(spin='dn'))
+# print(bdg.gorkov(spin_i='up',spin_f='dn'))
+# print(bdg.free_energy[-1])
 
 # hartree_up=bdg.hartree(spin='up')
 # hartree_dn=bdg.hartree(spin='dn')
 # fock=bdg.fock(spin_i='up',spin_f='dn')
 # gorkov=bdg.gorkov(spin_i='up',spin_f='dn')
-# M=(hartree_up-hartree_dn)[0,0]
+# M=(hartree_up-hartree_dn)[0]
 # plot_iterations(bdg)
 # plt.show()
 # exit()
 
 # Phase diagram Us, mu
+rho_shift=10.443
+rho=-2.53378
+phi=0 #0.6427
+chi=0 #1.828633
 init_friction=0
 iter_friction=0
 init_max_iterations=200
@@ -399,45 +388,67 @@ absolute_convergence_factor=0.00001
 
 GIF=True
 GIF=False
-plot_initial_renormalisation=None
+# plot_initial_renormalisation=None
 
 _print=False
-Uss=[-5.6,-4.2,-2.8,-1.4,0,1.4,2.8,4.2,5.6][::-1]
-muu=np.arange(-6.1,10.1,0.5)[::-1]
-muuA=muu[:int(len(muu)/2)]
-muuB=muu[int(len(muu)/2):]
-muuu=[muuA,muuB]
-data=['A','B']
-for i in range(1):
-    i=1
-    muu=muuu[i]
-    datalabel=data[i]
+Uss=[-4.2,-2.8,-1.4,0,1.4,2.8,4.2]
+muu=np.arange(-5,5.1,1.0)[::-1]
+muu=np.arange(-5,5,0.1)[::-1]
+# muu=[-6,-4,-2,0,2,4,6]
 
-    rho_shift=4.043
-    rho=-2.53378
-    phi=0 #0.6427
-    chi=0 #1.828633
+phase_diagram_Us=PhaseDiagram(model_Us)
+phase_diagram_Us.directory=DATA_Us
+phase_diagram_Us.filename=filename
+phase_diagram_Us.initial_name='initial_convergence_Us'
+phase_diagram_Us.initial_title=f'Stoner mean-field theory\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
+FIGNAME='Self-consistent_convergence_mu_Us'
+phase_diagram_Us.phase_diagram(muu,dependent_variables,Uss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Us,FIGNAME=FIGNAME)
+# plot_phase_diagram_Us(phase_diagram_Us,FIGNAME=FIGNAME)
 
-    phase_diagram_Us=PhaseDiagram(model_Us)
-    phase_diagram_Us.directory=DATA_Us
-    phase_diagram_Us.filename=filename
-    phase_diagram_Us.initial_name='initial_convergence_Us'
-    phase_diagram_Us.initial_title=f'Stoner mean-field theory\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
-    FIGNAME='Self-consistent_convergence_mu_Us'
-    # phase_diagram_Us.phase_diagram(muu,dependent_variables,Uss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Us,FIGNAME=FIGNAME,datalabel=datalabel)
-    plot_phase_diagram_Us(phase_diagram_Us,FIGNAME=FIGNAME)
+rho=2.4
+rho_shift=0#.443
+phi=0
+chi=5
+phase_diagram_Delta=PhaseDiagram(model_Us)
+phase_diagram_Delta.directory=DATA_Delta
+phase_diagram_Delta.filename=filename
+phase_diagram_Delta.initial_name='initial_convergence_Delta'
+phase_diagram_Delta.initial_title=f'Stoner theory with nonzero Gorkov and Fock pairing\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
+FIGNAME='Self-consistent_convergence_Delta'
+phase_diagram_Delta.phase_diagram(muu,dependent_variables,Uss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Delta,FIGNAME=FIGNAME)
+# plot_phase_diagram_Delta(phase_diagram_Delta,FIGNAME=FIGNAME)
 
-    rho=2.4
-    rho_shift=0#.443
-    phi=0
-    chi=2
-    phase_diagram_Delta=PhaseDiagram(model_Us)
-    phase_diagram_Delta.directory=DATA_Delta
-    phase_diagram_Delta.filename=filename
-    phase_diagram_Delta.initial_name='initial_convergence_Delta'
-    phase_diagram_Delta.initial_title=f'Stoner theory with nonzero Gorkov and Fock pairing\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
-    FIGNAME='Self-consistent_convergence_Delta'
-    # phase_diagram_Delta.phase_diagram(muu,dependent_variables,Uss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Delta,FIGNAME=FIGNAME,datalabel=datalabel)
-    plot_phase_diagram_Delta(phase_diagram_Delta,FIGNAME=FIGNAME)
+plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta,FIGNAME='Self-consistent_convergence')
 
-    plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta,FIGNAME='Self-consistent_convergence')
+# Uss=np.arange(-50,50,0.51)[::-1]
+# muu=[-6,-4,-2,0,2,4,6]
+Uss=[-4.2,-2.8,-1.4,0,1.4,2.8,4.2]
+muu=np.arange(-5,20.1,1.0)[::-1]
+
+rho_shift=3.443
+rho=-2.53378
+phi=0 #0.6427
+chi=0 #1.828633
+phase_diagram_Us=PhaseDiagram(model_Us)
+phase_diagram_Us.directory=DATA_Us_larger
+phase_diagram_Us.filename=filename
+phase_diagram_Us.initial_name='initial_convergence_Us_larger'
+phase_diagram_Us.initial_title=f'Stoner mean-field theory\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
+FIGNAME='Self-consistent_convergence_mu_Us_larger'
+phase_diagram_Us.phase_diagram(muu,dependent_variables,Uss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Us,FIGNAME=FIGNAME)
+# plot_phase_diagram_Us(phase_diagram_Us,FIGNAME=FIGNAME)
+
+rho=2.4
+rho_shift=0#.443
+phi=0#3.82
+chi=5
+phase_diagram_Delta=PhaseDiagram(model_Us)
+phase_diagram_Delta.directory=DATA_Delta_larger
+phase_diagram_Delta.filename=filename
+phase_diagram_Delta.initial_name='initial_convergence_Delta_larger'
+phase_diagram_Delta.initial_title=f'Stoner theory with nonzero Gorkov and Fock pairing\n$\mu={muu[0]:.2f},\, U={Uss[0]:.2f},\, \,$'
+FIGNAME='Self-consistent_convergence_Delta_larger'
+phase_diagram_Delta.phase_diagram(muu,dependent_variables,Uss,init_friction=init_friction,iter_friction=iter_friction,init_max_iterations=init_max_iterations,iter_max_iterations=iter_max_iterations,absolute_convergence_factor=absolute_convergence_factor,initial_renormalisation_plot_function=plot_initial_renormalisation,plot_phase_diagram_function=plot_phase_diagram_Delta,FIGNAME=FIGNAME)
+# plot_phase_diagram_Delta(phase_diagram_Delta,FIGNAME=FIGNAME)
+
+plot_phase_diagram(phase_diagram_Us,phase_diagram_Delta,FIGNAME='Self-consistent_convergence_larger')
