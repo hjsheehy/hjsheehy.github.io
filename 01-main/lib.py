@@ -697,7 +697,16 @@ class TightBinding(CrystalLattice, StatisticalMechanics):
     def set_temperature(self,temperature):
         self.temperature=temperature
 
-    def _onsite_tensor(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None):
+    def _antiferromagnet(self,spin):
+        temp=np.indices(self._pieces).sum(axis=0) % 2
+        temp=np.fft.ifftshift(temp)
+        if self.spin(spin)==1:
+            temp=(temp+1) % 2
+        temp=np.array(np.nonzero(temp)).T
+        temp=coordinates_to_indices(temp,self._pieces)
+        return temp
+
+    def _onsite_tensor(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None, _antiferromagnet=False):
         """An onsite tensor, e.g. for chemical potential, impurities, spin-flip. 
 Specify either the Atom, or the Crystal_lattice. If the Atom is None, then all Atoms in the Crystal_lattice are inputted. If the Orbital is None, then all Orbitals in each Atom are inputted.
 The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips) or 2*orbital-matrix (spin-orbit) i.e. kron(spin,orbit)"""
@@ -764,23 +773,27 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
             so_tensor[indices]=1
             so_tensor=np.diag(so_tensor)
             so_tensor=np.kron(spin_tensor,so_tensor)
-
-        if type(position_coordinates)==type(None):
-            sites=np.eye(self.n_cells)
-            return kron(so_tensor,sites)
-        if len(np.shape(position_coordinates))==1:
-            position_coordinates=[position_coordinates]
-        if len(np.shape(position_coordinates))==2:
-            sites=np.zeros([self.n_cells,self.n_cells])
-            for x in position_coordinates:
-                x=np.moveaxis(x,0,-1)
-                x=np.add(np.mod(np.add(x, self.centre), self._pieces), -self.centre)
-                x=coordinates_to_indices(x,self._pieces)
-                x=x.flatten()
-                sites[x,x]=1
+        if _antiferromagnet:
+            sites=np.eye(self.n_cells)*0
+            sites[self._antiferromagnet(spin)]=1
             return kron(so_tensor,sites)
         else:
-            raise ValueError(f'{position_coordinates} not a list of coordinates!')
+            if type(position_coordinates)==type(None):
+                sites=np.eye(self.n_cells)
+                return kron(so_tensor,sites)
+            if len(np.shape(position_coordinates))==1:
+                position_coordinates=[position_coordinates]
+            if len(np.shape(position_coordinates))==2:
+                sites=np.zeros([self.n_cells,self.n_cells])
+                for x in position_coordinates:
+                    x=np.moveaxis(x,0,-1)
+                    x=np.add(np.mod(np.add(x, self.centre), self._pieces), -self.centre)
+                    x=coordinates_to_indices(x,self._pieces)
+                    x=x.flatten()
+                    sites[x,x]=1
+                return kron(so_tensor,sites)
+            else:
+                raise ValueError(f'{position_coordinates} not a list of coordinates!')
         # return kron(sites,so_tensor)
 
     def _cutout_hopping(self, hop_vector=None):
@@ -899,7 +912,6 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
 #         hop_vector = None
 #         return self._hopping_tensor(hopping_amplitude, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
         
-
     def set_onsite(self, onsite, atom=None, orbital=None, spin=None, position_coordinates=None):
         self.onsites.append([onsite,atom,orbital,spin,position_coordinates])
 
@@ -1643,10 +1655,10 @@ class BogoliubovdeGennes(TightBinding):
         self._fock_iterations=[]
         self._gorkov_iterations=[]
         
-        self.V=[]
-        self.V_mf=[]
-        self.Eg=[]
-        self.f_mf=[]
+        self.interaction_V=[]
+        self.interaction_V_mf=[]
+        self.interaction_Eg=[]
+        self.free_energy_mf=[]
         self.free_energy=[]
         self.percent_error=[]
         self._j=-1
@@ -1744,14 +1756,17 @@ class BogoliubovdeGennes(TightBinding):
         self._hartree=np.zeros([self.n_dof], dtype=COMPLEX)
         self._fock=np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX)
         self._gorkov=np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX)
+    def set_hartree_antiferromagnetic(self,rho,rho_shift,atom=None,orbital=None):
+        self.set_hartree(rho+rho_shift,atom=atom,orbital=orbital,spin='up',_antiferromagnet=True)
+        self.set_hartree(rho-rho_shift,atom=atom,orbital=orbital,spin='dn',_antiferromagnet=True)
 
-    def set_hartree(self,onsite,atom=None,orbital=None,spin=None,position_coordinates=None):
+    def set_hartree(self,onsite,atom=None,orbital=None,spin=None,position_coordinates=None,_antiferromagnet=False):
         if type(self._hartree)==type(None):
             if self.bulk_calculation:
                 self._hartree = np.zeros([self.n_total_kpts,self.n_dof], dtype=COMPLEX) 
             else:
                 self._hartree = np.zeros([self.n_dof], dtype=COMPLEX) 
-        self._hartree += np.diag(self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates))
+        self._hartree += np.diag(self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates,_antiferromagnet=_antiferromagnet))
 
     def set_fock(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
         if type(self._fock)==type(None):
@@ -1779,6 +1794,9 @@ class BogoliubovdeGennes(TightBinding):
         self.external_gorkov += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
 
     def set_hubbard_u(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
+        if hopping_amplitude==0:
+            hopping_amplitude=10**(-10)
+
         if type(self._hubbard_u)==type(None):
             if self.bulk_calculation:
                 self._hubbard_u = np.zeros([self.n_total_kpts,self.n_dof, self.n_dof], dtype=COMPLEX) 
@@ -1990,19 +2008,19 @@ class BogoliubovdeGennes(TightBinding):
 
         if self.bulk_calculation:
             n_dof = self.n_dof*self.n_total_kpts
-            self.Eg.append(np.real(np.sum(self.eigenvalues[:,:self.n_dof] + np.diagonal(self._hamiltonian,axis1=1,axis2=2)[:,:self.n_dof])/n_dof))
+            self.interaction_Eg.append(np.real(np.sum(self.eigenvalues[:,:self.n_dof] + np.diagonal(self._hamiltonian,axis1=1,axis2=2)[:,:self.n_dof])/n_dof))
             if self.temperature==0:
-                self.f_mf.append(self.Eg[-1])
+                self.free_energy_mf.append(self.interaction_Eg[-1])
             else:
-                self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:,:self.n_dof]/self.temperature)))/n_dof))
+                self.free_energy_mf.append(np.real(self.interaction_Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:,:self.n_dof]/self.temperature)))/n_dof))
 
         else:
             n_dof = self.n_dof
-            self.Eg.append(np.real(np.sum(self.eigenvalues[:self.n_dof] + np.diagonal(self._hamiltonian)[:self.n_dof])/n_dof))
+            self.interaction_Eg.append(np.real(np.sum(self.eigenvalues[:self.n_dof] + np.diagonal(self._hamiltonian)[:self.n_dof])/n_dof))
             if self.temperature==0:
-                self.f_mf.append(self.Eg[-1])
+                self.free_energy_mf.append(self.interaction_Eg[-1])
             else:
-                self.f_mf.append(np.real(self.Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:self.n_dof]/self.temperature)))/n_dof))
+                self.free_energy_mf.append(np.real(self.interaction_Eg[-1]-2*self.temperature*np.sum(np.log(1+np.exp(-self.eigenvalues[:self.n_dof]/self.temperature)))/n_dof))
         
         h=np.sum(self._hartree*trace_density)
         h+=h
@@ -2011,29 +2029,29 @@ class BogoliubovdeGennes(TightBinding):
         g=np.sum(-self._gorkov*anomalous_density)
         g+=np.conj(g)
 
-        self.V_mf.append(-np.real((h+f+g)/n_dof))
+        self.interaction_V_mf.append(-np.real((h+f+g)/n_dof))
 
         if self.bulk_calculation:
             h=np.einsum('kij,ki,kj->',self._hubbard_u,trace_density,trace_density,optimize=True)
-            f=-np.einsum('i,i,i->',-self.U_entries,density,np.conj(density),optimize=True)
+            f=-np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
             g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
         else:
             h=np.einsum('ij,i,j->',self._hubbard_u,trace_density,trace_density,optimize=True)
             f=np.einsum('i,i,i->',self.U_entries,density,np.conj(density),optimize=True)
             g=np.einsum('i,i,i->',self.U_entries,anomalous_density,np.conj(anomalous_density),optimize=True)
         
-        self.V.append(np.real((h-f+g)/n_dof))
+        self.interaction_V.append(np.real((h-f+g)/n_dof))
         # print(self.U_entries[0])
         # print(anomalous_density[0])
         # exit()
-        self.free_energy.append(self.f_mf[-1]+self.V[-1]-self.V_mf[-1])
+        self.free_energy.append(self.free_energy_mf[-1]+self.interaction_V[-1]-self.interaction_V_mf[-1])
 
         if self.print_V:
-            print(self.V[-1])
+            print(self.interaction_V[-1])
         if self.print_V_mf:
-            print(self.V_mf[-1])
+            print(self.interaction_V_mf[-1])
         if self.print_Eg:
-            print(self.Eg[-1])
+            print(self.interaction_Eg[-1])
         if self.print_free_energy:
             print(self.free_energy[-1])
 
@@ -2411,9 +2429,9 @@ class BogoliubovdeGennes(TightBinding):
 #        self.hartree_iterations=data.hartree_iterations
 #        self.fock_iterations=data.fock_iterations
 #        self.gorkov_iterations=data.gorkov_iterations
-#        self.V=data.V
-#        self.V_mf=data.V_mf
-#        self.Eg=data.Eg
+#        self.interaction_V=data.V
+#        self.interaction_V_mf=data.V_mf
+#        self.interaction_Eg=data.Eg
 #        self.free_energy=data.free_energy
 
 #    def _imshow(self, ldos):
@@ -3076,9 +3094,9 @@ If spin=None: trace spin, else spin polarised"""
         ipr=np.sum(np.abs(stag_density))**2/np.sum(np.square(stag_density))
         return ipr
 
-    def magnetism(self, energy=None, atom=None, orbital=None):
-        up=self.local_density_of_states(energy, atom, orbital, spin=self.spin('up'))
-        dn=self.local_density_of_states(energy, atom, orbital, spin=self.spin('down'))
+    def magnetism(self, sites='resolved', atom='integrated', orbital='integrated', energy='resolved', anomalous=False):
+        up=self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='up', energy=energy, anomalous=anomalous)
+        dn=self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='dn', energy=energy, anomalous=anomalous)
         return up-dn
 
     def mean_abs_magnetism(self, energy=None, atom=None, orbital=None):
@@ -3551,7 +3569,7 @@ class PhaseDiagram():
 
     Parameters
     ----------
-    conf : model = instance of TightBinding or BogoloiubovdeGennes
+    conf : model = instance of TightBinding or BogoliubovdeGennes
 
     Attributes
     ----------
@@ -3589,9 +3607,6 @@ class PhaseDiagram():
         
         bdg.self_consistent_calculation(friction=friction, max_iterations=max_iterations, absolute_convergence_factor=absolute_convergence_factor)
         
-        del bdg.eigenvectors
-        del bdg.eigenvalues
-
         y = dependent_variables(bdg)
 
         return bdg, y
@@ -3743,3 +3758,161 @@ class PhaseDiagram():
                 marker=markers[1]
                 ax.plot(x,y,marker=marker,markersize=s,color=c,markevery=markevery)
         return ax
+
+
+    def plot_phase_diagram_minimised(self,directories,ax,field_index=0,minus_field_index=None,plus_field_index=None,absolute=False):
+        """Field index 0 is the free energy"""
+
+        names=[]
+        for directory in directories:
+            names+=glob.glob(os.path.join(directory,'*'+'.npz'))
+        names_label=np.array([str(name.split('/')[-1].split('_')[-1]).split('.npz')[0] for name in names])
+        unique_labels=list(set(names_label))
+        names=[]
+        for directory in directories:
+            for label in unique_labels:
+                names+=glob.glob(os.path.join(directory,'*_'+label+'*.npz'))
+            names_x=np.array([float(name.split('/')[-1].split('_')[0]) for name in names])
+            names_y=np.array([str(name.split('_')[-2].split('.')[0]) for name in names])
+            names=[x for _, x in sorted(zip(names_x, names))]
+            names_y=[x for _, x in sorted(zip(names_x, names_y))]
+            names_x=[x for _, x in sorted(zip(names_x, names_x))]
+            names_i=np.arange(len(names))
+            unique_x=list(set(names_x))
+
+        min_names=[]
+        for x in unique_x:
+            indices=names_i[names_x==x]
+            names_at_x=np.array(names)[indices]
+            free_energy=[]
+            for name in names_at_x:
+                [x,y,z] = np.load(name, allow_pickle=True)
+                x=np.array(x)
+                y=np.array(y)
+                x=x[:len(y[:,0])]
+                free_energy.append(y[:,-1][-1])
+            index=np.argmin(free_energy)
+            min_name=np.array(names_at_x)[index]
+            min_names.append(min_name)
+        names=min_names
+
+        for directory in directories:
+            names=glob.glob(os.path.join(directory,'*'+'.npz'))
+            names_x=np.array([float(name.split('/')[-1].split('_')[0]) for name in names])
+            names_y=np.array([str(name.split('_')[-2].split('.')[0]) for name in names])
+            names=[x for _, x in sorted(zip(names_x, names))]
+            names_y=[x for _, x in sorted(zip(names_x, names_y))]
+            names_x=[x for _, x in sorted(zip(names_x, names_x))]
+            
+            n=len(np.unique(names_x))
+            markers=['>','<','.']
+            color = cm.gist_rainbow(np.linspace(0, 1, n))
+            xx=[]
+            yy=[]
+            zz=[]
+            fr=[]
+            free_energy=[]
+
+            s=2
+            markevery=1
+            for j,name in enumerate(names):
+                i=list(set(names_x)).index(names_x[j])
+                [x,y,z] = np.load(name, allow_pickle=True)
+                x=np.array(x)
+                y=np.array(y)
+                x=x[:len(y[:,0])]
+                if type(minus_field_index)!=type(None):
+                    y=y[:,field_index]-y[:,minus_field_index]
+                elif type(plus_field_index)!=type(None):
+                    y=y[:,field_index]+y[:,plus_field_index]
+                else:
+                    y=y[:,field_index]
+
+                if absolute:
+                    y=np.abs(y)
+
+                if names_y[j]=='min':
+                    c = color[i]
+                    marker=markers[2]
+                elif names_y[j]=='fwd':
+                    # c = lighten_color(color[i],amount=0.3)
+                    c = color[i]
+                    marker=markers[0]
+                    ax.plot(x,y,marker=marker,markersize=s,color=c,label=f'${z:.2f}$',markevery=markevery)
+                elif names_y[j]=='rev':
+                    # c = lighten_color(color[i],amount=0.3)
+                    c = color[i]
+                    marker=markers[1]
+                    ax.plot(x,y,marker=marker,markersize=s,color=c,markevery=markevery)
+            return ax
+
+
+    def phase_diagram(self,xx,dependent_variables,zz,include_reverse=True,init_friction=0,iter_friction=0.6,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,datalabel=None,plt_fcn_iter=None,plt_fcn_end=None,FIGNAME=None,clear_data=False,clear_figures=False):
+        
+        xxx=[]
+        if include_reverse:
+            xxx=[xx, xx[::-1]]
+        else:
+            xxx=[xx]
+        
+        if max(zz)==zz[-1]:
+            zz=zz[::-1]
+
+        n=len(xxx)*len(zz)
+        j=0
+        with tqdm.tqdm(total=n,desc='Simulation') as pbar:
+            for z in zz:
+                for xx in xxx:
+                    # if j==1:
+                        # initial_renormalisation_plot_function=None
+                    self._phase_diagram(xx,dependent_variables,z,init_friction,iter_friction,init_max_iterations,iter_max_iterations,absolute_convergence_factor,initial_renormalisation_plot_function,datalabel)
+                    # j+=1
+                    plot_phase_diagram_function(self,FIGNAME=FIGNAME)
+
+    def _phase_diagram(self,xx,extract_from_bdg,z,init_friction=0.6,iter_friction=0.9,init_max_iterations=400,iter_max_iterations=200,absolute_convergence_factor=0.0001,initial_renormalisation_plot_function=None,datalabel=None):
+
+        yy=[]
+        ee=[]
+        xxx=[]
+        i=0
+        for x in tqdm.tqdm(xx,desc='Indep var', total=len(xx),leave=False):
+            if i==0: #inital
+                bdg = self.model(x,z)
+                bdg.self_consistent_calculation(friction=init_friction, max_iterations=init_max_iterations, absolute_convergence_factor=absolute_convergence_factor)
+                i+=1
+                if type(initial_renormalisation_plot_function)!=type(None):
+                    directory=self.directory+'_initial'
+                    filename=os.path.join(directory,self.initial_name)
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+                    with open(filename+'.npz', 'wb') as f:
+                        cPickle.dump(bdg, f)
+                    initial_renormalisation_plot_function(init_friction,init_max_iterations,absolute_convergence_factor,filename,self.initial_name,self.initial_title)
+
+            bdg, y = self._extract_dependent_vars(bdg,extract_from_bdg,iter_friction,iter_max_iterations,absolute_convergence_factor,x,z)
+            if type(initial_renormalisation_plot_function)!=type(None):
+                directory=self.directory+'_initial'
+                filename=os.path.join(directory,self.initial_name)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+                with open(filename+'.npz', 'wb') as f:
+                    cPickle.dump(bdg, f)
+                initial_renormalisation_plot_function(init_friction,init_max_iterations,absolute_convergence_factor,filename,self.initial_name,self.initial_title)
+            if bdg.converged:
+                y.insert(0,bdg.free_energy[-1])
+                yy.append(y)
+                xxx.append(x)
+            else: 
+                break
+        if min(xx)==xx[0]:
+            name=f'{z:.2f}_fwd'
+        else:
+            name=f'{z:.2f}_rev'
+        name=os.path.join(self.directory,name)
+        xxx=np.array(xxx)
+        yy=np.array(yy)
+
+        if type(datalabel)!=type(None):
+            name=name+'_'+datalabel
+        with open(name+'.npz', 'wb') as f:
+            cPickle.dump([xxx,yy,z], f)

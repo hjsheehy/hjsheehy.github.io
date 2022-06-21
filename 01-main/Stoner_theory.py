@@ -82,20 +82,40 @@ def process(*args):
     return greens_function_xy, greens_function_xq, greens_function_kq, bdg
 
 # Plotting:
+def plot_iterations_free_energy_components(bdg):
+
+    markers=['o','+','^','x','.']
+    s=3
+
+    fig, [ax1, ax2] = plt.subplots(2,1,sharex='col')
+
+    linestyle='dashed'
+
+    # color = 'tab:black'
+    ax1.tick_params(axis='y')
+    ax1.plot(bdg._hartree_iterations[0],c='b',marker=markers[1],markersize=s,label=r'$\phi_\uparrow$', linestyle=linestyle)
+    ax1.plot(bdg._hartree_iterations[1],c='orange',marker=markers[1],markersize=s,label=r'$\phi_\downarrow$', linestyle=linestyle)
+    ax1.plot(bdg._fock_iterations[0],c='k',marker=markers[2],markersize=s,label=r'$\Phi_{\uparrow\downarrow}$', linestyle=linestyle)
+    ax1.plot(bdg._gorkov_iterations[0],c='g',marker=markers[3],markersize=s,label=r'$\Delta_{\uparrow\downarrow}$', linestyle=linestyle)
+    ax1.legend()
+
+    ax2.plot(bdg.V,c='b',marker=markers[0],markersize=s, linestyle=linestyle)
+    ax2.plot(-np.array(bdg.V_mf),c='orange',marker=markers[1],markersize=s, linestyle=linestyle)
+    ax2.plot(bdg.Eg,c='g',marker=markers[2],markersize=s, linestyle=linestyle)
+    ax2.plot(bdg.free_energy,c='r',marker=markers[4],markersize=s, linestyle=linestyle)
+    ax2.legend()
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
+    ax1.set_ylabel(r'Amplitude of fields')
+    ax2.set_ylabel(r'Free energy')
+    fig.suptitle(r'Stoner theory')
+    fig.supxlabel(r'Interaction $U$')
+    
+    plt.tight_layout()
 
 def plot_iterations(bdg):
 
     markers=['o','+','^','x','.']
     s=3
-
-    # hartree_A=bdg.hartree(atom='A')[0,0]
-    # hartree_B=bdg.hartree(atom='B')[0,0]
-    # fock_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
-    # gorkov_v=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[0,0])[0,0]
-    # free_energy=bdg.free_energy
-    
-    # exit()
-    # gorkov_w=bdg.gorkov(atom_i='A', atom_f='B', hop_vector=[-1,0])
 
     fig, [ax1, ax2] = plt.subplots(2,1,sharex='col')
 
@@ -362,22 +382,22 @@ friction ${iter_friction}$ over subsequent iterations.
 #############################################################################
 ################################# Main ######################################
 #############################################################################
-mu=0.23
+mu=-3.
 t=1
-Us=3.3
-rho=-0.6
+Us=5.6
+rho=10
 rho_shift=0.5
-phi=0.6427
-chi=1.828633
-n_cells=23
+phi=0
+chi=2.128633
+n_cells=5
 
-friction=0.95
-absolute_convergence_factor=0.00001
+# friction=0
+# absolute_convergence_factor=0.00001
 
-bulk_calculation=True
+# bulk_calculation=True
 
-_print=False
-bdg = model(mu,Us,rho_shift)
+# _print=False
+# bdg = model(mu,Us,rho_shift)
 
 # bdg.self_consistent_calculation(friction=friction, max_iterations=100, absolute_convergence_factor=absolute_convergence_factor)
 
@@ -386,7 +406,8 @@ bdg = model(mu,Us,rho_shift)
 # fock=bdg.fock(spin_i='up',spin_f='dn')
 # gorkov=bdg.gorkov(spin_i='up',spin_f='dn')
 # M=(hartree_up-hartree_dn)[0,0]
-# plot_iterations(bdg)
+# # plot_iterations(bdg)
+# plot_iterations_free_energy_components(bdg)
 # plt.show()
 # exit()
 
@@ -408,8 +429,7 @@ muuA=muu[:int(len(muu)/2)]
 muuB=muu[int(len(muu)/2):]
 muuu=[muuA,muuB]
 data=['A','B']
-for i in range(1):
-    i=1
+for i in range(2):
     muu=muuu[i]
     datalabel=data[i]
 

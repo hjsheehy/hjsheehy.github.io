@@ -1,6 +1,6 @@
 Renormalisation of the Hartree, Fock and Gorkov fields on a 
-        181x181 Hubbard model with onsite repulsion $U=1$.
+        11x11 Hubbard model with onsite repulsion $U=-2.8$.
 attractive intracell Hubbard U, pairing fermions on sites A and B. 
 The fields are calculated self-consistently, with absolute convergence factor 
-$1e-05$ and friction
-$0.9$.
+$0.0001$ and friction
+$0.4$.
