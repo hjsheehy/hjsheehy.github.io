@@ -10,7 +10,12 @@
 J.C. Seamus Davis discussed with me the problem of zinc doping in the cuprates. 
 It unknown why the superconductivity is killed by small doping.
 Seamus suggested I try modelling the situation by switching off the Hubbard U on the zinc site.
-The cuprate can be captured by a stacked SSH model, similar to that studied by Rosenberg and Manousakis [CITE: Rosenberg, Aryal PRB 100 104522 (2019)].
+Copper peroxide (CuO$_2$) is stabilised by surrounding elements in the cuprate, thought to be irrelevant to superconductivity due to the lack of supercurrent along the third axis.
+In addition to the stabilisers, the ingredients for a cuprate superconductivity are copper (Cu) whose $d$-wave orbital provides unconventional hopping, and oxygen (O$_2$) which staggers the hopping. 
+The minimal model of superconductivity is onsite singlet pairing, and hence the $d$-wave pairing is irrelevant to the interaction term. 
+More unconventional models of the superconductor may include multiorbital triplet pairing, in which the $d$-wave and $p$-wave symmetries would become relevant to the interaction
+(e.g. nearest-neighbour pairing in the bulk via Monte-Carlo [Kobayashi and Yokoyama {\color{red}REF})].
+We consider the zinc-doped minimal model.
 
 H. Alloul {\it et al} review Defects in correlated metals and superconductors [CITE:arXiv:0711.0877v1 (2018)].
 
@@ -19,39 +24,115 @@ Rosenberg and Manousakis [CITE: Rosenberg, Aryal PRB 100 104522 (2019)] showed t
 
 {\color{red} Have they checked with a rigid shift?}
 
+{\color{red} Diagonal hoppings within the (Cu-O)$_4$ cluster}
+
 {\color{red} Any nonzero CDW-like density in the Fock channel would give rise to superconductivity.}
 
 
 \section{Review of defects in correlated metals}
-H. Alloul {\it et al} [CITE:arXiv:0711.0877v1 (2018)] review  theories of impurities in $d$-wave superconductor theories of impurities 
+H. Alloul {\it et al} [CITE:arXiv:0711.0877v1 (2018)] review theories of impurities in $d$-wave superconductor theories of impurities 
 
 
 \section{Reproducing results}
-The normal state Hamiltonian is given by
+The normal state Hamiltonian describing the copper peroxide plane with zinc impurity doping is given by
 \begin{multline}
-    \hat{\mathcal{H}}_{ 0 } =
-        \sum_{0\leq x,y\leq N}\sum_\sigma\sum_{m\in\{A,B\}]}\left[
+    \hat{\mathcal{H}}_{ 0 } \equiv
+        \sum_{-N/2\leq x,y\leq N/2}\sum_{\sigma\in\{\uparrow,\downarrow\}}\sum_{m\in\{d, p_x, p_y\}}\left[
             -\mu_m \hat{c}^{ \sigma,m \dagger}_{ x,y }\hat{c}^{ \sigma,m }_{ x,y }
-        \right]\\
-        -t \sum_{0\leq x,y\leq N}\sum_{\sigma}\left[
-            \hat{c}^{ \sigma,A \dagger}_{ x,y }\hat{c}^{ \sigma,B }_{ x,y }
-            +
-            \hat{c}^{ \sigma,A \dagger}_{ x,y }\hat{c}^{ \sigma,B }_{ x,y+1 }
-            +
-            \hat{c}^{ \sigma,B \dagger}_{ x,y }\hat{c}^{ \sigma,A }_{ x+1,y+1 }
-            +
-            \hat{c}^{ \sigma,B \dagger}_{ x,y }\hat{c}^{ \sigma,A }_{ x+1,y }
-            +\text{h.c.}
+        \right]
+            + \sum_{-L/2\leq x,y\leq L/2}\sum_{\sigma\in\{\uparrow,\downarrow\}} \left[+V\hat{c}^{ \sigma,d \dagger}_{ x,y }\hat{c}^{ \sigma,d }_{ x,y }\right]
+            \\
+        +\sum_{-N/2\leq x,y\leq N/2}\sum_{\sigma\in\{\uparrow,\downarrow\}}\left[
+            +t \hat{c}^{ \sigma,d \dagger}_{ x,y }\hat{c}^{ \sigma,p_x }_{ x,y }
+            -t \hat{c}^{ \sigma,d \dagger}_{ x,y }\hat{c}^{ \sigma,p_y }_{ x,y }
+            -t \hat{c}^{ \sigma, p_x \dagger}_{ x,y }\hat{c}^{ \sigma,d }_{ x+1,y }
+            +t \hat{c}^{ \sigma,p_y \dagger}_{ x,y }\hat{c}^{ \sigma,d }_{ x,y+1 }
         \right]
 \end{multline}
-where the fermion operator $\hat{c}^{\sigma,m\dagger}_{ x,y }$ creates an operator on atom $m\in\{A,B\}$ within the unit cell located at $\mathbf{R}_{x,y}= x \mathbf{b}_0\hat{x}+y \mathbf{b}_1 \hat{y}$,
+where the fermion operator $\hat{c}^{\sigma,m\dagger}_{ x,y }$ creates an operator on atomic orbital $m\in\{d_{x^2-y^2},p_x,p_y\}$ within the unit cell located at $\mathbf{R}_{x,y}= x \mathbf{b}_0\hat{x}+y \mathbf{b}_1 \hat{y}$,
 where $\mathbf{b}_0, \mathbf{b}_1$ are the lattice basis vectors,
-$\hat{n}^{(\alpha)\dagger}_{ x,y }$ is the number operator, $\mu$ is the chemical potential and $s$ is a rigid shift of the atomic potentials.
-The intra- and inter-unit-cell hoppings strengths in the $\hat{x}$ direction are given by $v$ and $w$, which form the terms of the standard SSH model.
-These 1D SSH chains are coupled by a diagonal hopping $t_d$, which form a two-dimensional stacking.
+$\hat{n}^{(\alpha)\dagger}_{ x,y }$ is the number operator, $\mu_d\equiv\mu$ and $\mu_{p_x}\equiv\mu_{p_y}\equiv\mu+s$ are the chemical potentials of the copper and oxygen orbitals and $s$ is a rigid shift of the atomic potentials.
+The parameter $V$ sets the coupling strength of a zinc impurity at the centre of our lattice, and whose size goes from a single site $L=0$ to a cluster $L>0$.
+In the minimal theory, we assume half-filling $\mu=s=0$ and zero coupling $V=0$.
+The interorbital, intra- and inter-unit-cell hoppings strengths are given by $t=1$, which normalises the model paramters.
+The boundary conditions are taken to be periodic.
 The lattice is depicted with $N=3$ unit cells in Figure \ref{fig:2D-SSH_unit_cell}. 
-Following [CITE: Rosenberg and Manousakis arXiv:2203.12004v1], without loss of generality, we set $v=0.6, w=1.2$, the topological phase of the SSH model, and $t_d=0.9$.
 
+The interacting part of the minimal theory describes a singlet electron-electron interaction on the copper sites, but not on the zinc-doped sites
+\begin{equation}
+    \hat{\mathcal{V}}\equiv
+    \sum_{-N/2\leq x,y\leq N/2}\sum_{m\in\{d,p_x,p_y\}}\left[
+    +U_m  \hat{c}^{ \uparrow,m \dagger}_{ x,y }\hat{c}^{ \downarrow,m \dagger}_{ x,y } \hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\right],
+\end{equation}
+where $U_m$ is the strength of the Hubbard interaction on orbital $m$, which, in the simplest theory are $U_m\equiv U$. $U>0$ describes Coulomb repulsion and $U<0$ is the attractive BCS (singlet) scenario.
+The minimal model describing Zn-doped CuO$_2$ superconducting planes with BCS-like interactions on the Cu sites is then
+\begin{equation}
+    \hat{\mathcal{H}}\equiv
+    \hat{\mathcal{H}}_0
+    +\hat{\mathcal{V}}
+\end{equation}
+We solve this Hamiltonian with inhomogeneous lattice self-consistent mean-field theory.
+
+\section{Self-consistent mean-field solution}
+The Bogoliubov-de Gennes (BdG) mean-field Hamiltonian is
+\begin{multline}
+    \hat{\mathcal{V}}_\text{mf}=
+        \sum_{\sigma\in\{\uparrow,\downarrow\}}\sum_{m\in\{d,p_x,p_y\}}\sum_{-N/2\leq x,y\leq N/2}\left[
+    \phi_{x,y}^{\sigma,m}\hat{n}^{\sigma,m}_{ x,y }\right]
+    \\
+    +\sum_{m\in\{d,p_x,p_y\}}\sum_{-N/2\leq x,y\leq N/2}
+    \left[
+    \Phi_{x,y}^{m} \hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }
+    +\Delta_{x,y}^{m} \hat{c}^{ \uparrow, m \dagger}_{ x,y }\hat{c}^{ \downarrow, m \dagger }_{ x,y }
+    +\Delta_{x,y}^{m*} \hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }
+    \right],
+\end{multline}
+where $\phi$ is the {\it Hartree} term which renormalises the chemical potential, allowing for a Peirl's instability. 
+$\Phi$ is a {\it Fock} term, describing spin-flips on the $d$-orbitals.
+The additional {\it Gorkov} terms $\Delta_v$ capture fermion-fermion pairing, relevant to theories of magnetism ($U>0$) and superconductivity ($U<0$).
+These terms, solved self-consistently, are known as inhomogenous {\it (superconducting) density functional theory, SC-DFT}. 
+The self-consistent solution to the mean field is the saddle point 
+$\langle\hat{\mathcal{H}}\rangle_\text{mf} = \langle\hat{\mathcal{H}}_{ mf }\rangle_\text{mf}$, in which the mean-field eigenstates $\{E_n,|n\rangle\}$ approximate the state of the interacting theory by minimising (or, unstably, maximising) the free energy, where $E_n\geq0$ are half the solutions to the Bogoliubov-de Gennes (BdG) Hamiltonian, and where the rest of the BdG spectrum $E_n\leq0$ are related by particle-hole symmetry.
+The solutions are
+\begin{eqnarray}
+    \phi^{\uparrow,m}_{x,y} &=& +U_m\langle\hat{n}^{ \downarrow,m}_{ x,y }\rangle,\\
+    \phi^{\downarrow,m}_{x,y} &=& +U_m\langle\hat{n}^{ \uparrow,m}_{ x,y }\rangle,\\
+    \Phi^{m}_{x,y} &=& -U_m\langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle,\\
+    \Delta^{m}_{x,y} &=& +U_m\langle\hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle,\\
+    \Delta^{m*}_{x,y} &=& +U_m\langle\hat{c}^{ \downarrow,m \dagger }_{ x,y }\hat{c}^{ \uparrow,m \dagger}_{ x,y }\rangle.
+\end{eqnarray}
+Note the sign of the Fock terms due Fermionic anticommutation.
+In the simplest theory, we let $U_m\equiv U$.
+
+\section{Free energy}
+At zero temperature, the free energy of the interacting theory is 
+\begin{equation}
+    \mathcal{F}=
+    ,
+\end{equation}
+where the mean-field free energy is
+\begin{equation}
+    \mathcal{F}_\text{mf}=E_g - 2 k_B T \sum_n\left[ \log{1+e^{-E_n/k_B T}}\right]
+,
+\end{equation}
+where $T$ is the temperature of the thermal bath enclosing the system, $k_B$ is the Boltzmann constant, $E_n$ are the eigenvalues of the mean-field Bogoloiubov-de Gennes Hamiltonian $\mathcal{H}_\text{mf}$ and the ground state energy is given by
+\begin{equation}
+    E_g=\sum_n \left[E_n\right]  + \sum_\sigma\sum_m\sum_{x,y}\left[\langle \hat{n}_{x,y}^{\sigma,m} \rangle\right]/\mathcal{N},
+\end{equation}
+and $\mathcal{N}$ is the number of degrees of freedom.
+The quartic interaction
+$\langle\mathcal{V}\rangle_\text{mf}$
+in the mean-field basis is given by
+\begin{equation}
+    \langle\mathcal{V}\rangle_\text{mf}=
+,
+\end{equation}
+
+
+
+More details of the inhomogeous self-consistent superconducting density functional theory can be found in Leggett [{\color{red}REF}].
+
+\section{Green's function}
 \createfigure{2D-Weyl-SSH/unit_cell}{2D-SSH_unit_cell}
 
 The solution to the Hamiltonian is given by the Green's function, which we remind the reader, is given by
@@ -98,48 +179,6 @@ We note that other hopping configurations are possible, leading either to topolo
 [Two-Dimensional Extended Su-Schrieffer-Heeger Model; Bo Hung; Masters Thesis; National Taiwan Normal University] 
 .
 
-\section{Interactions and mean-field solution}
-We add an interaction term to model multiorbital superconductivity within the unit-cell, $U_v$, and an interorbital intercell Coulomb repulsion term, $U_w$. The interacting contribution to the Hamiltonian is 
-\begin{equation}
-    \hat{\mathcal{H}}_{ I }=
-    -U_v \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger}_{ x,y } \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }
-    +U_w \hat{c}^{ (A) \dagger }_{ x,y }\hat{c}^{ (B) \dagger}_{ x-1,y } \hat{c}^{ (B) }_{ x-1,y }\hat{c}^{ (A) }_{ x,y }
-.
-\end{equation}
-The mean-field Hamiltonian is
-\begin{multline}
-    \hat{\mathcal{H}}^{'}_{ I }=
-    \sum_{x,y}\Bigg[
-    \sum_m\left[\phi_{\,m}\hat{n}^{ (m) }_{ x,y }\right]
-    +\Phi_v \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }
-    +\Phi_w \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }
-    \\
-    +\Delta_v \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x,y }
-    +\Delta_w \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x-1,y }
-    +\Delta_v^* \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }
-    +\Delta_w^* \hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }
-    \Bigg],
-\end{multline}
-where $\phi_v$ is the {\it Hartree} term which renormalises the chemical potential, allowing for a Peirl's instability. 
-$\Phi_v$ is a {\it Fock} term, describing renormalistion of the hopping parameter $v$.
-The additional {\it Gorkov} terms $\Delta_v$ capture fermion-fermion pairing, relevant to theories of magnetism and superconductivity.
-These terms are known as the method of {\it (superconducting) density functional theory, SC-DFT}. 
-The self-consistent solution to the mean field is the saddle point 
-$\langle\hat{\mathcal{H}}_{ I }\rangle = \langle\hat{\mathcal{H}}^{'}_{ I }\rangle$.
-The solutions are
-\begin{eqnarray}
-    \rho_{m} &=& (-U_v+U_w))\langle\hat{n}^{ (m^{'}) }_{ x,y }\rangle,\\
-    \Phi_v &=& -U_v\langle\hat{c}^{ (A) \dagger }_{ x,y }\hat{c}^{ (B) }_{ x,y }\rangle,\\
-    \Phi_w &=& U_w\langle\hat{c}^{ (A) \dagger }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }\rangle,\\
-    \Delta_v &=& +U_v\langle\hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x,y }\rangle,\\
-    \Delta_w &=& -U_w\langle\hat{c}^{ (A) }_{ x,y }\hat{c}^{ (B) }_{ x-1,y }\rangle,\\
-    \Delta_v^* &=& +U_v\langle \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x,y }\rangle,\\
-    \Delta_w^* &=& -U_w\langle \hat{c}^{ (A) \dagger}_{ x,y }\hat{c}^{ (B) \dagger }_{ x-1,y }\rangle,
-\end{eqnarray}
-where $m'$ refers to the opposite atom to $m$. 
-Note the sign of the Gorkov terms due Fermionic anticommutation.
-
-For simplicity and because we are in particular interested in the multiorbital pairing due to $U_v$, we neglect the intercell interaction $U_w$.
 
 \section{Results with impurities}
 The impurity is located at the centre with coupling strength $V=1.21$.
