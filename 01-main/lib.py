@@ -1804,6 +1804,15 @@ class BogoliubovdeGennes(TightBinding):
                 self._hubbard_u = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
         self._hubbard_u += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
 
+
+    def set_hubbard_u_impurities(self, impurity_amplitude, atom=None, orbital=None, spin=None, impurity_locations=None):
+        if type(self._hubbard_u)==type(None):
+            if self.bulk_calculation:
+                self._hubbard_u = np.zeros([self.n_total_kpts,self.n_dof, self.n_dof], dtype=COMPLEX) 
+            else:
+                self._hubbard_u = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
+        self._hubbard_u += self._onsite(impurity_amplitude, atom, orbital, spin, impurity_locations)
+
     def _set_hubbard_indices(self):
 
         self._hubbard_indices = np.nonzero(self._hubbard_u)

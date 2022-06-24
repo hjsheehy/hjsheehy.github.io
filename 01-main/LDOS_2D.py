@@ -131,19 +131,6 @@ def plot():
     plt.savefig(output+'.pdf', bbox_inches = "tight", dpi=DPI)
     return fig, ax
 
-def points_in_circle_np(radius, x0=0, y0=0):
-    x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
-    y_ = np.arange(y0 - radius - 1, y0 + radius + 1, dtype=int)
-    x, y = np.where((x_[:,np.newaxis] - x0)**2 + (y_ - y0)**2 <= radius**2)
-    # x, y = np.where((np.hypot((x_-x0)[:,np.newaxis], y_-y0)<= radius)) # alternative implementation
-    for x, y in zip(x_[x], y_[y]):
-        yield x, y
-
-def points_on_circle(radius, x0=0, y0=0):
-    pts=list(points_in_circle_np(radius=radius, x0=x0, y0=y0))
-    pts_inside=list(points_in_circle_np(radius=radius-1, x0=x0, y0=y0))
-    pts=[pt for pt in pts if pt not in pts_inside]
-    return pts
 
 ############################################################
 
