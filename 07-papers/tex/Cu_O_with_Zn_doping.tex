@@ -62,9 +62,11 @@ The interacting part of the minimal theory describes a singlet electron-electron
 \begin{equation}
     \hat{\mathcal{V}}\equiv
     \sum_{-N/2\leq x,y\leq N/2}\sum_{m\in\{d,p_x,p_y\}}\left[
-    +U_m  \hat{c}^{ \uparrow,m \dagger}_{ x,y }\hat{c}^{ \downarrow,m \dagger}_{ x,y } \hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\right],
+    +U^m_{x,y}  \hat{c}^{ \uparrow,m \dagger}_{ x,y }\hat{c}^{ \downarrow,m \dagger}_{ x,y } \hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\right],
 \end{equation}
-where $U_m$ is the strength of the Hubbard interaction on orbital $m$, which, in the simplest theory are $U_m\equiv U$. $U>0$ describes Coulomb repulsion and $U<0$ is the attractive BCS (singlet) scenario.
+where $U^m_{x,y}$ is the strength of the Hubbard interaction on orbital $m$, which, in the 
+simplest theory, we let $U^m_{x,y}:= U$ for $L/2 < x,y \leq N/2$ and $U^m_{x,y}:= 0$ for $0\leq x,y \leq L/2$.
+. $U>0$ describes Coulomb repulsion and $U<0$ is the attractive BCS (singlet) scenario.
 The minimal model describing Zn-doped CuO$_2$ superconducting planes with BCS-like interactions on the Cu sites is then
 \begin{equation}
     \hat{\mathcal{H}}\equiv
@@ -92,22 +94,25 @@ $\Phi$ is a {\it Fock} term, describing spin-flips on the $d$-orbitals.
 The additional {\it Gorkov} terms $\Delta_v$ capture fermion-fermion pairing, relevant to theories of magnetism ($U>0$) and superconductivity ($U<0$).
 These terms, solved self-consistently, are known as inhomogenous {\it (superconducting) density functional theory, SC-DFT}. 
 The self-consistent solution to the mean field is the saddle point 
-$\langle\hat{\mathcal{H}}\rangle_\text{mf} = \langle\hat{\mathcal{H}}_{ mf }\rangle_\text{mf}$, in which the mean-field eigenstates $\{E_n,|n\rangle\}$ approximate the state of the interacting theory by minimising (or, unstably, maximising) the free energy, where $E_n\geq0$ are half the solutions to the Bogoliubov-de Gennes (BdG) Hamiltonian, and where the rest of the BdG spectrum $E_n\leq0$ are related by particle-hole symmetry.
+$\langle\hat{\mathcal{V}}\rangle_\text{mf} = \langle\hat{\mathcal{V}}_\text{mf}\rangle_\text{mf}$, in which the mean-field eigenstates $\{E_n,|n\rangle\}$ approximate the state of the interacting theory by minimising (or, unstably, maximising) the free energy, where $E_n\geq0$ are half the solutions to the Bogoliubov-de Gennes (BdG) Hamiltonian, and where the rest of the BdG spectrum $E_n\leq0$ are related by particle-hole symmetry.
 The solutions are
 \begin{eqnarray}
-    \phi^{\uparrow,m}_{x,y} &=& +U_m\langle\hat{n}^{ \downarrow,m}_{ x,y }\rangle,\\
-    \phi^{\downarrow,m}_{x,y} &=& +U_m\langle\hat{n}^{ \uparrow,m}_{ x,y }\rangle,\\
-    \Phi^{m}_{x,y} &=& -U_m\langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle,\\
-    \Delta^{m}_{x,y} &=& +U_m\langle\hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle,\\
-    \Delta^{m*}_{x,y} &=& +U_m\langle\hat{c}^{ \downarrow,m \dagger }_{ x,y }\hat{c}^{ \uparrow,m \dagger}_{ x,y }\rangle.
+    \phi^{\uparrow,m}_{x,y} &=& +U^m_{x,y}\langle\hat{n}^{ \downarrow,m}_{ x,y }\rangle,\nonumber\\
+    \phi^{\downarrow,m}_{x,y} &=& +U^m_{x,y}\langle\hat{n}^{ \uparrow,m}_{ x,y }\rangle,\nonumber\\
+    \Phi^{m}_{x,y} &=& -U^m_{x,y}\langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle,\nonumber\\
+    \Delta^{m}_{x,y} &=& +U^m_{x,y}\langle\hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle,\nonumber\\
+    \Delta^{m*}_{x,y} &=& +U^m_{x,y}\langle\hat{c}^{ \downarrow,m \dagger }_{ x,y }\hat{c}^{ \uparrow,m \dagger}_{ x,y }\rangle.
 \end{eqnarray}
 Note the sign of the Fock terms due Fermionic anticommutation.
-In the simplest theory, we let $U_m\equiv U$.
+From these equations, its clear that we expect the mean-fields to go to zero on the Zn sites.
 
 \section{Free energy}
 At zero temperature, the free energy of the interacting theory is 
 \begin{equation}
     \mathcal{F}=
+    \mathcal{F}_\text{mf}
++\langle\mathcal{V}\rangle
+-\langle\mathcal{V}_\text{mf}\rangle
     ,
 \end{equation}
 where the mean-field free energy is
@@ -117,17 +122,44 @@ where the mean-field free energy is
 \end{equation}
 where $T$ is the temperature of the thermal bath enclosing the system, $k_B$ is the Boltzmann constant, $E_n$ are the eigenvalues of the mean-field Bogoloiubov-de Gennes Hamiltonian $\mathcal{H}_\text{mf}$ and the ground state energy is given by
 \begin{equation}
-    E_g=\sum_n \left[E_n\right]  + \sum_\sigma\sum_m\sum_{x,y}\left[\langle \hat{n}_{x,y}^{\sigma,m} \rangle\right]/\mathcal{N},
+    E_g=\sum_n \left[E_n\right]  
+    + \frac{1}{\mathcal{N}}\sum_\sigma\sum_m\sum_{x,y}\left[\langle \hat{n}_{x,y}^{\sigma,m} \rangle\right],
 \end{equation}
 and $\mathcal{N}$ is the number of degrees of freedom.
 The quartic interaction
-$\langle\mathcal{V}\rangle_\text{mf}$
-in the mean-field basis is given by
-\begin{equation}
-    \langle\mathcal{V}\rangle_\text{mf}=
+$\langle\mathcal{V}\rangle$
+in the mean-field basis $\{E_n,|n\rangle\}$ is given by
+\begin{multline}
+    \langle\mathcal{V}\rangle=
+    \frac{1}{\mathcal{N}}
+    \sum_\sigma\sum_m\sum_{x,y}
+    U^m_{x,y}
+    \Big[
+    \langle\hat{n}^{ \downarrow,m}_{ x,y }\rangle
+    \langle\hat{n}^{ \uparrow,m}_{ x,y }\rangle
+    -\langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle
+    \langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle\\
+    +\langle\hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle
+    \langle\hat{c}^{ \downarrow,m \dagger }_{ x,y }\hat{c}^{ \uparrow,m \dagger}_{ x,y }\rangle\Big]
 ,
-\end{equation}
+\end{multline}
 
+The quadratic interaction
+$\langle\mathcal{V}_\text{mf}\rangle$
+is given by
+\begin{multline}
+    \langle\mathcal{V}_\text{mf}\rangle=
+    \frac{1}{\mathcal{N}}
+    \sum_\sigma\sum_m\sum_{x,y}
+    \Big[
+    \phi^{\uparrow,m}_{x,y} \langle\hat{n}^{ \downarrow,m}_{ x,y }\rangle
+    +\phi^{\downarrow,m}_{x,y} \langle\hat{n}^{ \uparrow,m}_{ x,y }\rangle
+    -\Phi^{m}_{x,y} \langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle\\
+    -\Phi^{m*}_{x,y} \langle\hat{c}^{ \uparrow,m \dagger }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle
+    +\Delta^{m}_{x,y} \langle\hat{c}^{ \uparrow,m }_{ x,y }\hat{c}^{ \downarrow,m }_{ x,y }\rangle
+    +\Delta^{m*}_{x,y} \langle\hat{c}^{ \downarrow,m \dagger }_{ x,y }\hat{c}^{ \uparrow,m \dagger}_{ x,y }\rangle\Big]
+,
+\end{multline}
 
 
 More details of the inhomogeous self-consistent superconducting density functional theory can be found in Leggett [{\color{red}REF}].
