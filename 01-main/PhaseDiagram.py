@@ -14,7 +14,7 @@ class PhaseDiagram():
         self.xlabel='Independent variable'
         self.ylabel='Dependent variable'
         
-        self.friction = 0
+        self.friction = 0.6
         self.max_iterations = 100
         self.absolute_convergence_factor = 0.00001
 
@@ -22,7 +22,16 @@ class PhaseDiagram():
 
         self.plotting_func=None
 
+        self.phase_diagram_extract_func=None
+        self.phase_diagram_plot_func=None
+
         self.png=False
+
+    def set_phase_diagram_extract_func(self,func):
+        self.phase_diagram_extract_func=func
+
+    def set_phase_diagram_plot_func(self,func):
+        self.phase_diagram_plot_func=func
     
     def set_png(self):
         self.png=True
@@ -91,6 +100,8 @@ class PhaseDiagram():
 
         x = self.indep_vars[self.i]
         bdg = self.model(x)
+
+        friction=self.friction
         
         if self.i>0:
             bdg._hartree=self.bdg._hartree
@@ -99,8 +110,9 @@ class PhaseDiagram():
             bdg._hubbard_indices=self.bdg._hubbard_indices
             bdg._anomalous_indices=self.bdg._anomalous_indices
             bdg.U_entries=self.bdg.U_entries
+            friction=0
         
-        bdg.self_consistent_calculation(friction=self.friction, max_iterations=self.max_iterations, absolute_convergence_factor=self.absolute_convergence_factor)
+        bdg.self_consistent_calculation(friction=friction, max_iterations=self.max_iterations, absolute_convergence_factor=self.absolute_convergence_factor)
 
         self.y = self.func_returning_dep_vars(bdg)
 
@@ -143,6 +155,29 @@ class PhaseDiagram():
                         self.plotting_func(bdg)
                         )
 
+    def plot_phase_diagram(self):
+
+        yy=[]
+        for self.i in tqdm.tqdm(range(len(self.indep_vars)),desc='Indep var', total=len(self.indep_vars),leave=False):
+            self.filename=f'{self.i:04d}_{self.indep_vars[self.i]}'
+            filename=os.path.join(self.data,self.filename+'.npz')
+            bdg = np.load(filename, allow_pickle=True)
+
+            y=self.phase_diagram_extract_func(bdg)
+            
+            yy.append(y)
+       
+        x=self.indep_vars
+        yy=np.moveaxis(yy,0,-1)
+        
+        fig,ax = self.phase_diagram_plot_func(x,yy)
+        
+        filename=os.path.join(self.fig+'.pdf')
+        plt.savefig(filename, bbox_inches = "tight", dpi=DPI)
+        plt.close()
+        
+        
+
 class PlotMinimisedData():
 
     def __init__(self):
@@ -164,8 +199,17 @@ class PlotMinimisedData():
 
         self.plotting_func=None
 
+        self.phase_diagram_extract_func=None
+        self.phase_diagram_plot_func=None
+
         self.png=False
-    
+
+    def set_phase_diagram_extract_func(self,func):
+        self.phase_diagram_extract_func=func
+
+    def set_phase_diagram_plot_func(self,func):
+        self.phase_diagram_plot_func=func
+        
     def set_png(self):
         self.png=True
     
@@ -266,5 +310,27 @@ class PlotMinimisedData():
                     self.save_fig(
                             self.plotting_func(bdg)
                             )
+        
+    def plot_phase_diagram(self):
 
-    
+        yy=[]
+        for self.i in tqdm.tqdm(range(len(self.variables)),leave=False):
+            filename=f'{self.variables[self.i]}'
+            
+            filename=os.path.join(self.data,filename+'.txt')
+            with open(filename) as f:
+                filename = f.readlines()[0]
+                bdg = np.load(filename, allow_pickle=True)
+
+            y=self.phase_diagram_extract_func(bdg)
+            
+            yy.append(y)
+       
+        x=self.variables
+        yy=np.moveaxis(yy,0,-1)
+        
+        fig,ax = self.phase_diagram_plot_func(x,yy)
+        
+        filename=os.path.join(self.fig+'.pdf')
+        plt.savefig(filename, bbox_inches = "tight", dpi=DPI)
+        plt.close()

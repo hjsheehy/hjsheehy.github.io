@@ -136,15 +136,16 @@ def lighten_color(color, amount=0.5):
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
 def points_in_circle(radius, x0=0, y0=0):
+    radius-=1
     x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
     y_ = np.arange(y0 - radius - 1, y0 + radius + 1, dtype=int)
     x, y = np.where((x_[:,np.newaxis] - x0)**2 + (y_ - y0)**2 <= radius**2)
-    # x, y = np.where((np.hypot((x_-x0)[:,np.newaxis], y_-y0)<= radius)) # alternative implementation
-    for x, y in zip(x_[x], y_[y]):
-        yield x, y
+    pts = np.array([x,y]).T
+    pts = pts - radius - 1
+    return pts
 
 def points_on_circle(radius, x0=0, y0=0):
-    pts=list(points_in_circle(radius=radius, x0=x0, y0=y0))
-    pts_inside=list(points_in_circle(radius=radius-1, x0=x0, y0=y0))
-    pts=[pt for pt in pts if pt not in pts_inside]
+    pts=points_in_circle(radius=radius, x0=x0, y0=y0)
+    pts_inside=points_in_circle(radius=radius-1, x0=x0, y0=y0)
+    pts=pts[np.all(np.any((pts-pts_inside[:, None]), axis=2), axis=0)]
     return pts

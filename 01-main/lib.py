@@ -1756,6 +1756,7 @@ class BogoliubovdeGennes(TightBinding):
         self._hartree=np.zeros([self.n_dof], dtype=COMPLEX)
         self._fock=np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX)
         self._gorkov=np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX)
+
     def set_hartree_antiferromagnetic(self,rho,rho_shift,atom=None,orbital=None):
         self.set_hartree(rho+rho_shift,atom=atom,orbital=orbital,spin='up',_antiferromagnet=True)
         self.set_hartree(rho-rho_shift,atom=atom,orbital=orbital,spin='dn',_antiferromagnet=True)
@@ -1811,7 +1812,8 @@ class BogoliubovdeGennes(TightBinding):
                 self._hubbard_u = np.zeros([self.n_total_kpts,self.n_dof, self.n_dof], dtype=COMPLEX) 
             else:
                 self._hubbard_u = np.zeros([self.n_dof, self.n_dof], dtype=COMPLEX) 
-        self._hubbard_u += self._onsite(impurity_amplitude, atom, orbital, spin, impurity_locations)
+       
+        self._hubbard_u += self._onsite_tensor(onsite=impurity_amplitude, atom=atom, orbital=orbital, spin=spin, position_coordinates=impurity_locations)
 
     def _set_hubbard_indices(self):
 
