@@ -1,0 +1,332 @@
+from PhaseDiagram import *
+
+def model(U):
+
+    Cu=Atom([0,0],'Cu')
+    O_x=Atom([0.5,0],'O_x')
+    O_y=Atom([0,0.5],'O_y')
+    Cu.add_orbital('d')
+    O_x.add_orbital('p_x')
+    O_y.add_orbital('p_y')
+    lattice_vectors=[[1,0],[0,1]]
+    bdg=BogoliubovdeGennes(lattice_vectors,'CuO_2')
+    bdg.add_atom(Cu)
+    bdg.add_atom(O_x)
+    bdg.add_atom(O_y)
+    bdg.n_spins=2
+
+    bdg.cut(n_cells, [0,1], glue_edgs=True)
+    bdg.set_onsite(-mu+s,atom='Cu')
+    bdg.set_onsite(-mu-s,atom='O_x')
+    bdg.set_onsite(-mu-s,atom='O_y')
+    bdg.set_hopping(-t,atom_i='Cu',atom_f='O_x',hop_vector=[0,0],label='-t')
+    bdg.set_hopping(t,atom_i='Cu',atom_f='O_y',hop_vector=[0,0],label='t')
+    bdg.set_hopping(t,atom_i='O_x',atom_f='Cu',hop_vector=[1,0],label='t')
+    bdg.set_hopping(-t,atom_i='O_y',atom_f='Cu',hop_vector=[0,1],label='-t')
+
+    impurity_locations=points_in_circle(radius=L, x0=0, y0=0)
+
+    bdg.add_impurities(V,impurity_locations,label='V')
+    
+    if spin_density_wave:
+        bdg.set_hartree(rho+rho_shift,atom='Cu',spin='up')
+        bdg.set_hartree(rho-rho_shift,atom='Cu',spin='dn')
+        bdg.set_hartree(rho-rho_shift,atom='O_x',spin='up')
+        bdg.set_hartree(rho+rho_shift,atom='O_x',spin='dn')
+        bdg.set_hartree(rho-rho_shift,atom='O_y',spin='up')
+        bdg.set_hartree(rho+rho_shift,atom='O_y',spin='dn')
+
+    elif charge_density_wave:
+        bdg.set_hartree(rho+rho_shift,atom='Cu')
+        bdg.set_hartree(rho-rho_shift,atom='O_x')
+        bdg.set_hartree(rho-rho_shift,atom='O_y')
+        bdg.set_hartree_antiferromagnetic(rho,-rho_shift,atom='O_y')
+
+    else:
+        bdg.set_hartree(rho+rho_shift,spin='up')
+        bdg.set_hartree(rho-rho_shift,spin='dn')
+
+    bdg.set_fock(phi,spin_i='up',spin_f='dn')
+
+    bdg.set_gorkov(chi+chi_shift,spin_i='up',spin_f='dn',atom_i='Cu',atom_f='Cu')
+    bdg.set_gorkov(chi-chi_shift,spin_i='up',spin_f='dn',atom_i='O_x',atom_f='O_x')
+    bdg.set_gorkov(chi-chi_shift,spin_i='up',spin_f='dn',atom_i='O_y',atom_f='O_y')
+
+    _print=False
+    ##############################
+    ### Add to notes and docs! ###
+    ###     U>0 repulsive      ###
+    ###     U<0 attractive     ###
+    ##############################
+    bdg.set_hubbard_u(U,spin_i='up',spin_f='dn',hop_vector=[0,0])
+    bdg.set_hubbard_u_impurities(-U, atom='Cu', impurity_locations=impurity_locations)
+    bdg.U=U
+
+    # bdg.record_hartree(location=[0,0], spin='up', _print=_print)
+    # bdg.record_hartree(location=[0,0], spin='dn', _print=_print)
+    # bdg.record_fock(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
+    # bdg.record_gorkov(location_i=[0,0], location_f=[0,0], spin_i='up', spin_f='dn',_print=_print)
+
+    return bdg
+
+def func_of_dep_vars(bdg):
+    energy_interval=np.linspace(-8,8,600)
+    resolution=0.1
+    bdg.greens_function_xy=GreensFunction(bdg,energy_interval,resolution, k_axes=None)
+
+    return bdg
+
+def plotting_func(bdg):
+    fig,ax=plt.subplots()
+
+    greens_function = bdg.greens_function_xy
+
+    x = greens_function.energy_interval
+    y1 = greens_function.spectrum(sites='integrated', atom='Cu',orbital='integrated', spin='integrated', anomalous=False)
+    y2 = greens_function.spectrum(sites='integrated', atom='O_x',orbital='integrated', spin='integrated', anomalous=False)
+    y3 = greens_function.spectrum(sites='integrated', atom='O_y',orbital='integrated', spin='integrated', anomalous=False)
+    linestyles=['solid','solid','dashed']
+    ax.plot(y1,x,label=r'$\text{Cu}^{d_{x^2-y^2}}$',c='r',linestyle=linestyles[0])
+    ax.plot(y2,x,label=r'$\text{O}^{p_x}$',c='g',linestyle=linestyles[1])
+    ax.plot(y3,x,label=r'$\text{O}^{p_y}$',c='b',linestyle=linestyles[2])
+    ax.set_xlabel(r'$\text{DOS}(\omega)$')
+    ax.set_ylabel(r'$\omega$')
+    ax.legend()
+    ax.set_title(rf'$U={bdg.U:0.03f}$')
+
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
+    plt.tight_layout()
+    return fig
+
+def phase_diagram_extract_func(bdg):
+
+    greens_function = bdg.greens_function_xy
+
+    N1=bdg.hartree(atom='Cu')[0,0]
+    N2=bdg.hartree(atom='O_x')[0,0]
+    N3=bdg.hartree(atom='O_y')[0,0]
+    M1=np.abs(bdg.hartree(atom='Cu',spin='up')-bdg.hartree(atom='Cu',spin='dn'))[0,0]
+    M2=np.abs(bdg.hartree(atom='O_x',spin='up')-bdg.hartree(atom='O_x',spin='dn'))[0,0]
+    M3=np.abs(bdg.hartree(atom='O_y',spin='up')-bdg.hartree(atom='O_y',spin='dn'))[0,0]
+    Phi1=bdg.fock(atom_i='Cu',atom_f='Cu',spin_i='up',spin_f='dn')[0,0]
+    Phi2=bdg.fock(atom_i='O_x',atom_f='O_x',spin_i='up',spin_f='dn')[0,0]
+    Phi3=bdg.fock(atom_i='O_y',atom_f='O_y',spin_i='up',spin_f='dn')[0,0]
+    Delta1=bdg.gorkov(atom_i='Cu',atom_f='Cu',spin_i='up',spin_f='dn')[0,0]
+    Delta2=bdg.gorkov(atom_i='O_x',atom_f='O_x',spin_i='up',spin_f='dn')[0,0]
+    Delta3=bdg.gorkov(atom_i='O_y',atom_f='O_y',spin_i='up',spin_f='dn')[0,0]
+    N=N1+N2
+    CDW=N1-N2
+    M=M1+M2
+    AF=M1-M2
+    Phi=Phi1+Phi2
+    Delta=Delta1+Delta2
+    DeltaDW=Delta1-Delta2
+    y=[N,M,CDW,AF,Phi,Delta,DeltaDW]
+    return y
+
+def phase_diagram_plot_func(x,y):
+
+    fig,ax=plt.subplots()
+
+    labels = [
+            r'$\langle\hat{\mathcal{N}}\rangle$',
+            r'$\langle\hat{\mathcal{M}}\rangle$',
+            r'$\text{AF}$',
+            r'$\text{CDW}$',
+            r'$\Phi$',
+            r'$\Delta$',
+            r'$\Delta\text{DW}$']
+    
+    markers=['.','x','s','+','^','v','o']
+
+    colors=['b','g','r','c','m','k','orange']
+
+    ax.set_xlabel('$U$')
+    ax.set_ylabel('Field amplitude')
+
+    for i in range(len(labels)):
+
+        ax.plot(x,y[i],label=labels[i],marker=markers[i],c=colors[i])
+
+    ax.legend()
+    fig.set_size_inches(w=LATEX_WIDTH, h=LATEX_WIDTH) 
+    plt.tight_layout()
+    return fig,ax
+
+def minimised_plot_func():
+    pass
+
+####################################################
+
+n_cells=5
+
+mu=0
+s=0
+t=1
+
+V=0
+
+L=0
+
+rho,rho_shift,phi,chi=10,0,0,3
+charge_density_wave=False
+spin_density_wave=False
+U=4
+
+# DATA=DATA+'temp'
+# # bdg=model(U)
+# # bdg.self_consistent_calculation(friction=0.9, max_iterations=400, absolute_convergence_factor=0.00001)
+# # func_of_dep_vars(bdg)
+# # with open(DATA+'.npz', 'wb') as f:
+# #     cPickle.dump(bdg, f)
+# bdg = np.load(os.path.join(DATA+'.npz'), allow_pickle=True)
+
+# plotting_func(bdg)
+# plt.show()
+
+# exit()
+
+EXECUTE=True
+PLOT=True
+
+pos=np.linspace(0,10,20)
+neg=np.linspace(-10,0,20)
+XX=[pos[::-1],neg]
+
+# rho,rho_shift,phi,chi,chi_shift=-15,0,0,0,10
+# charge_density_wave=False
+# spin_density_wave=False
+# names=['DeltaDW_rep_U','DeltaDW_att_U']
+# for i in range(len(names)):
+#     if i==1:
+#         rho=-rho
+#     name=names[i]
+#     X=XX[i]
+
+#     phase_diagram=PhaseDiagram(model=model)
+#     phase_diagram.set_directory_name(name)
+#     phase_diagram.set_indep_vars(X)
+#     phase_diagram.set_dep_vars_func(func_of_dep_vars)
+#     phase_diagram.set_plotting_func(plotting_func)
+#     phase_diagram.set_png()
+#     if EXECUTE:
+#         phase_diagram.execute()
+#     elif PLOT:
+#         phase_diagram.plot()
+#     phase_diagram.set_phase_diagram_extract_func(phase_diagram_extract_func)
+#     phase_diagram.set_phase_diagram_plot_func(phase_diagram_plot_func)
+#     phase_diagram.plot_phase_diagram()
+
+rho,rho_shift,phi,chi,chi_shift=-6.5,0,0,3,0
+charge_density_wave=False
+spin_density_wave=False
+names=['Delta_rep_U','Delta_att_U']
+for i in range(len(names)):
+    if i==1:
+        rho=20
+    name=names[i]
+    X=XX[i]
+
+    phase_diagram=PhaseDiagram(model=model)
+    phase_diagram.set_directory_name(name)
+    phase_diagram.set_indep_vars(X)
+    phase_diagram.set_dep_vars_func(func_of_dep_vars)
+    phase_diagram.set_plotting_func(plotting_func)
+    phase_diagram.set_png()
+    if EXECUTE:
+        phase_diagram.execute()
+    elif PLOT:
+        phase_diagram.plot()
+    phase_diagram.set_phase_diagram_extract_func(phase_diagram_extract_func)
+    phase_diagram.set_phase_diagram_plot_func(phase_diagram_plot_func)
+    phase_diagram.plot_phase_diagram()
+
+exit()
+
+rho,rho_shift,phi,chi=-2,10,0,0
+charge_density_wave=False
+spin_density_wave=False
+names=['Mag_rep_U','Mag_att_U']
+for i in range(len(names)):
+    if i==1:
+        rho=-rho
+    name=names[i]
+    X=XX[i]
+
+    phase_diagram=PhaseDiagram(model=model)
+    phase_diagram.set_directory_name(name)
+    phase_diagram.set_indep_vars(X)
+    phase_diagram.set_dep_vars_func(func_of_dep_vars)
+    phase_diagram.set_plotting_func(plotting_func)
+    phase_diagram.set_png()
+    if EXECUTE:
+        phase_diagram.execute()
+    elif PLOT:
+        phase_diagram.plot()
+    phase_diagram.set_phase_diagram_extract_func(phase_diagram_extract_func)
+    phase_diagram.set_phase_diagram_plot_func(phase_diagram_plot_func)
+    phase_diagram.plot_phase_diagram()
+
+charge_density_wave=False
+spin_density_wave=True
+rho,rho_shift,phi,chi=-2,10,0,0
+names=['AF_rep_U','AF_att_U']
+for i in range(len(names)):
+    if i==1:
+        rho=-rho
+    name=names[i]
+    X=XX[i]
+
+    phase_diagram=PhaseDiagram(model=model)
+    phase_diagram.set_directory_name(name)
+    phase_diagram.set_indep_vars(X)
+    phase_diagram.set_dep_vars_func(func_of_dep_vars)
+    phase_diagram.set_plotting_func(plotting_func)
+    phase_diagram.set_png()
+    if EXECUTE:
+        phase_diagram.execute()
+    elif PLOT:
+        phase_diagram.plot()
+    phase_diagram.set_phase_diagram_extract_func(phase_diagram_extract_func)
+    phase_diagram.set_phase_diagram_plot_func(phase_diagram_plot_func)
+    phase_diagram.plot_phase_diagram()
+
+charge_density_wave=True
+spin_density_wave=False
+rho,rho_shift,phi,chi=-2,10,0,0
+names=['CDW_rep_U','CDW_att_U']
+for i in range(len(names)):
+    if i==1:
+        rho=-rho
+    name=names[i]
+    X=XX[i]
+
+    phase_diagram=PhaseDiagram(model=model)
+    phase_diagram.set_directory_name(name)
+    phase_diagram.set_indep_vars(X)
+    phase_diagram.set_dep_vars_func(func_of_dep_vars)
+    phase_diagram.set_plotting_func(plotting_func)
+    phase_diagram.set_png()
+    if EXECUTE:
+        phase_diagram.execute()
+    elif PLOT:
+        phase_diagram.plot()
+    phase_diagram.set_phase_diagram_extract_func(phase_diagram_extract_func)
+    phase_diagram.set_phase_diagram_plot_func(phase_diagram_plot_func)
+    phase_diagram.plot_phase_diagram()
+
+names=['DeltaDW_rep_U','DeltaDW_att_U','Delta_rep_U','Delta_att_U','Mag_rep_U','Mag_att_U','AF_rep_U','AF_att_U','CDW_rep_U','CDW_att_U']
+minimised_data = PlotMinimisedData()
+minimised_data.set_data_directories(names)
+minimised_data.set_directory_name('minimised_data')
+minimised_data.set_plotting_func(plotting_func)
+minimised_data.minimised_data()
+
+minimised_data.set_png()
+
+if PLOT:
+    minimised_data.plot()
+
+minimised_data.set_phase_diagram_extract_func(phase_diagram_extract_func)
+minimised_data.set_phase_diagram_plot_func(phase_diagram_plot_func)
+minimised_data.plot_phase_diagram()
