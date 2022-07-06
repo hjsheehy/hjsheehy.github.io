@@ -749,7 +749,7 @@ The onsite is input as a scalar, a pair (for each spin), a 2-matrix (spin-flips)
         if np.array([self.n_orbitals(0)==self.n_orbitals(o) for o in range(self.n_atoms)],bool).all() and np.shape(onsite)==(so,so):
             spin_orbit=onsite
             atom=np.zeros(self.n_atoms)
-            atom[self.atoms]=1
+            atom[self._atom_indices]=1
             atom=np.diag(atom)
             so_tensor=np.kron(spin_orbit,atom)
 
@@ -1672,6 +1672,9 @@ class BogoliubovdeGennes(TightBinding):
         self.__hartree_index=0
         self.__fock_index=0
         self.__gorkov_index=0
+
+        self._get_symmetry=False
+        self._preserve_symmetry=False
     
     def set_friction(friction=0.95):
         self.friction = friction
@@ -1757,9 +1760,9 @@ class BogoliubovdeGennes(TightBinding):
         self._fock=np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX)
         self._gorkov=np.zeros([self.n_dof,self.n_dof], dtype=COMPLEX)
 
-    def set_hartree_antiferromagnetic(self,rho,rho_shift,atom=None,orbital=None):
-        self.set_hartree(rho+rho_shift,atom=atom,orbital=orbital,spin='up',_antiferromagnet=True)
-        self.set_hartree(rho-rho_shift,atom=atom,orbital=orbital,spin='dn',_antiferromagnet=True)
+    def set_hartree_antiferromagnetic(self,rho,atom=None,orbital=None):
+        self.set_hartree(-rho,atom=atom,orbital=orbital,spin='up',_antiferromagnet=True)
+        self.set_hartree(-rho,atom=atom,orbital=orbital,spin='dn',_antiferromagnet=True)
 
     def set_hartree(self,onsite,atom=None,orbital=None,spin=None,position_coordinates=None,_antiferromagnet=False):
         if type(self._hartree)==type(None):
@@ -1789,14 +1792,20 @@ class BogoliubovdeGennes(TightBinding):
         self.external_hartree += np.diag(self._onsite_tensor(onsite=onsite, atom=atom, orbital=orbital, spin=spin, position_coordinates=position_coordinates))
 
     def set_external_fock(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
-        self.external_fock += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+        tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=False)
+        self.external_fock += tmp
+        if add_time_reversal:
+            self.external_fock += -tmp.T
 
     def set_external_gorkov(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
-        self.external_gorkov += self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=add_time_reversal)
+        tmp = self._hopping_tensor(hopping_amplitude=hopping_amplitude, k=k, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f, add_time_reversal=False)
+        self.external_gorkov += tmp
+        if add_time_reversal:
+            self.external_gorkov += -tmp.T
 
     def set_hubbard_u(self, hopping_amplitude, k=None, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, spin_i=None, spin_f=None, hop_vector=None, add_time_reversal=True):
-        if hopping_amplitude==0:
-            hopping_amplitude=10**(-10)
+        if np.sum(np.abs(hopping_amplitude))==0:
+            hopping_amplitude=hopping_amplitude + 10**(-10)
 
         if type(self._hubbard_u)==type(None):
             if self.bulk_calculation:
@@ -2011,7 +2020,7 @@ class BogoliubovdeGennes(TightBinding):
         else:
             hartree = +np.einsum('ij,j->i',-self._hubbard_u,trace_density,optimize=True)
             fock    = -np.multiply(self.U_entries,density)
-            gorkov  = +np.multiply(self.U_entries,anomalous_density)
+            gorkov  = -np.multiply(self.U_entries,anomalous_density)
         return np.real_if_close(hartree), np.real_if_close(fock), np.real_if_close(gorkov)
 
     def calculate_free_energy(self, trace_density, density, anomalous_density):
@@ -2037,7 +2046,7 @@ class BogoliubovdeGennes(TightBinding):
         h+=h
         f=np.sum(-self._fock*density)
         f+=np.conj(f)
-        g=np.sum(-self._gorkov*anomalous_density)
+        g=np.sum(self._gorkov*anomalous_density)
         g+=np.conj(g)
 
         self.interaction_V_mf.append(-np.real((h+f+g)/n_dof))
@@ -2153,7 +2162,7 @@ class BogoliubovdeGennes(TightBinding):
         trace_density, density, anomalous_density = self.thermal_density_matrix
 
         hartree, fock, gorkov = self._set_fields(trace_density, density, anomalous_density)
-        
+
         ##################### Free energy ######################
         
         self.calculate_free_energy(trace_density, density, anomalous_density)
@@ -2168,6 +2177,13 @@ class BogoliubovdeGennes(TightBinding):
         self._hartree, self._fock, self._gorkov = hartree, fock, gorkov 
 
         return self.eigenvalues,self.eigenvectors
+
+    def get_symmetry(self):
+        self._get_symmetry=True
+        self._preserve_symmetry=True
+
+    def preserve_symmetry(self):
+        self._preserve_symmetry=True
 
     def self_consistent_calculation(self,friction=0.95,max_iterations=100,absolute_convergence_factor=0.00001):
         """If dos=True, the density of states are calculated once the self consistent
@@ -2189,6 +2205,14 @@ class BogoliubovdeGennes(TightBinding):
             for i in range(self.max_iterations):
                 
                 self.iterations+=1
+
+                if i==0 and self._get_symmetry:
+                    self._fock_symmetry=np.sign(self._fock)
+                    self._gorkov_symmetry=np.sign(self._gorkov)
+                else:
+                    if self._preserve_symmetry:
+                        self._fock = np.multiply(np.abs(self._fock), self._fock_symmetry)
+                        self._gorkov = np.multiply(np.abs(self._gorkov), self._gorkov_symmetry)
 
                 hartree_old = self._hartree
                 fock_old = self._fock

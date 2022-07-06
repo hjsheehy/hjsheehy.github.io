@@ -8,6 +8,7 @@ from common import *
 import numpy as np
 from numpy import kron
 import scipy
+from scipy import stats as st
 from scipy import linalg as la
 import scipy.sparse as sp
 from math import floor, ceil

@@ -14,9 +14,9 @@ class PhaseDiagram():
         self.xlabel='Independent variable'
         self.ylabel='Dependent variable'
         
-        self.friction = 0.6
-        self.max_iterations = 100
-        self.absolute_convergence_factor = 0.00001
+        self.friction = 0.9
+        self.max_iterations = 200
+        self.absolute_convergence_factor = 0.000001
 
         self.indep_vars=[]
 
@@ -24,6 +24,9 @@ class PhaseDiagram():
 
         self.phase_diagram_extract_func=None
         self.phase_diagram_plot_func=None
+
+        self.iterations_plot=None
+        self._plot_initial_only=False
 
         self.png=False
 
@@ -78,6 +81,12 @@ class PhaseDiagram():
         """plotting_func must be a funciton of bdg which returns fig,ax"""
         self.plotting_func=plotting_func
 
+    def set_plot_initial_iterations(self,plotting_func):
+        self.iterations_plot=plotting_func
+
+    def plot_initial_only(self):
+        self._plot_initial_only=True
+
     def save_data(self,bdg):
         self.filename=f'{self.i:04d}_{self.indep_vars[self.i]}'
         filename=os.path.join(self.data,self.filename+'.npz')
@@ -101,9 +110,13 @@ class PhaseDiagram():
         x = self.indep_vars[self.i]
         bdg = self.model(x)
 
-        friction=self.friction
-        
-        if self.i>0:
+        if self.i==0:
+            friction=self.friction
+            bdg.get_symmetry()
+        else:
+            bdg.preserve_symmetry()
+            bdg._fock_symmetry=self.bdg._fock_symmetry
+            bdg._gorkov_symmetry=self.bdg._gorkov_symmetry
             bdg._hartree=self.bdg._hartree
             bdg._fock=self.bdg._fock
             bdg._gorkov=self.bdg._gorkov
@@ -126,22 +139,31 @@ class PhaseDiagram():
 
         self.bdg = bdg
 
-        self.i+=1
-
     def execute(self):
 
-        self.__delete_files()
+        # self.__delete_files()
 
         iteration = iter(self)
 
         for self.i in tqdm.tqdm(range(len(self.indep_vars)),desc='Indep var', total=len(self.indep_vars),leave=False):
 
             next(iteration)
+            
+            if type(self.iterations_plot)!=type(None) and self.i==0:
+                fig,ax=self.iterations_plot(self.bdg)
+                filename=self.fig+'_initial_iteration.pdf'
+                plt.savefig(filename, bbox_inches = "tight", dpi=DPI)
+                plt.close()
+
+                if self._plot_initial_only:
+                    break
+                    
 
             if type(self.plotting_func)!=type(None):
                 self.save_fig(
                         self.plotting_func(self.bdg)
                         )
+
 
     def plot(self):
         for self.i in tqdm.tqdm(range(len(self.indep_vars)),desc='Indep var', total=len(self.indep_vars),leave=False):
@@ -192,8 +214,8 @@ class PlotMinimisedData():
         self.ylabel='Dependent variable'
         
         self.friction = 0
-        self.max_iterations = 100
-        self.absolute_convergence_factor = 0.00001
+        self.max_iterations = 200
+        self.absolute_convergence_factor = 0.000001
 
         self.indep_vars=[]
 

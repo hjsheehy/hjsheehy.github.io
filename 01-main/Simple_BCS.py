@@ -22,10 +22,11 @@ def main():
     bdg.set_hartree(rho_up,spin='up')
     bdg.set_hartree(rho_dn,spin='dn')
     bdg.set_fock(phi,spin_i='up',spin_f='dn')
-    bdg.set_gorkov(chi*1j*Pauli_y)
+    bdg.set_gorkov(chi*1j*Pauli_y,add_time_reversal=False)
+    # bdg.set_gorkov(chi,spin_i='up',spin_f='dn')
     
     # bdg.set_hubbard_u(U,spin_i='up',spin_f='dn')
-    bdg.set_hubbard_u(U*Pauli_x)
+    bdg.set_hubbard_u(-U*Pauli_x)
 
     # bdg._set_mean_field_hamiltonian()
     # hamiltonian = np.real(bdg._hamiltonian)
@@ -120,12 +121,14 @@ rho_up=3.4
 rho_dn=1.4
 phi=0
 chi=1.0
-n_cells=21
+n_cells=11
 max_iterations=100
 friction=0.4
 
 _print=True
 print_free_energy=True
+_print=False
+print_free_energy=False
 
 # for alpha in [True, False]:
     # greens_function_xy, greens_function_xq, greens_function_kq, bdg = main()
@@ -141,6 +144,10 @@ print_free_energy=True
 
 bulk_calculation = False
 bdg = main()
+print(bdg._gorkov_iterations[0][-1])
+print(bdg._hartree_iterations[0][-1])
+print(bdg._hartree_iterations[1][-1])
+print(bdg.free_energy[-1])
 # exit()
 plot_iterations(bdg)
 plt.show()
