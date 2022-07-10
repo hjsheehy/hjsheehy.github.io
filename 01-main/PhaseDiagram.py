@@ -14,7 +14,7 @@ class PhaseDiagram():
         self.xlabel='Independent variable'
         self.ylabel='Dependent variable'
         
-        self.friction = 0.9
+        self.friction = 0
         self.max_iterations = 200
         self.absolute_convergence_factor = 0.000001
 

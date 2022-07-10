@@ -23,10 +23,10 @@ __version__='1.0.0'
 # -automated method of using bulk mean-fields as an applied bias onto the surface layer
 # -add dictionary to field records
 ############################################################################       
-# Scanning tunnelling microscopy (STM), quasiparticle interference (QPI) and 
-# angle-resolved photoemission spectrocopy (ARPES) simulation of (topological)
+# scanning tunnelling microscopy (stm), quasiparticle interference (qpi) and 
+# angle-resolved photoemission spectrocopy (arpes) simulation of (topological)
 # non-unitary spin-triplet unconventional superconductivity and magnetism, in 
-# quantum dots, thin films and 3D, with impurities.
+# quantum dots, thin films and 3d, with impurities.
 
 # Copyright (C) 2022, Henry Joseph Sheehy
 # 
@@ -2362,6 +2362,11 @@ class BogoliubovdeGennes(TightBinding):
 
         return hartree
 
+    def hartree_magnetism(self,atom=None,orbital=None):
+        up = self.hartree(atom=atom,orbital=orbital,spin='up')
+        dn = self.hartree(atom=atom,orbital=orbital,spin='dn')
+        return up-dn
+
     def _field_indexing(self, field_array, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=[0,0], spin_i=None, spin_f=None):
         if type(hop_vector)==type(None):
             hop_vector=[0,0]
@@ -2422,10 +2427,18 @@ class BogoliubovdeGennes(TightBinding):
 
         return field_array
 
-    def fock(self, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None):
+    def fock(self, atom=None, atom_i=None, atom_f=None, orbital=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None):
+        if type(atom)!=type(None):
+            atom_i=atom_f=atom
+        if type(orbital)!=type(None):
+            orbital_i=orbital_f=orbital
         return self._field_indexing(field_array=self.fock_array, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f)
 
-    def gorkov(self, atom_i=None, atom_f=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None):
+    def gorkov(self, atom=None, atom_i=None, atom_f=None, orbital=None, orbital_i=None, orbital_f=None, hop_vector=None, spin_i=None, spin_f=None):
+        if type(atom)!=type(None):
+            atom_i=atom_f=atom
+        if type(orbital)!=type(None):
+            orbital_i=orbital_f=orbital
         return self._field_indexing(field_array=self.gorkov_array, atom_i=atom_i, atom_f=atom_f, orbital_i=orbital_i, orbital_f=orbital_f, hop_vector=hop_vector, spin_i=spin_i, spin_f=spin_f)
 ###################################################################
 ##################### Plotting ##########################
@@ -3107,9 +3120,6 @@ If spin=None: trace spin, else spin polarised"""
 
     def local_density_of_states(self, sites='resolved', atom='integrated', orbital='integrated', energy='resolved', anomalous=False):
         return self.density_of_states(sites=sites, atom=atom, orbital=orbital, spin='integrated', energy=energy, anomalous=anomalous)
-
-    def spin_polarised_local_density_of_states(self, sites='resolved', atom='integrated', spin='resolved', energy='resolved', anomalous=False):
-        return self.density_of_states(sites=sites, atom=atom, orbital='integrated', spin=spin, energy=energy, anomalous=anomalous)
 
     def staggered_density(self, atom_i, atom_f, energy=None):
         A=self.local_density_of_states(energy=energy, atom=atom_i, orbital=None, spin=None)
